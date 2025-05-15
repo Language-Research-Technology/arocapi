@@ -6,18 +6,22 @@ This project was bootstrapped with Fastify-CLI.
 
 In the project directory, you can run:
 
-### `npm run dev`
+### `pnpm run dev`
 
 To start the app in dev mode.\
 Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
 
-### `npm start`
+### `pnpm start`
 
 For production mode
 
-### `npm run test`
+### `pnpm run test`
 
 Run the test cases.
+
+### `pnpm run dbconsole`
+
+Connect to mysql console
 
 ## Learn More
 

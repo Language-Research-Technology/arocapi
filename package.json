@@ -26,7 +26,8 @@
     "watch:ts": "tsc -w",
     "dev": "npm run dev:clean && npm run build:ts && concurrently -k -p \"[{name}]\" -n \"TypeScript,App\" -c \"yellow.bold,cyan.bold\" \"npm:watch:ts\" \"npm:dev:start\"",
     "dev:start": "fastify start --ignore-watch=.ts$ -w -l info -P dist/app.js",
-    "dev:clean": "rm -rf dist"
+    "dev:clean": "rm -rf dist",
+    "dbconsole": "docker compose exec db mysql --password=password catalog"
   },
   "keywords": [],
   "author": "John Ferlito <johnf@inodes.org>",
