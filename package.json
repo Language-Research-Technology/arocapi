@@ -5,18 +5,19 @@
   "description": "This project was bootstrapped with Fastify-CLI.",
   "main": "app.ts",
   "dependencies": {
-    "fastify": "^5.0.0",
-    "fastify-plugin": "^5.0.0",
     "@fastify/autoload": "^6.0.0",
+    "@fastify/cors": "^11.0.1",
     "@fastify/sensible": "^6.0.0",
-    "fastify-cli": "^7.4.0"
+    "fastify": "^5.0.0",
+    "fastify-cli": "^7.4.0",
+    "fastify-plugin": "^5.0.0"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
     "@types/node": "^22.1.0",
-    "ts-node": "^10.4.0",
     "concurrently": "^9.0.0",
     "fastify-tsconfig": "^3.0.0",
+    "ts-node": "^10.4.0",
     "typescript": "~5.8.2"
   },
   "scripts": {
