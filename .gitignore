@@ -13,3 +13,6 @@ node_modules
 
 # compiled app
 dist
+
+# prisma
+src/generated/prisma/

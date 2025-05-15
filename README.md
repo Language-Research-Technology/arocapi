@@ -2,6 +2,20 @@
 
 This project was bootstrapped with Fastify-CLI.
 
+## Getting started
+
+```bash
+# Bring up the database
+docker compose up
+
+# Generate db client
+npx prisma generate
+npx prisma migrate dev
+
+# Run the app
+pnpm run dev
+```
+
 ## Available Scripts
 
 In the project directory, you can run:
