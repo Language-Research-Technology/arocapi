@@ -62,6 +62,7 @@ const loadEntities = async (): Promise<void> => {
             conformsTo: entity.conformsTo,
             memberOf: entity.memberOf || null,
             root: entity.root || null,
+            recordType: entity.recordType,
           },
         });
       }
