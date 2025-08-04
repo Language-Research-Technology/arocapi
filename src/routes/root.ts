@@ -1,7 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify';
 
-const root: FastifyPluginAsync = async (fastify, opts) => {
-  fastify.get('/', async (request, reply) => ({ root: true }));
+const root: FastifyPluginAsync = async (fastify, _opts) => {
+  fastify.get('/', async (_request, _reply) => ({ root: true }));
 };
 
 export default root;

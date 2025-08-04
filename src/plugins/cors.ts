@@ -1,5 +1,5 @@
-import fp from 'fastify-plugin';
 import cors, { type FastifyCorsOptions } from '@fastify/cors';
+import fp from 'fastify-plugin';
 
 /**
  * This plugins allows us to configure CORS.
