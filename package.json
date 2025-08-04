@@ -1,8 +1,8 @@
 {
   "type": "module",
-  "name": "A reference implementation for RO-Crate API",
+  "name": "arocapi",
   "version": "1.0.0",
-  "description": "This project was bootstrapped with Fastify-CLI.",
+  "description": "An RO-Crate API",
   "main": "app.ts",
   "dependencies": {
     "@fastify/autoload": "^6.0.0",
