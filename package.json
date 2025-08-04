@@ -19,8 +19,6 @@
     "concurrently": "^9.0.0",
     "fastify-tsconfig": "^3.0.0",
     "prisma": "^6.7.0",
-    "ts-node": "^10.4.0",
-    "tsx": "^4.19.4",
     "typescript": "~5.8.3"
   },
   "scripts": {
@@ -31,7 +29,7 @@
     "dev:start": "fastify start --ignore-watch=.ts$ -w -l info -P dist/app.js",
     "dev:clean": "rm -rf dist",
     "dbconsole": "docker compose exec db mysql --password=password catalog",
-    "load-test-data": "tsx src/scripts/loadEntities.ts"
+    "load-test-data": "src/scripts/loadEntities.ts"
   },
   "keywords": [],
   "author": "John Ferlito <johnf@inodes.org>",
