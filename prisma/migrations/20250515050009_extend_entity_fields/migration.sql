@@ -1,0 +1,7 @@
+-- AlterTable
+ALTER TABLE `Entity` MODIFY `rocrateId` VARCHAR(2048) NOT NULL,
+    MODIFY `name` VARCHAR(1024) NOT NULL,
+    MODIFY `description` TEXT NOT NULL,
+    MODIFY `conformsTo` VARCHAR(2048) NOT NULL,
+    MODIFY `memberOf` VARCHAR(2048) NULL,
+    MODIFY `root` VARCHAR(2048) NULL;

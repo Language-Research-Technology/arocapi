@@ -1,4 +1,10 @@
 services:
+  oni-ui:
+    image: ghcr.io/paradisec-archive/oni-ui:paradisec
+    ports:
+      - 5173:5173
+    volumes:
+      - ./oni-config.json:/app/config/configuration.json
   db:
     image: mysql:9
     restart: always
