@@ -27,6 +27,7 @@ model Entity {
   root        String? @db.VarChar(2048)
   /// RecordType[]
   recordType  Json
+  rocrate     Json
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

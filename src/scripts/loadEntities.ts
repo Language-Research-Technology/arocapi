@@ -16,7 +16,7 @@ const INDEX_NAME = 'entities';
 
 const BATCH_SIZE = 100;
 const TOTAL_RECORDS = 1000;
-const API_URL = 'https://catalog.paradisec.org.au/api/v1/oni/entities';
+const API_URL = 'https://catalog.paradisec.org.au/api/v1/oni';
 
 interface EntityResponse {
   total: number;
@@ -34,7 +34,7 @@ interface EntityResponse {
 }
 
 const fetchEntities = async (limit: number, offset: number) => {
-  const url = `${API_URL}?limit=${limit}&offset=${offset}`;
+  const url = `${API_URL}/entities?limit=${limit}&offset=${offset}`;
   console.log(`Fetching ${url}`);
 
   const response = await fetch(url);
@@ -45,6 +45,19 @@ const fetchEntities = async (limit: number, offset: number) => {
   const result = (await response.json()) as EntityResponse;
 
   return result;
+};
+
+const fetchEntityRocrate = async (entityId: string) => {
+  const url = `${API_URL}/entity/${encodeURIComponent(entityId)}`;
+  console.log(`Fetching ROCrate for ${entityId}`);
+
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`ROCrate API request failed with status ${response.status} for entity ${entityId}`);
+  }
+
+  const rocrate = await response.json();
+  return rocrate;
 };
 
 const generateDummyData = () => {
@@ -100,6 +113,7 @@ const createIndex = async () => {
             location: { type: 'geo_point' },
             createdAt: { type: 'date' },
             updatedAt: { type: 'date' },
+            rocrate: { type: 'text' },
           },
         },
       },
@@ -113,7 +127,7 @@ const createIndex = async () => {
 };
 
 // Index entity to OpenSearch
-const indexEntity = async (entity: any, dummyData: any) => {
+const indexEntity = async (entity: any, dummyData: any, rocrate: any) => {
   const document = {
     rocrateId: entity.id,
     name: entity.name,
@@ -128,6 +142,7 @@ const indexEntity = async (entity: any, dummyData: any) => {
     location: dummyData.location,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
+    rocrate: JSON.stringify(rocrate),
   };
 
   await opensearch.index({
@@ -157,6 +172,9 @@ const loadEntities = async (): Promise<void> => {
       for (const entity of data.entities) {
         const dummyData = generateDummyData();
 
+        // Fetch ROCrate data for this entity
+        const rocrate = await fetchEntityRocrate(entity.id);
+
         await prisma.entity.create({
           data: {
             rocrateId: entity.id,
@@ -166,10 +184,11 @@ const loadEntities = async (): Promise<void> => {
             memberOf: entity.memberOf || null,
             root: entity.root || null,
             recordType: entity.recordType,
+            rocrate: rocrate,
           },
         });
 
-        await indexEntity(entity, dummyData);
+        await indexEntity(entity, dummyData, rocrate);
       }
 
       processedCount += data.entities.length;
