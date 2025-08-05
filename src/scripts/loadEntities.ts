@@ -1,6 +1,18 @@
 import { PrismaClient } from '../generated/prisma/client.js';
+import { Client } from '@opensearch-project/opensearch';
 
 const prisma = new PrismaClient();
+
+if (!process.env.OPENSEARCH_URL) {
+  throw new Error('OPENSEARCH_URL environment variable is not set');
+}
+
+// Initialize OpenSearch client
+const opensearch = new Client({
+  node: process.env.OPENSEARCH_URL,
+});
+
+const INDEX_NAME = 'entities';
 
 const BATCH_SIZE = 100;
 const TOTAL_RECORDS = 1000;
@@ -35,15 +47,105 @@ const fetchEntities = async (limit: number, offset: number) => {
   return result;
 };
 
+const generateDummyData = () => {
+  const languages = ['English', 'Japanese', 'French', 'Spanish', 'German', 'Italian'];
+  const mediaTypes = ['audio/wav', 'audio/mp3', 'video/mp4', 'text/plain', 'image/jpeg'];
+  const communicationModes = ['SpokenLanguage', 'WrittenLanguage', 'SignedLanguage', 'Song'];
+
+  // Australian bounding box coordinates
+  const lat = -25 + (Math.random() - 0.5) * 20; // -35 to -15
+  const lng = 134 + (Math.random() - 0.5) * 40; // 114 to 154
+
+  return {
+    inLanguage: languages[Math.floor(Math.random() * languages.length)],
+    mediaType: mediaTypes[Math.floor(Math.random() * mediaTypes.length)],
+    communicationMode: communicationModes[Math.floor(Math.random() * communicationModes.length)],
+    location: {
+      lat,
+      lon: lng,
+    },
+  };
+};
+
+const createIndex = async () => {
+  try {
+    const indexExists = await opensearch.indices.exists({ index: INDEX_NAME });
+
+    if (indexExists.body) {
+      console.log(`Index ${INDEX_NAME} already exists, deleting...`);
+      await opensearch.indices.delete({ index: INDEX_NAME });
+    }
+
+    console.log(`Creating index ${INDEX_NAME}...`);
+    await opensearch.indices.create({
+      index: INDEX_NAME,
+      body: {
+        mappings: {
+          properties: {
+            rocrateId: { type: 'keyword' },
+            name: {
+              type: 'text',
+              fields: {
+                keyword: { type: 'keyword' },
+              },
+            },
+            description: { type: 'text' },
+            conformsTo: { type: 'keyword' },
+            recordType: { type: 'keyword' },
+            memberOf: { type: 'keyword' },
+            root: { type: 'keyword' },
+            inLanguage: { type: 'keyword' },
+            mediaType: { type: 'keyword' },
+            communicationMode: { type: 'keyword' },
+            location: { type: 'geo_point' },
+            createdAt: { type: 'date' },
+            updatedAt: { type: 'date' },
+          },
+        },
+      },
+    });
+
+    console.log('Index created successfully');
+  } catch (error) {
+    console.error('Error creating index:', error);
+    throw error;
+  }
+};
+
+// Index entity to OpenSearch
+const indexEntity = async (entity: any, dummyData: any) => {
+  const document = {
+    rocrateId: entity.id,
+    name: entity.name,
+    description: entity.description,
+    conformsTo: entity.conformsTo,
+    recordType: entity.recordType,
+    memberOf: entity.memberOf || null,
+    root: entity.root || null,
+    inLanguage: dummyData.inLanguage,
+    mediaType: dummyData.mediaType,
+    communicationMode: dummyData.communicationMode,
+    location: dummyData.location,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+
+  await opensearch.index({
+    index: INDEX_NAME,
+    id: entity.id,
+    body: document,
+  });
+};
+
 const loadEntities = async (): Promise<void> => {
   try {
     console.log('Starting to load entities...');
     await prisma.$connect();
 
-    // Track how many we've processed so far
+    await createIndex();
+
     let processedCount = 0;
 
-    // Continue fetching until we have processed TOTAL_RECORDS
     while (processedCount < TOTAL_RECORDS) {
       const remainingToFetch = Math.min(BATCH_SIZE, TOTAL_RECORDS - processedCount);
       const data = await fetchEntities(remainingToFetch, processedCount);
@@ -52,8 +154,9 @@ const loadEntities = async (): Promise<void> => {
         `Fetched ${data.entities.length} entities (${processedCount + data.entities.length}/${TOTAL_RECORDS})`,
       );
 
-      // Process each entity
       for (const entity of data.entities) {
+        const dummyData = generateDummyData();
+
         await prisma.entity.create({
           data: {
             rocrateId: entity.id,
@@ -65,19 +168,22 @@ const loadEntities = async (): Promise<void> => {
             recordType: entity.recordType,
           },
         });
+
+        await indexEntity(entity, dummyData);
       }
 
       processedCount += data.entities.length;
       console.log(`Processed ${processedCount}/${TOTAL_RECORDS} entities`);
 
-      // If we've received fewer entities than requested, we've reached the end
       if (data.entities.length < remainingToFetch) {
         console.log('Reached the end of available entities');
         break;
       }
     }
 
-    console.log(`Successfully loaded ${processedCount} entities into the database`);
+    await opensearch.indices.refresh({ index: INDEX_NAME });
+
+    console.log(`Successfully loaded ${processedCount} entities into database and OpenSearch`);
   } catch (error) {
     console.error('Error loading entities:', error);
     process.exit(1);
