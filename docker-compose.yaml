@@ -4,14 +4,14 @@ services:
     ports:
       - 5173:5173
     volumes:
-      - ./oni-config.json:/app/config/configuration.json
+      - ./docker/oni-config.json:/app/config/configuration.json
   db:
     image: mysql:9
     restart: always
     ports:
       - 3306:3306
     volumes:
-    - db-data:/var/lib/mysql
+      - db-data:/var/lib/mysql
     environment:
       MYSQL_ROOT_PASSWORD: password
       MYSQL_DATABASE: catalog

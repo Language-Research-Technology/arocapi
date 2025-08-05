@@ -1,0 +1,468 @@
+{
+  "api": {
+    "rocrate": {
+      "endpoint": "http://localhost:3000",
+      "path": ""
+    }
+  },
+  "ui": {
+    "siteName": "AROCAPI Test",
+    "siteNameX": "AROCAPI",
+    "title": "An RO Crate API Reference Implementation",
+    "shortTitle": "AROCAPI",
+    "splash": {
+      "text": "Oni acknowledges all Aboriginal and Torres Strait Islander Traditional Custodians of Country and recognises their continuing connection to land, sea, culture and community. We pay our respects to Elders past and present.",
+      "textClass": "text-5xl text-[#F4EDE4] pb-10",
+      "image": "splash-background-1.png",
+      "enabled": true,
+      "launcher": "Acknowledgement of Country"
+    },
+    "showLogo": true,
+    "navHeight": "80px",
+    "showNotebooks": false,
+    "showEllipsis": true,
+    "help": {
+      "aboutText": "This is an Oni Data Portal publication. This portal provides access to a repository of language data, it is provided by the Language Data Commons of Australia [LDaCA](<a href='https://ldaca.edu.au'>https://ldaca.edu.au</a>).",
+      "helpUrl": "https://www.example.com",
+      "citationText": "CITE AS: Oni Platform. A project with co-investment from Australian Research Data Commons, The University of Queensland, The University of Melbourne, The University of Sydney, Monash University, First Languages Australia and AARNet."
+    },
+    "subHelpLinks": [
+      {
+        "name": "Example Link",
+        "href": "https://www.example.com",
+        "target": "_blank"
+      }
+    ],
+    "terms": {
+      "text": "Example terms of service",
+      "href": "/terms",
+      "title": "Terms of Service"
+    },
+    "email": {
+      "help": "help@example.com"
+    },
+    "footer": {
+      "copyright": "Example Group",
+      "link": {
+        "href": "https://example.com",
+        "text": "Oni"
+      }
+    },
+    "login": {
+      "enabled": true
+    },
+    "authorizationProvider": {
+      "label": "REMS",
+      "url": "https://rems-uat.example.com/applications"
+    },
+    "enrollment": {
+      "enforced": false,
+      "URL": "https://registry-test.ldaca.edu.au/registry/co_petitions/start/coef:9"
+    },
+    "topNavItems": [
+      {
+        "route": "list?conformsTo=https%3A%2F%2Fw3id.org%2Fldac%2Fprofile%23Collection",
+        "display": "Collections"
+      },
+      {
+        "route": "list?conformsTo=https%3A%2F%2Fw3id.org%2Fldac%2Fprofile%23Object",
+        "display": "Items"
+      },
+      {
+        "route": "list?conformsTo=https%3A%2F%2Fw3id.org%2Fldac%2Fprofile%23Object,https%3A%2F%2Fw3id.org%2Fldac%2Fprofile%23Collection",
+        "display": "Both"
+      },
+      {
+        "route": "search?f=%257B%2522%2540type%2522%253A%255B%2522RepositoryCollection%2522%255D%252C%2522_isTopLevel.%2540value%2522%253A%255B%2522true%2522%255D%257D",
+        "display": "Top Collections"
+      },
+      {
+        "route": "/search?f=%257B%2522%2540type%2522%253A%255B%2522SoftwareApplication%2522%255D%257D",
+        "display": "Notebooks"
+      }
+    ],
+    "search": {
+      "sorting": [
+        {
+          "value": "relevance",
+          "label": "Relevance"
+        },
+        {
+          "value": "id",
+          "label": "Id"
+        },
+        {
+          "value": "name",
+          "label": "Title"
+        },
+        {
+          "value": "createdAt",
+          "label": "Created"
+        },
+        {
+          "value": "updatedAt",
+          "label": "Updated"
+        }
+      ],
+      "searchSorting": {
+        "value": "relevance",
+        "label": "Relevance"
+      },
+      "ordering": [
+        {
+          "value": "asc",
+          "label": "Ascending"
+        },
+        {
+          "value": "desc",
+          "label": "Descending"
+        }
+      ],
+      "defaultOrder": {
+        "value": "desc",
+        "label": "Descending"
+      },
+      "searchDetails": [
+        {
+          "field": "language",
+          "label": "Language"
+        }
+      ]
+    },
+    "main": {
+      "fields": [
+        {
+          "display": "Language",
+          "name": "inLanguage"
+        },
+        {
+          "display": "Linguistic Genre",
+          "name": "linguisticGenre"
+        },
+        {
+          "display": "Comminication Mode",
+          "name": "communicationMode"
+        },
+        {
+          "display": "Annotation Type",
+          "name": "annotationType"
+        },
+        {
+          "display": "File Formats",
+          "name": "encodingFormat"
+        }
+      ],
+      "byteFields": ["size", "contentSize"],
+      "expand": ["speaker", "author", "citation"]
+    },
+    "collection": {
+      "name": {
+        "display": "Name",
+        "name": "name"
+      },
+      "top": [
+        {
+          "display": "Name",
+          "name": "name"
+        },
+        {
+          "display": "Description",
+          "name": "description"
+        },
+        {
+          "display": "Date Published",
+          "name": "datePublished"
+        }
+      ],
+      "meta": {
+        "hide": [
+          "name",
+          "description",
+          "datePublished",
+          "license",
+          "@type",
+          "containsTypes",
+          "crateId",
+          "isRoot",
+          "isTopLevel",
+          "root",
+          "hasPart",
+          "hasMember",
+          "memberOf",
+          "isSubLevel",
+          "memberOf",
+          "access",
+          "collectionStack",
+          "metadataIsPublic",
+          "metadataLicense",
+          "identifier",
+          "subCollection",
+          "mainCollection"
+        ],
+        "displayHasMember": false,
+        "displayHasPart": true
+      },
+      "relationships": [
+        {
+          "name": "notebook",
+          "display": "Notebooks",
+          "type": "SoftwareApplication"
+        }
+      ]
+    },
+    "object": {
+      "name": {
+        "display": "Name",
+        "name": "name"
+      },
+      "top": [
+        {
+          "display": "Name",
+          "name": "name"
+        },
+        {
+          "display": "Description",
+          "name": "description"
+        },
+        {
+          "display": "Date Published",
+          "name": "datePublished"
+        }
+      ],
+      "meta": {
+        "hide": [
+          "memberOf",
+          "name",
+          "description",
+          "datePublished",
+          "identifier",
+          "license",
+          "@type",
+          "containsTypes",
+          "crateId",
+          "isRoot",
+          "isTopLevel",
+          "root",
+          "hasPart",
+          "hasMember",
+          "error",
+          "parent",
+          "access",
+          "indexableText",
+          "access",
+          "collectionStack",
+          "metadataIsPublic",
+          "metadataLicense",
+          "mainCollection",
+          "subCollection"
+        ]
+      }
+    },
+    "file": {
+      "meta": {
+        "hide": [
+          "name",
+          "@type",
+          "access",
+          "crateId",
+          "parent",
+          "memberOf",
+          "root",
+          "text",
+          "collectionStack",
+          "metadataIsPublic",
+          "metadataLicense",
+          "mainCollection",
+          "subCollection"
+        ]
+      }
+    },
+    "notebook": {
+      "name": {
+        "display": "Name",
+        "name": "name"
+      },
+      "top": [
+        {
+          "display": "Name",
+          "name": "name"
+        },
+        {
+          "display": "Description",
+          "name": "description"
+        },
+        {
+          "display": "Date Published",
+          "name": "datePublished"
+        }
+      ],
+      "meta": {
+        "hide": [
+          "name",
+          "description",
+          "@type",
+          "datePublished",
+          "gitName",
+          "gitRepo",
+          "url",
+          "binderLink",
+          "base64",
+          "access",
+          "metadataIsPublic",
+          "metadataLicense",
+          "mainCollection",
+          "subCollection"
+        ],
+        "displayHasMember": false,
+        "displayHasPart": false
+      }
+    },
+    "analytics": {
+      "gaMeasurementId": "G-XXX"
+    },
+    "googleForm": {
+      "takedown": "https://docs.google.com/forms/d/e/1FAIpQLSc3wWGYLgkEtba65mL46BUhMAPWiHt5EHrQ2rWiI4nJqPjpDg/viewform?usp=pp_url&entry.812577446="
+    },
+    "binderhubRegistry": {
+      "registryJson": "https://api.github.com/repos/Language-Research-Technology/BinderHub-registry/contents/BinderHub-registry.json"
+    },
+    "aggregations": [
+      {
+        "display": "Collector",
+        "order": 0,
+        "name": "collector_name",
+        "active": true,
+        "hide": false
+      },
+      {
+        "display": "Collection",
+        "order": 1,
+        "name": "memberOf",
+        "hide": false
+      },
+      {
+        "display": "Main Collections",
+        "order": 0,
+        "name": "root",
+        "help": "A group of related objects such as a corpus, a sub-corpus, or items collected in a session with consultants.",
+        "hide": false
+      },
+      {
+        "display": "Collection",
+        "order": 1,
+        "name": "mainCollection",
+        "help": "A group of related objects such as a corpus, a sub-corpus, or items collected in a session with consultants.",
+        "hide": true
+      },
+      {
+        "display": "Country",
+        "order": 2,
+        "name": "countries",
+        "help": "The countries associated with the entity."
+      },
+      {
+        "display": "License",
+        "order": 0,
+        "name": "licenseId",
+        "hide": true,
+        "icons": true
+      },
+      {
+        "display": "Access",
+        "order": 2,
+        "name": "licenseName",
+        "help": "The access conditions associated with a resource."
+      },
+      {
+        "display": "Record Type",
+        "order": 3,
+        "name": "type",
+        "help": "The type of object a record describes, i.e. a collection, object or file. For individual files, this field also gives information about the nature of the material, i.e. primary material, transcription, annotation etc."
+      },
+      {
+        "display": "Language",
+        "order": 4,
+        "name": "languages",
+        "help": "The language(s) of the content in this resource."
+      },
+      {
+        "display": "Communication Mode",
+        "order": 5,
+        "name": "communicationMode",
+        "help": "The mode(s) (spoken, written, signed, etc.) used in the interaction represented by this resource.",
+        "icons": true
+      },
+      {
+        "display": "Linguistic Genre",
+        "order": 6,
+        "name": "linguisticGenre",
+        "help": "The linguistic classification of the genre of this resource."
+      },
+      {
+        "display": "File Format",
+        "order": 7,
+        "name": "encodingFormat",
+        "help": "The media type of the resource.",
+        "icons": true
+      },
+      {
+        "display": "Annotation Type",
+        "order": 8,
+        "name": "annotationType"
+      }
+    ],
+    "searchFields": {
+      "name": {
+        "label": "Name",
+        "checked": true
+      },
+      "description": {
+        "label": "Description",
+        "checked": true
+      },
+      "inLanguage": {
+        "label": "Language",
+        "checked": true
+      },
+      "text": {
+        "label": "Text",
+        "checked": true
+      }
+    },
+    "licenses": [
+      {
+        "license": "#restricted",
+        "group": "restricted-users",
+        "access": "loginPlus",
+        "enrollment": {
+          "url": "http://localhost",
+          "label": "",
+          "class": ""
+        }
+      }
+    ],
+    "conformsTo": {
+      "collection": "https://w3id.org/ldac/profile#Collection",
+      "object": "https://w3id.org/ldac/profile#Object",
+      "notebook": "https://w3id.org/ldac/profile#Notebook"
+    },
+    "mapConfig": {
+      "boundingBox": {
+        "topRight": {
+          "lat": -11.523088,
+          "lng": 162.649886
+        },
+        "bottomLeft": {
+          "lat": -42.811522,
+          "lng": 108.64901
+        }
+      },
+      "precision": 5,
+      "center": {
+        "lat": -25,
+        "lng": 134
+      },
+      "zoom": 8
+    }
+  }
+}
