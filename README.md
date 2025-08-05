@@ -14,9 +14,9 @@ The aim is to provide an API-centred reference implementation of a repository wi
   - [OCFL] - the Oxford Common File Layout specification on disk or cloud-based object storage
   - Object Storage as used in [PARADISEC]
   - A simple RO-Crate file layout (TODO - likely a super-simple protocol for directory hierarchy with the presense on RO-Crate used to indicate that everythig under that directory is a single RO-Crate)
-- Authorisation based on the concept of Access (and Deposit, TODO) Licenses arms-length process, consulting an external authority such as a REMS instance or
+- Authorisation based on the concept of Access (and Deposit, TODO) Licenses using an arms-length process with an external authority such as a REMS instance or other license/group managmenet system
   - Based on the princuple that all data MUST have a implementation-neutral natural-language description of its access conditiions stored with it
-  - Licenses may be based on access control lists maintained in software such as PARADISEC or a license manager such as REMS, (TODO: an example implementation using github groups to manage license access)).
+  - Licenses may be based on 'traditional' access control lists maintained in software such as PARADISEC or a license manager such as REMS, (TODO: an example implementation using github groups to manage license access, a simple ACL manager?)).
 
 
 
