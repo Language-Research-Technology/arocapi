@@ -30,7 +30,7 @@ describe('explodeCrate', function() {
         // Additional checks can be added here based on the expected structure of the crate 
         
       
-        console.log("PRUNED", entities)
+        
         expect(entities.length).to.be.equal(42);
         
     });
