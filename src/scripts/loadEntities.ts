@@ -1,5 +1,5 @@
-import { PrismaClient } from '../generated/prisma/client.js';
 import { Client } from '@opensearch-project/opensearch';
+import { PrismaClient } from '../generated/prisma/client.js';
 
 const prisma = new PrismaClient();
 
@@ -127,6 +127,7 @@ const createIndex = async () => {
 };
 
 // Index entity to OpenSearch
+// biome-ignore lint/suspicious/noExplicitAny: FIXME
 const indexEntity = async (entity: any, dummyData: any, rocrate: any) => {
   const document = {
     rocrateId: entity.id,

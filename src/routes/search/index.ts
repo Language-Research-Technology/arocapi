@@ -1,9 +1,9 @@
+import type { MultiBucketAggregateBaseFiltersBucket } from '@opensearch-project/opensearch/api/_types/_common.aggregations.js';
+import type { BoolQuery } from '@opensearch-project/opensearch/api/_types/_common.query_dsl.js';
+import type { Search_Request, Search_RequestBody } from '@opensearch-project/opensearch/api/index.js';
 import type { FastifyPluginAsync } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod/v4';
-import { Search_Request, Search_RequestBody } from '@opensearch-project/opensearch/api/index.js';
-import { BoolQuery } from '@opensearch-project/opensearch/api/_types/_common.query_dsl.js';
-import { MultiBucketAggregateBaseFiltersBucket } from '@opensearch-project/opensearch/api/_types/_common.aggregations.js';
 
 const boundingBoxSchema = z.object({
   topRight: z.object({
@@ -232,11 +232,11 @@ const search: FastifyPluginAsync = async (fastify, _opts) => {
 
         let geohashGrid: Record<string, number> | undefined;
         if (response.body.aggregations?.geohash_grid) {
-          geohashGrid = {};
           const geohashAgg = response.body.aggregations.geohash_grid as MultiBucketAggregateBaseFiltersBucket;
           if (geohashAgg?.buckets && Array.isArray(geohashAgg.buckets)) {
             geohashAgg.buckets.forEach((bucket) => {
-              geohashGrid![bucket.key] = bucket.doc_count;
+              geohashGrid ||= {};
+              geohashGrid[bucket.key] = bucket.doc_count;
             });
           }
         }

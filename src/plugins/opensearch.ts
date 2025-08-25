@@ -1,6 +1,6 @@
 import { Client } from '@opensearch-project/opensearch';
-import fp from 'fastify-plugin';
 import type { FastifyPluginAsync } from 'fastify';
+import fp from 'fastify-plugin';
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -30,4 +30,3 @@ export default fp<FastifyPluginAsync>(async (fastify) => {
 
   fastify.addHook('onClose', () => client.close());
 });
-

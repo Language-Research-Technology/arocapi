@@ -1,11 +1,11 @@
+import fp from 'fastify-plugin';
 import {
-  FastifyPluginAsyncZod,
+  type FastifyPluginAsyncZod,
+  hasZodFastifySchemaValidationErrors,
   isResponseSerializationError,
   serializerCompiler,
   validatorCompiler,
 } from 'fastify-type-provider-zod';
-import { hasZodFastifySchemaValidationErrors } from 'fastify-type-provider-zod';
-import fp from 'fastify-plugin';
 
 /**
  * This plugins allows us to validate parameters using zod
