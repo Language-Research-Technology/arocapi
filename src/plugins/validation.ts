@@ -40,5 +40,9 @@ export default fp<FastifyPluginAsyncZod>(async (fastify) => {
         },
       });
     }
+
+    // NOTE: We are exposing the error message here for development purposes.
+    // In production, consider hiding error details to avoid leaking sensitive information.
+    reply.status(500).send({ errors: [err.message] });
   });
 });
