@@ -5,8 +5,9 @@ services:
       - 5173:5173
     volumes:
       - ./docker/oni-config.json:/app/config/configuration.json
+
   db:
-    image: mysql:9
+    image: mysql:8
     restart: always
     ports:
       - 3306:3306
@@ -15,6 +16,7 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: password
       MYSQL_DATABASE: catalog
+
   opensearch:
     image: opensearchproject/opensearch:3
     container_name: opensearch
