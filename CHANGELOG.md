@@ -1,3 +1,9 @@
+## [1.0.2](https://github.com/Language-Research-Technology/arocapi/compare/v1.0.1...v1.0.2) (2025-08-26)
+
+### Bug Fixes
+
+* update zod ([69115f8](https://github.com/Language-Research-Technology/arocapi/commit/69115f83275805d2707ce241752edb54807443fb))
+
 ## [1.0.1](https://github.com/Language-Research-Technology/arocapi/compare/v1.0.0...v1.0.1) (2025-08-26)
 
 ### Bug Fixes
