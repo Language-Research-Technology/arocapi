@@ -1,3 +1,10 @@
+## [1.0.1](https://github.com/Language-Research-Technology/arocapi/compare/v1.0.0...v1.0.1) (2025-08-26)
+
+### Bug Fixes
+
+* publish to npm with semantic release ([e5f6418](https://github.com/Language-Research-Technology/arocapi/commit/e5f6418254b223286e17a9901e7624f08e545bfb))
+* update package.json keywords ([bf286a3](https://github.com/Language-Research-Technology/arocapi/commit/bf286a3a79c6e6afe1d5632150496ba7536f7a30))
+
 ## 1.0.0 (2025-08-26)
 
 ### Features
