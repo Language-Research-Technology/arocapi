@@ -4,7 +4,10 @@
     "lib": ["esnext", "dom"],
     "outDir": "dist",
     "declaration": true,
-    "sourceMap": true
+    "sourceMap": true,
+    // Both of these so prisma types work
+    "moduleResolution": "bundler",
+    "module": "esnext"
   },
   "include": ["src/**/*.ts"]
 }
