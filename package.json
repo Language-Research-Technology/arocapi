@@ -1,7 +1,7 @@
 {
   "type": "module",
   "name": "arocapi",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "An RO-Crate API",
   "main": "dist/app.js",
   "exports": {
@@ -14,7 +14,6 @@
     "@fastify/routes": "^6.0.2",
     "@fastify/sensible": "^6.0.0",
     "@opensearch-project/opensearch": "^3.5.1",
-    "@prisma/client": "^6.14.0",
     "dotenv": "^17.2.1",
     "express": "^5.1.0",
     "fastify": "^5.4.0",
@@ -25,15 +24,32 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.2.2",
+    "@prisma/client": "^6.14.0",
+    "@semantic-release/changelog": "^6.0.3",
+    "@semantic-release/git": "^10.0.1",
     "@types/express": "^5.0.3",
     "@types/node": "^22.18.0",
     "concurrently": "^9.2.1",
+    "conventional-changelog-conventionalcommits": "^9.1.0",
     "fastify-tsconfig": "^3.0.0",
     "prisma": "^6.14.0",
     "prisma-json-types-generator": "^3.6.0",
+    "semantic-release": "^24.2.7",
     "tsx": "^4.20.5",
     "typescript": "^5.9.2"
   },
+  "peerDependencies": {
+    "@prisma/client": ">=6"
+  },
+  "files": [
+    "src",
+    "!src/generated",
+    "dist",
+    "!dist/generated",
+    "README.md",
+    "prisma",
+    "prisma.config.ts"
+  ],
   "scripts": {
     "start": "npm run build:ts && fastify start -l info dist/app.js",
     "build:ts": "tsc",
@@ -44,10 +60,13 @@
     "dbconsole": "docker compose exec db mysql --password=password catalog",
     "load-test-data": "tsx src/scripts/loadEntities.ts",
     "lint:biome": "biome check",
-    "lint:types": "tsc --noEmit"
+    "lint:types": "tsc --noEmit",
+    "prepublishOnly": "npm run lint:biome && npm run lint:types && npm run build:ts",
+    "generate": "npx prisma generate",
+    "postinstall": "npm run generate"
   },
   "keywords": [],
   "author": "John Ferlito <johnf@inodes.org>",
   "license": "ISC",
-  "packageManager": "pnpm@10.7.0"
+  "packageManager": "pnpm@10.15.0+sha512.486ebc259d3e999a4e8691ce03b5cac4a71cbeca39372a9b762cb500cfdf0873e2cb16abe3d951b1ee2cf012503f027b98b6584e4df22524e0c7450d9ec7aa7b"
 }
