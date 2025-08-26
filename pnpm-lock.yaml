@@ -23,6 +23,9 @@ importers:
       '@opensearch-project/opensearch':
         specifier: ^3.5.1
         version: 3.5.1
+      '@prisma/config':
+        specifier: ^6.14.0
+        version: 6.14.0
       dotenv:
         specifier: ^17.2.1
         version: 17.2.1
