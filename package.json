@@ -70,7 +70,9 @@
     "lint:types": "tsc --noEmit",
     "prepublishOnly": "npm run lint:biome && npm run lint:types && npm run build:ts",
     "generate": "npx prisma generate",
-    "postinstall": "npm run generate"
+    "postinstall": "npm run generate",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate deploy"
   },
   "repository": {
     "type": "git",
