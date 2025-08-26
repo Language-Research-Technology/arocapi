@@ -1,3 +1,9 @@
+## [1.0.5](https://github.com/Language-Research-Technology/arocapi/compare/v1.0.4...v1.0.5) (2025-08-26)
+
+### Bug Fixes
+
+* migrate to per file prisma models ([c9cad6c](https://github.com/Language-Research-Technology/arocapi/commit/c9cad6cec4d1a49e6c9833643fee22fe25d8396f))
+
 ## [1.0.4](https://github.com/Language-Research-Technology/arocapi/compare/v1.0.3...v1.0.4) (2025-08-26)
 
 ### Bug Fixes
