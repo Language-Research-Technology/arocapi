@@ -1,3 +1,9 @@
+## [1.0.3](https://github.com/Language-Research-Technology/arocapi/compare/v1.0.2...v1.0.3) (2025-08-26)
+
+### Bug Fixes
+
+* add repository.url to package.json for provenance ([2cc35b9](https://github.com/Language-Research-Technology/arocapi/commit/2cc35b9d8c79ecc6037f77cf2ca00f29529ede0d))
+
 ## [1.0.2](https://github.com/Language-Research-Technology/arocapi/compare/v1.0.1...v1.0.2) (2025-08-26)
 
 ### Bug Fixes
