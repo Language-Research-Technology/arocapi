@@ -14,23 +14,3 @@ datasource db {
   provider = "mysql"
   url      = env("DATABASE_URL")
 }
-
-model Entity {
-  id          Int     @id @default(autoincrement())
-  rocrateId   String  @db.VarChar(2048)
-  name        String  @db.VarChar(1024)
-  description String  @db.Text
-  conformsTo  String  @db.VarChar(2048)
-  // NOTE: How should we do recordType, can we infer it from conformsTo?
-  // recordType String??
-  memberOf    String? @db.VarChar(2048)
-  root        String? @db.VarChar(2048)
-  /// RecordType[]
-  recordType  Json
-  rocrate     Json
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // TODO: How will we handle permissions?
-}
