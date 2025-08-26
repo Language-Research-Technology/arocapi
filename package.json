@@ -71,6 +71,10 @@
     "generate": "npx prisma generate",
     "postinstall": "npm run generate"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Language-Research-Technology/arocapi"
+  },
   "publishConfig": {
     "registry": "https://registry.npmjs.org/",
     "provenance": true
