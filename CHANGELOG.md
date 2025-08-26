@@ -1,3 +1,9 @@
+## [1.0.4](https://github.com/Language-Research-Technology/arocapi/compare/v1.0.3...v1.0.4) (2025-08-26)
+
+### Bug Fixes
+
+* add @prisma/config as a dependency for generate to work postinstall ([a180dfd](https://github.com/Language-Research-Technology/arocapi/commit/a180dfd151ab801ce67ecc37de14e6c105f4e824))
+
 ## [1.0.3](https://github.com/Language-Research-Technology/arocapi/compare/v1.0.2...v1.0.3) (2025-08-26)
 
 ### Bug Fixes
