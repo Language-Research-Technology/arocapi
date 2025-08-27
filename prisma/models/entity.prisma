@@ -4,14 +4,16 @@ model Entity {
   name        String  @db.VarChar(1024)
   description String  @db.Text
   conformsTo  String  @db.VarChar(2048)
-  // NOTE: How should we do recordType, can we infer it from conformsTo?
-  // recordType String??
   memberOf    String? @db.VarChar(2048)
   root        String? @db.VarChar(2048)
-  /// RecordType[]
-  recordType  Json
+  recordType  RecordType
   rocrate     Json
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+enum RecordType {
+  RepositoryCollection
+  RepositoryObject
 }

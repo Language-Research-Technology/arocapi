@@ -1,5 +1,7 @@
+import 'dotenv/config';
 import { Client } from '@opensearch-project/opensearch';
 import { PrismaClient } from '../generated/prisma/client.js';
+import { RecordType } from '../generated/prisma/enums.js';
 
 const prisma = new PrismaClient();
 
@@ -153,6 +155,18 @@ const indexEntity = async (entity: any, dummyData: any, rocrate: any) => {
   });
 };
 
+const getRecordType = (recordType: string[]) => {
+  if (recordType.includes('RepositoryCollection')) {
+    return RecordType.RepositoryCollection;
+  }
+
+  if (recordType.includes('RepositoryObject')) {
+    return RecordType.RepositoryObject;
+  }
+
+  throw new Error(`Unknown recordType ${recordType}`);
+};
+
 const loadEntities = async (): Promise<void> => {
   try {
     console.log('Starting to load entities...');
@@ -176,6 +190,8 @@ const loadEntities = async (): Promise<void> => {
         // Fetch ROCrate data for this entity
         const rocrate = await fetchEntityRocrate(entity.id);
 
+        const recordType = getRecordType(entity.recordType);
+
         await prisma.entity.create({
           data: {
             rocrateId: entity.id,
@@ -184,7 +200,7 @@ const loadEntities = async (): Promise<void> => {
             conformsTo: entity.conformsTo,
             memberOf: entity.memberOf || null,
             root: entity.root || null,
-            recordType: entity.recordType,
+            recordType,
             rocrate: rocrate,
           },
         });
