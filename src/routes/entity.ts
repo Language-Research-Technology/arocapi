@@ -1,7 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify';
 
 const entity: FastifyPluginAsync = async (fastify, _opts) => {
-  fastify.get<{ Params: { id: string } }>('/:id', async (request, reply) => {
+  fastify.get<{ Params: { id: string } }>('/entity/:id', async (request, reply) => {
     const { id } = request.params;
     console.log('🪚 request:', request);
 

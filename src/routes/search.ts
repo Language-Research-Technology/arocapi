@@ -163,7 +163,7 @@ const buildSort = (sort: SearchParams['sort'], order: SearchParams['order']) => 
 
 const search: FastifyPluginAsync = async (fastify, _opts) => {
   fastify.withTypeProvider<ZodTypeProvider>().post(
-    '/',
+    '/search',
     {
       schema: {
         body: searchParamsSchema,

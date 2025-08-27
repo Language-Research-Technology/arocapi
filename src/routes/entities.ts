@@ -1,7 +1,6 @@
 import type { FastifyPluginAsync } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod/v4';
-import type { EntityWhereInput } from '../../generated/prisma/models.js';
 
 const querySchema = z.object({
   memberOf: z.string().optional(),
@@ -23,7 +22,7 @@ const querySchema = z.object({
 
 const entities: FastifyPluginAsync = async (fastify, _opts) => {
   fastify.withTypeProvider<ZodTypeProvider>().get(
-    '/',
+    '/entities',
     {
       schema: {
         querystring: querySchema,
@@ -33,7 +32,7 @@ const entities: FastifyPluginAsync = async (fastify, _opts) => {
       const { memberOf, conformsTo, limit, offset, sort, order } = request.query;
       console.log('🪚 request.query:', JSON.stringify(request.query, null, 2));
 
-      const where: EntityWhereInput = {};
+      const where: NonNullable<Parameters<typeof fastify.prisma.entity.findMany>[0]>['where'] = {};
 
       if (memberOf) {
         where.memberOf = memberOf;

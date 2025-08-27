@@ -58,11 +58,11 @@
     "prisma.config.ts"
   ],
   "scripts": {
-    "start": "npm run build:ts && fastify start -l info dist/app.js",
+    "start": "npm run build:ts && node dist/index.js",
     "build:ts": "tsc",
     "watch:ts": "tsc -w",
     "dev": "npm run dev:clean && npm run build:ts && concurrently -k -p \"[{name}]\" -n \"TypeScript,App\" -c \"yellow.bold,cyan.bold\" \"npm:watch:ts\" \"npm:dev:start\"",
-    "dev:start": "fastify start --ignore-watch=.ts$ -w -l info -P dist/app.js",
+    "dev:start": "node --watch dist/index.js",
     "dev:clean": "rm -rf dist",
     "dbconsole": "docker compose exec db mysql --password=password catalog",
     "load-test-data": "tsx src/scripts/loadEntities.ts",

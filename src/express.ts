@@ -2,19 +2,20 @@ import type { Express } from 'express';
 import express from 'express';
 import Fastify from 'fastify';
 
-import rocapi from './app.js';
+import arocapi, { type Options } from './app.js';
 
-const fastify = Fastify({
-  logger: true,
-});
-fastify.register(rocapi);
+const fastify = Fastify();
 
-await fastify.ready();
+export default async (options: Options) => {
+  fastify.register(arocapi, options);
 
-const app: Express = express();
+  await fastify.ready();
 
-app.use(async (req, res) => {
-  fastify.routing(req, res);
-});
+  const app: Express = express();
 
-export default app;
+  app.use(async (req, res) => {
+    fastify.routing(req, res);
+  });
+
+  return app;
+};

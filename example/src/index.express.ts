@@ -1,9 +1,21 @@
-import rocapi from 'arocapi/express';
+import { Client } from '@opensearch-project/opensearch';
+import Arocapi from 'arocapi/express';
 import express from 'express';
 import expressListRoutes from 'express-list-routes';
 
+import { PrismaClient } from './generated/prisma/client.js';
+
+const prisma = new PrismaClient();
+
+if (!process.env.OPENSEARCH_URL) {
+  throw new Error('OPENSEARCH_URL environment variable is not set');
+}
+const opensearchUrl = process.env.OPENSEARCH_URL;
+const opensearch = new Client({ node: opensearchUrl });
+
 const app = express();
-app.use('/api', rocapi);
+const arocapi = await Arocapi({ opensearch, prisma });
+app.use('/api', arocapi);
 
 app.get('/', (_req, res) => {
   const routes = expressListRoutes(app).map((r) => r.path);
