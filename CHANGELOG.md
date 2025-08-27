@@ -1,3 +1,13 @@
+## [1.1.0](https://github.com/Language-Research-Technology/arocapi/compare/v1.0.5...v1.1.0) (2025-08-27)
+
+### Features
+
+* make the API mountable ([edf1c24](https://github.com/Language-Research-Technology/arocapi/commit/edf1c24952a1e11f39ffd2c0ca1d63365333b32c))
+
+### Bug Fixes
+
+* finalise move to prisma multi-model ([0681330](https://github.com/Language-Research-Technology/arocapi/commit/0681330bc51508dccbb4fb2258e2dc17b411a641))
+
 ## [1.0.5](https://github.com/Language-Research-Technology/arocapi/compare/v1.0.4...v1.0.5) (2025-08-26)
 
 ### Bug Fixes
