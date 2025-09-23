@@ -4,6 +4,7 @@ import type { Search_Request, Search_RequestBody } from '@opensearch-project/ope
 import type { FastifyPluginAsync } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod/v4';
+import { createInternalError } from '../utils/errors.js';
 
 const boundingBoxSchema = z.object({
   topRight: z.object({
@@ -116,9 +117,9 @@ const buildAggregations = (
         size: 20,
       },
     },
-    conformsTo: {
+    entityType: {
       terms: {
-        field: 'conformsTo',
+        field: 'entityType',
         size: 20,
       },
     },
@@ -202,12 +203,11 @@ const search: FastifyPluginAsync = async (fastify, _opts) => {
             id: hit._source.rocrateId,
             name: hit._source.name,
             description: hit._source.description,
-            conformsTo: hit._source.conformsTo,
-            recordType: hit._source.recordType,
+            entityType: hit._source.entityType,
             memberOf: hit._source.memberOf,
-            root: hit._source.root,
-            createdAt: hit._source.createdAt,
-            updatedAt: hit._source.updatedAt,
+            rootCollection: hit._source.rootCollection,
+            metadataLicenseId: hit._source.metadataLicenseId,
+            contentLicenseId: hit._source.contentLicenseId,
             searchExtra: {
               score: hit._score,
               highlight: hit.highlight,
@@ -260,7 +260,7 @@ const search: FastifyPluginAsync = async (fastify, _opts) => {
         console.error(err);
         fastify.log.error('Search error:', err.message);
 
-        return reply.code(500).send({ message: 'Search failed' });
+        return reply.code(500).send(createInternalError('Search failed'));
       }
     },
   );

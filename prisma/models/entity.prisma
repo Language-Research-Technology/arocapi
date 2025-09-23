@@ -1,19 +1,26 @@
 model Entity {
-  id          Int     @id @default(autoincrement())
-  rocrateId   String  @db.VarChar(2048)
-  name        String  @db.VarChar(1024)
-  description String  @db.Text
-  conformsTo  String  @db.VarChar(2048)
-  memberOf    String? @db.VarChar(2048)
-  root        String? @db.VarChar(2048)
-  recordType  RecordType
-  rocrate     Json
+  id                  Int        @id @default(autoincrement())
+
+  rocrateId           String     @db.VarChar(2048)
+
+  name                String     @db.VarChar(1024)
+  description         String     @db.Text
+
+  entityType          EntityType
+  memberOf            String?    @db.VarChar(2048)
+  rootCollection      String?    @db.VarChar(2048)
+  metadataLicenseId   String     @default("FIXME") @db.VarChar(2048)
+  contentLicenseId    String     @default("FIXME") @db.VarChar(2048)
+
+  rocrate             Json
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
-enum RecordType {
-  RepositoryCollection
-  RepositoryObject
+enum EntityType {
+  Collection  @map("http://pcdm.org/models#Collection")
+  Object      @map("http://pcdm.org/models#Object")
+  MediaObject @map("http://schema.org/MediaObject")
+  Person      @map("http://schema.org/Person")
 }
