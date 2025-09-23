@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import { Client } from '@opensearch-project/opensearch';
-import { type EntityType, PrismaClient } from '../generated/prisma/client.js';
+import { PrismaClient } from '../generated/prisma/client.js';
 
 const prisma = new PrismaClient();
 
@@ -26,7 +26,7 @@ interface EntityResponse {
     name: string;
     description: string;
     conformsTo: string;
-    entityType: EntityType;
+    entityType: string;
     memberOf?: string;
     root?: string;
     // extra: Record<string, any>;

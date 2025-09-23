@@ -1,16 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod/v4';
-import type { EntityType as PrismaEntityType } from '../generated/prisma/enums.js';
 import { createInternalError } from '../utils/errors.js';
-
-// https://github.com/prisma/prisma/issues/8446
-const EntityType = {
-  Collection: 'http://pcdm.org/models#Collection',
-  Object: 'http://pcdm.org/models#Object',
-  MediaObject: 'http://schema.org/MediaObject',
-  Person: 'http://schema.org/Person',
-} as Record<keyof typeof PrismaEntityType, string>;
 
 const querySchema = z.object({
   memberOf: z.url().optional(),
@@ -22,7 +13,7 @@ const querySchema = z.object({
 
       return val.split(',').map((item) => item.trim());
     })
-    .pipe(z.array(z.enum(EntityType)).optional()),
+    .pipe(z.array(z.string()).optional()),
   limit: z.coerce.number().int().min(1).max(1000).default(100),
   offset: z.coerce.number().int().min(0).default(0),
   sort: z.enum(['id', 'name', 'createdAt', 'updatedAt']).default('id'),
@@ -50,7 +41,7 @@ const entities: FastifyPluginAsync = async (fastify, _opts) => {
 
         if (entityType && entityType.length > 0) {
           where.entityType = {
-            in: entityType as PrismaEntityType[],
+            in: entityType,
           };
         }
 

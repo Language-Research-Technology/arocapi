@@ -6,7 +6,7 @@ model Entity {
   name                String     @db.VarChar(1024)
   description         String     @db.Text
 
-  entityType          EntityType
+  entityType          String     @db.VarChar(1024)
   memberOf            String?    @db.VarChar(2048)
   rootCollection      String?    @db.VarChar(2048)
   metadataLicenseId   String     @default("FIXME") @db.VarChar(2048)
@@ -16,11 +16,4 @@ model Entity {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-}
-
-enum EntityType {
-  Collection  @map("http://pcdm.org/models#Collection")
-  Object      @map("http://pcdm.org/models#Object")
-  MediaObject @map("http://schema.org/MediaObject")
-  Person      @map("http://schema.org/Person")
 }
