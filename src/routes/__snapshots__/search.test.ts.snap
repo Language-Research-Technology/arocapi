@@ -1,0 +1,67 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Search Route > POST /search > should handle opensearch errors 1`] = `
+{
+  "error": {
+    "code": "INTERNAL_ERROR",
+    "message": "Search failed",
+  },
+}
+`;
+
+exports[`Search Route > POST /search > should perform basic search successfully 1`] = `
+{
+  "entities": [
+    {
+      "contentLicenseId": null,
+      "description": "A test entity",
+      "entityType": "http://pcdm.org/models#Collection",
+      "id": "http://example.com/entity/1",
+      "memberOf": null,
+      "metadataLicenseId": null,
+      "name": "Test Entity 1",
+      "rootCollection": null,
+      "searchExtra": {
+        "highlight": {
+          "name": [
+            "<em>Test</em> Entity 1",
+          ],
+        },
+        "score": 1.5,
+      },
+    },
+    {
+      "contentLicenseId": null,
+      "description": "Another test entity",
+      "entityType": "http://pcdm.org/models#Object",
+      "id": "http://example.com/entity/2",
+      "memberOf": null,
+      "metadataLicenseId": null,
+      "name": "Test Entity 2",
+      "rootCollection": null,
+      "searchExtra": {
+        "highlight": {
+          "description": [
+            "Another <em>test</em> entity",
+          ],
+        },
+        "score": 1.2,
+      },
+    },
+  ],
+  "facets": {
+    "entityType": [
+      {
+        "count": 1,
+        "name": "http://pcdm.org/models#Collection",
+      },
+      {
+        "count": 1,
+        "name": "http://pcdm.org/models#Object",
+      },
+    ],
+  },
+  "searchTime": 10,
+  "total": 2,
+}
+`;

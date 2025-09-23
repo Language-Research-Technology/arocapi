@@ -17,7 +17,6 @@ const entity: FastifyPluginAsync = async (fastify, _opts) => {
     },
     async (request, reply) => {
       const { id } = request.params;
-      console.log('🪚 id:', JSON.stringify(id, null, 2));
 
       try {
         const entity = await fastify.prisma.entity.findFirst({
