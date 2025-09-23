@@ -19,6 +19,7 @@
   "license": "ISC",
   "packageManager": "pnpm@10.7.0",
   "dependencies": {
+    "@fastify/routes": "^6.0.2",
     "arocapi": "link:..",
     "express": "^5.1.0",
     "express-list-routes": "^1.3.1",
