@@ -16,3 +16,5 @@ dist
 
 # prisma
 src/generated/prisma/
+
+coverage

@@ -9,8 +9,8 @@ model Entity {
   entityType          String     @db.VarChar(1024)
   memberOf            String?    @db.VarChar(2048)
   rootCollection      String?    @db.VarChar(2048)
-  metadataLicenseId   String     @default("FIXME") @db.VarChar(2048)
-  contentLicenseId    String     @default("FIXME") @db.VarChar(2048)
+  metadataLicenseId   String     @db.VarChar(2048)
+  contentLicenseId    String     @db.VarChar(2048)
 
   rocrate             Json
 

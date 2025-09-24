@@ -1,0 +1,38 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Entities Route > GET /entities > should return 500 when database error occurs 1`] = `
+{
+  "error": {
+    "code": "INTERNAL_ERROR",
+    "message": "Internal server error",
+  },
+}
+`;
+
+exports[`Entities Route > GET /entities > should return entities with default pagination 1`] = `
+{
+  "entities": [
+    {
+      "contentLicenseId": "https://creativecommons.org/licenses/by/4.0/",
+      "description": "First test entity",
+      "entityType": "http://pcdm.org/models#Collection",
+      "id": "http://example.com/entity/1",
+      "memberOf": null,
+      "metadataLicenseId": "https://creativecommons.org/licenses/by/4.0/",
+      "name": "Test Entity 1",
+      "rootCollection": null,
+    },
+    {
+      "contentLicenseId": "https://creativecommons.org/licenses/by/4.0/",
+      "description": "Second test entity",
+      "entityType": "http://pcdm.org/models#Object",
+      "id": "http://example.com/entity/2",
+      "memberOf": "http://example.com/entity/1",
+      "metadataLicenseId": "https://creativecommons.org/licenses/by/4.0/",
+      "name": "Test Entity 2",
+      "rootCollection": "http://example.com/entity/1",
+    },
+  ],
+  "total": 2,
+}
+`;

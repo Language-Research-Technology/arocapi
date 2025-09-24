@@ -1,0 +1,409 @@
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+
+import { fastify, fastifyAfter, fastifyBefore, opensearch } from '../test/helpers/fastify.js';
+
+import searchRoute from './search.js';
+
+describe('Search Route', () => {
+  beforeEach(async () => {
+    await fastifyBefore();
+    await fastify.register(searchRoute);
+  });
+
+  afterEach(async () => {
+    await fastifyAfter();
+  });
+
+  describe('POST /search', () => {
+    it('should perform basic search successfully', async () => {
+      const mockSearchResponse = {
+        body: {
+          took: 10,
+          hits: {
+            total: { value: 2 },
+            hits: [
+              {
+                _score: 1.5,
+                _source: {
+                  rocrateId: 'http://example.com/entity/1',
+                  name: 'Test Entity 1',
+                  description: 'A test entity',
+                  entityType: 'http://pcdm.org/models#Collection',
+                  memberOf: null,
+                  rootCollection: null,
+                  metadataLicenseId: null,
+                  contentLicenseId: null,
+                },
+                highlight: {
+                  name: ['<em>Test</em> Entity 1'],
+                },
+              },
+              {
+                _score: 1.2,
+                _source: {
+                  rocrateId: 'http://example.com/entity/2',
+                  name: 'Test Entity 2',
+                  description: 'Another test entity',
+                  entityType: 'http://pcdm.org/models#Object',
+                  memberOf: null,
+                  rootCollection: null,
+                  metadataLicenseId: null,
+                  contentLicenseId: null,
+                },
+                highlight: {
+                  description: ['Another <em>test</em> entity'],
+                },
+              },
+            ],
+          },
+          aggregations: {
+            entityType: {
+              buckets: [
+                { key: 'http://pcdm.org/models#Collection', doc_count: 1 },
+                { key: 'http://pcdm.org/models#Object', doc_count: 1 },
+              ],
+            },
+          },
+        },
+      };
+
+      // @ts-expect-error TS is looking at the wronf function signature
+      opensearch.search.mockResolvedValue(mockSearchResponse);
+
+      const response = await fastify.inject({
+        method: 'POST',
+        url: '/search',
+        payload: {
+          query: 'test',
+          searchType: 'basic',
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = JSON.parse(response.body);
+      expect(body).toMatchSnapshot();
+      expect(opensearch.search).toHaveBeenCalledWith({
+        index: 'entities',
+        body: {
+          query: {
+            bool: {
+              must: [
+                {
+                  multi_match: {
+                    query: 'test',
+                    fields: ['name^2', 'description'],
+                    type: 'best_fields',
+                    fuzziness: 'AUTO',
+                  },
+                },
+              ],
+              filter: [],
+            },
+          },
+          aggs: {
+            inLanguage: { terms: { field: 'inLanguage', size: 20 } },
+            mediaType: { terms: { field: 'mediaType', size: 20 } },
+            communicationMode: { terms: { field: 'communicationMode', size: 20 } },
+            entityType: { terms: { field: 'entityType', size: 20 } },
+          },
+          highlight: {
+            fields: {
+              name: {},
+              description: {},
+            },
+          },
+          sort: undefined,
+          from: 0,
+          size: 100,
+        },
+      });
+    });
+
+    it('should perform advanced search with query string', async () => {
+      const mockSearchResponse = {
+        body: {
+          took: 5,
+          hits: {
+            total: { value: 0 },
+            hits: [],
+          },
+          aggregations: {},
+        },
+      };
+
+      // @ts-expect-error TS is looking at the wronf function signature
+      opensearch.search.mockResolvedValue(mockSearchResponse);
+
+      const response = await fastify.inject({
+        method: 'POST',
+        url: '/search',
+        payload: {
+          query: 'name:test AND description:entity',
+          searchType: 'advanced',
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(opensearch.search).toHaveBeenCalledWith({
+        index: 'entities',
+        body: {
+          query: {
+            bool: {
+              must: [
+                {
+                  query_string: {
+                    query: 'name:test AND description:entity',
+                    fields: ['name^2', 'description'],
+                    default_operator: 'AND',
+                  },
+                },
+              ],
+              filter: [],
+            },
+          },
+          aggs: {
+            inLanguage: { terms: { field: 'inLanguage', size: 20 } },
+            mediaType: { terms: { field: 'mediaType', size: 20 } },
+            communicationMode: { terms: { field: 'communicationMode', size: 20 } },
+            entityType: { terms: { field: 'entityType', size: 20 } },
+          },
+          highlight: {
+            fields: {
+              name: {},
+              description: {},
+            },
+          },
+          sort: undefined,
+          from: 0,
+          size: 100,
+        },
+      });
+    });
+
+    it('should apply filters correctly', async () => {
+      const mockSearchResponse = {
+        body: {
+          took: 8,
+          hits: {
+            total: { value: 0 },
+            hits: [],
+          },
+          aggregations: {},
+        },
+      };
+
+      // @ts-expect-error TS is looking at the wronf function signature
+      opensearch.search.mockResolvedValue(mockSearchResponse);
+
+      const response = await fastify.inject({
+        method: 'POST',
+        url: '/search',
+        payload: {
+          query: 'test',
+          filters: {
+            entityType: ['http://pcdm.org/models#Collection'],
+            inLanguage: ['en', 'fr'],
+          },
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const expectedFilters = [
+        {
+          terms: {
+            entityType: ['http://pcdm.org/models#Collection'],
+          },
+        },
+        {
+          terms: {
+            inLanguage: ['en', 'fr'],
+          },
+        },
+      ];
+
+      expect(opensearch.search).toHaveBeenCalledWith(
+        expect.objectContaining({
+          body: expect.objectContaining({
+            query: expect.objectContaining({
+              bool: expect.objectContaining({
+                filter: expectedFilters,
+              }),
+            }),
+          }),
+        }),
+      );
+    });
+
+    it('should handle geospatial search with bounding box', async () => {
+      const mockSearchResponse = {
+        body: {
+          took: 12,
+          hits: {
+            total: { value: 0 },
+            hits: [],
+          },
+          aggregations: {
+            geohash_grid: {
+              buckets: [
+                { key: 'gbsuv', doc_count: 3 },
+                { key: 'gbsvb', doc_count: 1 },
+              ],
+            },
+          },
+        },
+      };
+
+      // @ts-expect-error TS is looking at the wronf function signature
+      opensearch.search.mockResolvedValue(mockSearchResponse);
+
+      const response = await fastify.inject({
+        method: 'POST',
+        url: '/search',
+        payload: {
+          query: 'test',
+          boundingBox: {
+            topRight: { lat: 51.5, lng: 0.1 },
+            bottomLeft: { lat: 51.4, lng: 0.0 },
+          },
+          geohashPrecision: 5,
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = JSON.parse(response.body);
+      expect(body.geohashGrid).toEqual({
+        gbsuv: 3,
+        gbsvb: 1,
+      });
+
+      expect(opensearch.search).toHaveBeenCalledWith(
+        expect.objectContaining({
+          body: expect.objectContaining({
+            query: expect.objectContaining({
+              bool: expect.objectContaining({
+                filter: [
+                  {
+                    geo_bounding_box: {
+                      location: {
+                        top_left: { lat: 51.5, lon: 0.0 },
+                        bottom_right: { lat: 51.4, lon: 0.1 },
+                      },
+                    },
+                  },
+                ],
+              }),
+            }),
+            aggs: expect.objectContaining({
+              geohash_grid: {
+                geohash_grid: {
+                  field: 'location',
+                  precision: 5,
+                  bounds: {
+                    top_left: { lat: 51.5, lon: 0.0 },
+                    bottom_right: { lat: 51.4, lon: 0.1 },
+                  },
+                },
+              },
+            }),
+          }),
+        }),
+      );
+    });
+
+    it('should handle pagination and sorting', async () => {
+      const mockSearchResponse = {
+        body: {
+          took: 6,
+          hits: {
+            total: { value: 0 },
+            hits: [],
+          },
+          aggregations: {},
+        },
+      };
+
+      // @ts-expect-error TS is looking at the wronf function signature
+      opensearch.search.mockResolvedValue(mockSearchResponse);
+
+      const response = await fastify.inject({
+        method: 'POST',
+        url: '/search',
+        payload: {
+          query: 'test',
+          limit: 50,
+          offset: 20,
+          sort: 'name',
+          order: 'desc',
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(opensearch.search).toHaveBeenCalledWith(
+        expect.objectContaining({
+          body: expect.objectContaining({
+            from: 20,
+            size: 50,
+            sort: [{ 'name.keyword': 'desc' }],
+          }),
+        }),
+      );
+    });
+
+    it('should handle opensearch errors', async () => {
+      opensearch.search.mockRejectedValue(new Error('OpenSearch connection failed'));
+
+      const response = await fastify.inject({
+        method: 'POST',
+        url: '/search',
+        payload: {
+          query: 'test',
+        },
+      });
+
+      expect(response.statusCode).toBe(500);
+      const body = JSON.parse(response.body);
+      expect(body).toMatchSnapshot();
+    });
+
+    it('should validate required query parameter', async () => {
+      const response = await fastify.inject({
+        method: 'POST',
+        url: '/search',
+        payload: {},
+      });
+
+      expect(response.statusCode).toBe(400);
+    });
+
+    it('should handle missing _source in search hit', async () => {
+      const mockSearchResponse = {
+        body: {
+          took: 5,
+          hits: {
+            total: { value: 1 },
+            hits: [
+              {
+                _score: 1.5,
+                // Missing _source
+              },
+            ],
+          },
+          aggregations: {},
+        },
+      };
+
+      // @ts-expect-error TS is looking at the wronf function signature
+      opensearch.search.mockResolvedValue(mockSearchResponse);
+
+      const response = await fastify.inject({
+        method: 'POST',
+        url: '/search',
+        payload: {
+          query: 'test',
+        },
+      });
+
+      expect(response.statusCode).toBe(500);
+    });
+  });
+});
