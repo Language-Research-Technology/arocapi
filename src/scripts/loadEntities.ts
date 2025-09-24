@@ -1,7 +1,6 @@
 import 'dotenv/config';
 import { Client } from '@opensearch-project/opensearch';
 import { PrismaClient } from '../generated/prisma/client.js';
-import { RecordType } from '../generated/prisma/enums.js';
 
 const prisma = new PrismaClient();
 
@@ -27,7 +26,7 @@ interface EntityResponse {
     name: string;
     description: string;
     conformsTo: string;
-    recordType: string[];
+    entityType: string;
     memberOf?: string;
     root?: string;
     // extra: Record<string, any>;
@@ -106,7 +105,7 @@ const createIndex = async () => {
             },
             description: { type: 'text' },
             conformsTo: { type: 'keyword' },
-            recordType: { type: 'keyword' },
+            entityType: { type: 'keyword' },
             memberOf: { type: 'keyword' },
             root: { type: 'keyword' },
             inLanguage: { type: 'keyword' },
@@ -136,7 +135,7 @@ const indexEntity = async (entity: any, dummyData: any, rocrate: any) => {
     name: entity.name,
     description: entity.description,
     conformsTo: entity.conformsTo,
-    recordType: entity.recordType,
+    entityType: entity.entityType,
     memberOf: entity.memberOf || null,
     root: entity.root || null,
     inLanguage: dummyData.inLanguage,
@@ -153,18 +152,6 @@ const indexEntity = async (entity: any, dummyData: any, rocrate: any) => {
     id: entity.id,
     body: document,
   });
-};
-
-const getRecordType = (recordType: string[]) => {
-  if (recordType.includes('RepositoryCollection')) {
-    return RecordType.RepositoryCollection;
-  }
-
-  if (recordType.includes('RepositoryObject')) {
-    return RecordType.RepositoryObject;
-  }
-
-  throw new Error(`Unknown recordType ${recordType}`);
 };
 
 const loadEntities = async (): Promise<void> => {
@@ -190,17 +177,14 @@ const loadEntities = async (): Promise<void> => {
         // Fetch ROCrate data for this entity
         const rocrate = await fetchEntityRocrate(entity.id);
 
-        const recordType = getRecordType(entity.recordType);
-
         await prisma.entity.create({
           data: {
             rocrateId: entity.id,
             name: entity.name,
             description: entity.description,
-            conformsTo: entity.conformsTo,
+            entityType: entity.entityType,
             memberOf: entity.memberOf || null,
-            root: entity.root || null,
-            recordType,
+            rootCollection: entity.root || null,
             rocrate: rocrate,
           },
         });

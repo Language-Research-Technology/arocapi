@@ -1,0 +1,32 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema-jsonc.json",
+  "entry": [
+    "src/index.ts"
+    //   // CDK
+    //   "bin/paragest.ts",
+    //   "lib/paragest-stack.ts",
+    //   "reset.d.ts",
+    //
+    //   // Our scripts
+    //   "bin/list-failures.mts",
+    //   "bin/replay-s3-event.mts",
+    //
+    //   // Lambdas
+    //   "src/tsconfig.json",
+    //   "src/*.ts",
+    //   "src/common/*.ts",
+    //   "src/cron/*.ts",
+    //   "src/audio/*.ts",
+    //   "src/image/*.ts",
+    //   "src/video/*.ts",
+    //   "src/other/*.ts",
+    //   "src/tsconfig.json"
+  ],
+  "ignore": ["example/src/index.express.ts", "example/src/index.fastify.ts"],
+  "ignoreDependencies": [
+    // Used in prisma.schema, not directly in code
+    "prisma-json-types-generator",
+    // Needed by @semantic-release based on our config
+    "conventional-changelog-conventionalcommits"
+  ]
+}
