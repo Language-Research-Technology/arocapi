@@ -30,7 +30,6 @@ const entities: FastifyPluginAsync = async (fastify, _opts) => {
     },
     async (request, reply) => {
       const { memberOf, entityType, limit, offset, sort, order } = request.query;
-      console.log('🪚 request.query:', JSON.stringify(request.query, null, 2));
 
       try {
         const where: NonNullable<Parameters<typeof fastify.prisma.entity.findMany>[0]>['where'] = {};

@@ -1,0 +1,35 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Entity Route > GET /entity/:id > should return 404 when entity not found 1`] = `
+{
+  "error": {
+    "code": "NOT_FOUND",
+    "details": {
+      "entityId": "http://example.com/entity/nonexistent",
+    },
+    "message": "The requested entity was not found",
+  },
+}
+`;
+
+exports[`Entity Route > GET /entity/:id > should return 500 when database error occurs 1`] = `
+{
+  "error": {
+    "code": "INTERNAL_ERROR",
+    "message": "Internal server error",
+  },
+}
+`;
+
+exports[`Entity Route > GET /entity/:id > should return entity when found 1`] = `
+{
+  "contentLicenseId": "https://creativecommons.org/licenses/by/4.0/",
+  "description": "A test entity",
+  "entityType": "http://schema.org/Person",
+  "id": "http://example.com/entity/123",
+  "memberOf": null,
+  "metadataLicenseId": "https://creativecommons.org/licenses/by/4.0/",
+  "name": "Test Entity",
+  "rootCollection": null,
+}
+`;

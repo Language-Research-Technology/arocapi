@@ -1,0 +1,86 @@
+name: Test Suite
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    permissions:
+      contents: read
+      pull-requests: write
+
+    services:
+      mysql:
+        image: mysql:8
+        env:
+          MYSQL_ROOT_PASSWORD: password
+          MYSQL_DATABASE: catalog_test
+        ports:
+          - 3307:3306
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+
+      opensearch:
+        image: opensearchproject/opensearch:3
+        env:
+          cluster.name: test-opensearch-cluster
+          node.name: test-opensearch
+          discovery.type: single-node
+          bootstrap.memory_lock: true
+          OPENSEARCH_JAVA_OPTS: -Xms256m -Xmx256m
+          DISABLE_SECURITY_PLUGIN: true
+        ports:
+          - 9201:9200
+        options: >-
+          --health-cmd="curl -f http://localhost:9200/_cluster/health || exit 1"
+          --health-interval=30s
+          --health-timeout=10s
+          --health-retries=3
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "lts/*"
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm run generate
+
+      - name: Run database migrations
+        run: pnpm run db:migrate
+        env:
+          DATABASE_URL: mysql://root:password@localhost:3307/catalog_test
+
+      - name: Run linting
+        run: |
+          pnpm run lint:biome
+          pnpm run lint:types
+
+      - name: Run unit tests
+        run: pnpm run test
+        env:
+          DATABASE_URL: mysql://root:password@localhost:3307/catalog_test
+          OPENSEARCH_URL: http://localhost:9201
+          NODE_ENV: test
+
+      - name: Report Coverage
+        if: always()
+        uses: davelosert/vitest-coverage-report-action@v2

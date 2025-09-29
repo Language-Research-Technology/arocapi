@@ -4,43 +4,19 @@ import type { Client } from '@opensearch-project/opensearch';
 import type { PrismaClient } from '@prisma/client/extension';
 import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
 import fp from 'fastify-plugin';
-import {
-  hasZodFastifySchemaValidationErrors,
-  isResponseSerializationError,
-  serializerCompiler,
-  validatorCompiler,
-} from 'fastify-type-provider-zod';
+import { hasZodFastifySchemaValidationErrors, serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod';
 import entities from './routes/entities.js';
 import entity from './routes/entity.js';
 import search from './routes/search.js';
+import { createValidationError } from './utils/errors.js';
 
 const setupValidation = (fastify: FastifyInstance) => {
   fastify.setValidatorCompiler(validatorCompiler);
   fastify.setSerializerCompiler(serializerCompiler);
 
-  fastify.setErrorHandler((err, req, reply) => {
+  fastify.setErrorHandler((err, _req, reply) => {
     if (hasZodFastifySchemaValidationErrors(err)) {
-      return reply.code(400).send({
-        error: 'Response Validation Error',
-        message: "Request doesn't match the schema",
-        details: {
-          issues: err.validation,
-          method: req.method,
-          url: req.url,
-        },
-      });
-    }
-
-    if (isResponseSerializationError(err)) {
-      return reply.code(500).send({
-        error: 'Internal Server Error',
-        message: "Response doesn't match the schema",
-        details: {
-          issues: err.cause.issues,
-          method: err.method,
-          url: err.url,
-        },
-      });
+      return reply.code(400).send(createValidationError('The request parameters are invalid', err.validation));
     }
 
     // NOTE: We are exposing the error message here for development purposes.
@@ -80,7 +56,15 @@ export type Options = {
   disableCors?: boolean;
 };
 const app: FastifyPluginAsync<Options> = async (fastify, options) => {
-  const { prisma, opensearch, disableCors = false } = options || {};
+  const { prisma, opensearch, disableCors = false } = options;
+
+  if (!prisma) {
+    throw new Error('Prisma client is required');
+  }
+
+  if (!opensearch) {
+    throw new Error('OpenSearch client is required');
+  }
 
   fastify.register(sensible);
   if (!disableCors) {
