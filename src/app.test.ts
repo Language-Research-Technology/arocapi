@@ -12,7 +12,7 @@ describe('Entity Route', () => {
     mockReset(opensearch);
   });
 
-  describe('App Creation', () => {
+  describe('App Registration', () => {
     it('should handle missing prisma', async () => {
       const fastify = Fastify({ logger: false });
 
