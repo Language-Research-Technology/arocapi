@@ -1,0 +1,8 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Entity Route > App Registration > should handle random errors 1`] = `
+{
+  "error": "Internal Server Error",
+  "message": "Random",
+}
+`;

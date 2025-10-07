@@ -8,24 +8,18 @@ const ERROR_CODES = {
 
 type ErrorCode = (typeof ERROR_CODES)[keyof typeof ERROR_CODES];
 
-interface ErrorDetails {
+type ErrorDetails = {
   [key: string]: unknown;
-}
+};
 
-// interface ValidationViolation {
-//   field: string;
-//   message: string;
-//   value?: unknown;
-// }
-
-interface StandardErrorResponse {
+type StandardErrorResponse = {
   error: {
     code: ErrorCode;
     message: string;
     details?: ErrorDetails;
     requestId?: string;
   };
-}
+};
 
 const createErrorResponse = (code: ErrorCode, message: string, details?: ErrorDetails): StandardErrorResponse => ({
   error: {
@@ -35,10 +29,8 @@ const createErrorResponse = (code: ErrorCode, message: string, details?: ErrorDe
   },
 });
 
-// export const createValidationError = (message: string, violations: ValidationViolation[]): StandardErrorResponse =>
-//   createErrorResponse(ERROR_CODES.VALIDATION_ERROR, message, {
-//     violations,
-//   });
+export const createValidationError = (message: string, issues: string[]): StandardErrorResponse =>
+  createErrorResponse(ERROR_CODES.VALIDATION_ERROR, message, { issues });
 
 export const createNotFoundError = (message: string, entityId?: string): StandardErrorResponse =>
   createErrorResponse(ERROR_CODES.NOT_FOUND, message, entityId ? { entityId } : undefined);
