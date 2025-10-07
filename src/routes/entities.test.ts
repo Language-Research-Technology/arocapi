@@ -1,13 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { fastify, fastifyAfter, fastifyBefore, prisma } from '../test/helpers/fastify.js';
-
+import { AllPublicAccessTransformer } from '../transformers/default.js';
 import entitiesRoute from './entities.js';
 
 describe('Entities Route', () => {
   beforeEach(async () => {
     await fastifyBefore();
-    await fastify.register(entitiesRoute);
+    await fastify.register(entitiesRoute, { accessTransformer: AllPublicAccessTransformer });
   });
 
   afterEach(async () => {
@@ -233,6 +233,48 @@ describe('Entities Route', () => {
       });
 
       expect(response.statusCode).toBe(400);
+    });
+
+    it('should apply custom entity transformers', async () => {
+      // biome-ignore lint/suspicious/noExplicitAny: fine in tests
+      const customTransformer = async (entity: any) => ({
+        ...entity,
+        tested: true,
+      });
+
+      await fastifyBefore();
+      await fastify.register(entitiesRoute, {
+        accessTransformer: AllPublicAccessTransformer,
+        entityTransformers: [customTransformer],
+      });
+
+      const mockEntities = [
+        {
+          id: 1,
+          rocrateId: 'http://example.com/entity/1',
+          name: 'Test Entity 1',
+          description: 'First test entity',
+          entityType: 'http://pcdm.org/models#Collection',
+          memberOf: null,
+          rootCollection: null,
+          metadataLicenseId: 'https://creativecommons.org/licenses/by/4.0/',
+          contentLicenseId: 'https://creativecommons.org/licenses/by/4.0/',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      ];
+
+      // @ts-expect-error TS is looking at the wronf function signature
+      prisma.entity.findMany.mockResolvedValue(mockEntities);
+
+      const response = await fastify.inject({
+        method: 'GET',
+        url: '/entities',
+      });
+      const body = JSON.parse(response.body);
+
+      expect(response.statusCode).toBe(200);
+      expect(body).toMatchSnapshot();
     });
   });
 });

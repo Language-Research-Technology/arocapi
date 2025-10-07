@@ -1,7 +1,7 @@
 import { Client } from '@opensearch-project/opensearch';
 import type { FastifyInstance } from 'fastify';
 import Fastify from 'fastify';
-import app from '../app.js';
+import app, { AllPublicAccessTransformer } from '../app.js';
 import { PrismaClient } from '../generated/prisma/client.js';
 
 let fastify: FastifyInstance;
@@ -33,6 +33,7 @@ export async function setupIntegrationTests() {
     prisma,
     opensearch,
     disableCors: true,
+    accessTransformer: AllPublicAccessTransformer,
   });
 
   await fastify.ready();

@@ -75,8 +75,8 @@ Create your Fastify application with Typescript support:
 ```typescript
 // src/app.ts
 import { Client } from '@opensearch-project/opensearch';
-import arocapi from 'arocapi';
-import type { FastifyPluginAsync } from 'fastify';
+import arocapi, { AllPublicAccessTransformer } from 'arocapi';
+import Fastify from 'fastify';
 import { PrismaClient } from './generated/prisma/client.js';
 
 // NOTE: Only needed if you are going to use these yourself
@@ -98,7 +98,13 @@ const opensearch = new Client({ node: opensearchUrl });
 const fastify = Fastify({
   logger: true,
 });
-fastify.register(arocapi, { prisma, opensearch });
+
+// For fully public datasets
+fastify.register(arocapi, {
+  prisma,
+  opensearch,
+  accessTransformer: AllPublicAccessTransformer,
+});
 
 try {
   await fastify.listen({ port: 3000 });
@@ -220,6 +226,141 @@ The arocapi provides the following endpoints:
 - `PUT /entity/:id` - Update an existing entity
 - `DELETE /entity/:id` - Delete an entity
 - `GET /search` - Search entities using OpenSearch
+
+## Customising Entity Responses
+
+The API provides a flexible transformer system for customising entity responses
+through two types of transformers:
+
+### Access Transformer (Required)
+
+The `accessTransformer` parameter is **required** for security. You must explicitly
+choose how access control is handled for your repository.
+
+**For fully public datasets**, use `AllPublicAccessTransformer`:
+
+```typescript
+import arocapi, { AllPublicAccessTransformer } from 'arocapi';
+
+await server.register(arocapi, {
+  prisma,
+  opensearch,
+  accessTransformer: AllPublicAccessTransformer,
+});
+```
+
+**For restricted content**, implement a custom access transformer:
+
+```typescript
+await server.register(arocapi, {
+  prisma,
+  opensearch,
+  accessTransformer: async (entity, { request, fastify }) => {
+    // Custom logic to determine access
+    const user = await authenticateUser(request);
+    const canAccessContent = await checkLicense(entity.contentLicenseId, user);
+
+    return {
+      ...entity,
+      access: {
+        metadata: true, // Metadata always visible
+        content: canAccessContent,
+        contentAuthorisationUrl: canAccessContent
+          ? undefined
+          : 'https://rems.example.com/request-access',
+      },
+    };
+  },
+});
+```
+
+> [!WARNING]
+> The `accessTransformer` is required to prevent accidental exposure of
+> restricted content. You must make an explicit choice about access control for
+> your repository.
+
+### Entity Transformers
+
+Optional transformations for enriching or modifying response data. Multiple
+transformers can be chained together.
+
+```typescript
+await server.register(arocapi, {
+  prisma,
+  opensearch,
+  accessTransformer: AllPublicAccessTransformer,
+  entityTransformers: [
+    // Add computed fields
+    (entity) => ({
+      ...entity,
+      displayName: `${entity.name} [${entity.entityType.split('/').pop()}]`,
+    }),
+    // Add counts
+    async (entity, { fastify }) => {
+      const objectCount = entity.memberOf
+        ? await fastify.prisma.entity.count({
+            where: { memberOf: entity.rocrateId },
+          })
+        : 0;
+
+      return {
+        ...entity,
+        counts: {
+          objects: objectCount,
+        }
+      };
+    },
+  ],
+});
+```
+
+### Transformation Pipeline
+
+Every entity response flows through this three-stage pipeline:
+
+1. **Base transformer** - Converts database entities to standard format
+2. **Access transformer** - Adds access control information
+3. **Entity transformers** - Optional additional transformations
+
+### Common Use Cases
+
+**Access control for restricted content:**
+
+```typescript
+accessTransformer: async (entity, { request, fastify }) => {
+  const hasAccess = await checkUserPermissions(request, entity.contentLicenseId);
+  return {
+    ...entity,
+    access: {
+      metadata: true,
+      content: hasAccess,
+    },
+  };
+}
+```
+
+**Adding computed or derived fields:**
+
+```typescript
+entityTransformers: [
+  (entity) => ({
+    ...entity,
+    shortId: entity.id.split('/').pop(),
+    year: extractYear(entity.description),
+  }),
+]
+```
+
+**Fetching related data asynchronously:**
+
+```typescript
+entityTransformers: [
+  async (entity, { fastify }) => ({
+    ...entity,
+    stats: await fetchEntityStats(entity.id, fastify.prisma),
+  }),
+]
+```
 
 ## Development Workflow
 

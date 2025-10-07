@@ -24,6 +24,10 @@ export default defineConfig({
         // Not part of library
         'src/index.ts',
 
+        // Only types
+        'src/types/*',
+        'src/reset.d.ts',
+
         // TODO
         'src/express.ts',
       ],

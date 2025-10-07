@@ -8,7 +8,13 @@ import { hasZodFastifySchemaValidationErrors, serializerCompiler, validatorCompi
 import entities from './routes/entities.js';
 import entity from './routes/entity.js';
 import search from './routes/search.js';
+import type { AccessTransformer, EntityTransformer } from './types/transformers.js';
 import { createValidationError } from './utils/errors.js';
+
+export type { AuthorisedEntity, StandardEntity } from './transformers/default.js';
+// Re-export transformers and types for external use
+export { AllPublicAccessTransformer } from './transformers/default.js';
+export type { AccessTransformer, EntityTransformer, TransformerContext } from './types/transformers.js';
 
 const setupValidation = (fastify: FastifyInstance) => {
   fastify.setValidatorCompiler(validatorCompiler);
@@ -54,9 +60,11 @@ export type Options = {
   prisma: PrismaClient;
   opensearch: Client;
   disableCors?: boolean;
+  accessTransformer: AccessTransformer;
+  entityTransformers?: EntityTransformer[];
 };
 const app: FastifyPluginAsync<Options> = async (fastify, options) => {
-  const { prisma, opensearch, disableCors = false } = options;
+  const { prisma, opensearch, disableCors = false, accessTransformer, entityTransformers } = options;
 
   if (!prisma) {
     throw new Error('Prisma client is required');
@@ -64,6 +72,10 @@ const app: FastifyPluginAsync<Options> = async (fastify, options) => {
 
   if (!opensearch) {
     throw new Error('OpenSearch client is required');
+  }
+
+  if (!accessTransformer) {
+    throw new Error('accessTransformer is required');
   }
 
   fastify.register(sensible);
@@ -74,9 +86,9 @@ const app: FastifyPluginAsync<Options> = async (fastify, options) => {
   await setupDatabase(fastify, prisma);
   await setupSearch(fastify, opensearch);
 
-  fastify.register(entities);
-  fastify.register(entity);
-  fastify.register(search);
+  fastify.register(entities, { accessTransformer, entityTransformers });
+  fastify.register(entity, { accessTransformer, entityTransformers });
+  fastify.register(search, { accessTransformer, entityTransformers });
 };
 
 export default fp(app);

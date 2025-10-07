@@ -4,6 +4,8 @@ import type { Search_Request, Search_RequestBody } from '@opensearch-project/ope
 import type { FastifyPluginAsync } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod/v4';
+import { baseEntityTransformer } from '../transformers/default.js';
+import type { AccessTransformer, EntityTransformer } from '../types/transformers.js';
 import { createInternalError } from '../utils/errors.js';
 
 const boundingBoxSchema = z.object({
@@ -162,7 +164,13 @@ const buildSort = (sort: SearchParams['sort'], order: SearchParams['order']) => 
   return [{ [sortField]: order }];
 };
 
-const search: FastifyPluginAsync = async (fastify, _opts) => {
+type SearchRouteOptions = {
+  accessTransformer: AccessTransformer;
+  entityTransformers?: EntityTransformer[];
+};
+
+const search: FastifyPluginAsync<SearchRouteOptions> = async (fastify, opts) => {
+  const { accessTransformer, entityTransformers = [] } = opts;
   fastify.withTypeProvider<ZodTypeProvider>().post(
     '/search',
     {
@@ -193,27 +201,57 @@ const search: FastifyPluginAsync = async (fastify, _opts) => {
 
         const response = await fastify.opensearch.search(opensearchQuery);
 
-        // Transform response
+        const rocrateIds = response.body.hits.hits
+          .map((hit) => hit._source?.rocrateId as string | undefined)
+          .filter(Boolean);
 
-        const entities = response.body.hits.hits.map((hit) => {
-          if (!hit._source) {
-            throw new Error('Missing _source in search hit');
-          }
-          return {
-            id: hit._source.rocrateId,
-            name: hit._source.name,
-            description: hit._source.description,
-            entityType: hit._source.entityType,
-            memberOf: hit._source.memberOf,
-            rootCollection: hit._source.rootCollection,
-            metadataLicenseId: hit._source.metadataLicenseId,
-            contentLicenseId: hit._source.contentLicenseId,
-            searchExtra: {
-              score: hit._score,
-              highlight: hit.highlight,
+        const dbEntities = await fastify.prisma.entity.findMany({
+          where: {
+            rocrateId: {
+              in: rocrateIds,
             },
-          };
+          },
         });
+
+        const entityMap = new Map(dbEntities.map((entity) => [entity.rocrateId, entity]));
+
+        const entities = await Promise.all(
+          response.body.hits.hits.map(async (hit) => {
+            if (!hit._source?.rocrateId) {
+              throw new Error('Missing rocrateId in search hit');
+            }
+
+            const dbEntity = entityMap.get(hit._source.rocrateId);
+            if (!dbEntity) {
+              fastify.log.warn(`Entity ${hit._source.rocrateId} found in OpenSearch but not in database`);
+
+              return null;
+            }
+
+            const standardEntity = baseEntityTransformer(dbEntity);
+            const authorisedEntity = await accessTransformer(standardEntity, {
+              request,
+              fastify,
+            });
+
+            let result = authorisedEntity;
+            for (const transformer of entityTransformers) {
+              result = await transformer(result, {
+                request,
+                fastify,
+              });
+            }
+
+            // Add search-specific metadata
+            return {
+              ...(result as Record<string, unknown>),
+              searchExtra: {
+                score: hit._score,
+                highlight: hit.highlight,
+              },
+            };
+          }),
+        ).then((results) => results.filter(Boolean));
 
         const facets: Record<string, Array<{ name: string; count: number }>> = {};
         if (response.body.aggregations) {

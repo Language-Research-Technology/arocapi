@@ -1,6 +1,8 @@
 import type { FastifyPluginAsync } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod/v4';
+import { baseEntityTransformer } from '../transformers/default.js';
+import type { AccessTransformer, EntityTransformer } from '../types/transformers.js';
 import { createInternalError } from '../utils/errors.js';
 
 const querySchema = z.object({
@@ -20,7 +22,13 @@ const querySchema = z.object({
   order: z.enum(['asc', 'desc']).default('asc'),
 });
 
-const entities: FastifyPluginAsync = async (fastify, _opts) => {
+type EntitiesRouteOptions = {
+  accessTransformer: AccessTransformer;
+  entityTransformers?: EntityTransformer[];
+};
+
+const entities: FastifyPluginAsync<EntitiesRouteOptions> = async (fastify, opts) => {
+  const { accessTransformer, entityTransformers = [] } = opts;
   fastify.withTypeProvider<ZodTypeProvider>().get(
     '/entities',
     {
@@ -59,16 +67,26 @@ const entities: FastifyPluginAsync = async (fastify, _opts) => {
         // Get total count for pagination metadata
         const total = await fastify.prisma.entity.count({ where });
 
-        const entities = dbEntities.map((entity) => ({
-          id: entity.rocrateId,
-          name: entity.name,
-          description: entity.description,
-          entityType: entity.entityType,
-          memberOf: entity.memberOf,
-          rootCollection: entity.rootCollection,
-          metadataLicenseId: entity.metadataLicenseId,
-          contentLicenseId: entity.contentLicenseId,
-        }));
+        // Apply transformers to each entity: base -> access -> additional
+        const entities = await Promise.all(
+          dbEntities.map(async (dbEntity) => {
+            const standardEntity = baseEntityTransformer(dbEntity);
+            const authorisedEntity = await accessTransformer(standardEntity, {
+              request,
+              fastify,
+            });
+
+            let result = authorisedEntity;
+            for (const transformer of entityTransformers) {
+              result = await transformer(result, {
+                request,
+                fastify,
+              });
+            }
+
+            return result;
+          }),
+        );
 
         return {
           total,
