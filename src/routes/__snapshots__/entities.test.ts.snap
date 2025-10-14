@@ -1,5 +1,27 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
+exports[`Entities Route > GET /entities > should apply custom entity transformers 1`] = `
+{
+  "entities": [
+    {
+      "access": {
+        "content": true,
+        "metadata": true,
+      },
+      "contentLicenseId": "https://creativecommons.org/licenses/by/4.0/",
+      "description": "First test entity",
+      "entityType": "http://pcdm.org/models#Collection",
+      "id": "http://example.com/entity/1",
+      "memberOf": null,
+      "metadataLicenseId": "https://creativecommons.org/licenses/by/4.0/",
+      "name": "Test Entity 1",
+      "rootCollection": null,
+      "tested": true,
+    },
+  ],
+}
+`;
+
 exports[`Entities Route > GET /entities > should return 500 when database error occurs 1`] = `
 {
   "error": {
@@ -13,6 +35,10 @@ exports[`Entities Route > GET /entities > should return entities with default pa
 {
   "entities": [
     {
+      "access": {
+        "content": true,
+        "metadata": true,
+      },
       "contentLicenseId": "https://creativecommons.org/licenses/by/4.0/",
       "description": "First test entity",
       "entityType": "http://pcdm.org/models#Collection",
@@ -23,6 +49,10 @@ exports[`Entities Route > GET /entities > should return entities with default pa
       "rootCollection": null,
     },
     {
+      "access": {
+        "content": true,
+        "metadata": true,
+      },
       "contentLicenseId": "https://creativecommons.org/licenses/by/4.0/",
       "description": "Second test entity",
       "entityType": "http://pcdm.org/models#Object",

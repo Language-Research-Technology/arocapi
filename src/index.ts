@@ -1,7 +1,7 @@
 import { Client } from '@opensearch-project/opensearch';
 import Fastify from 'fastify';
 
-import arocapi from './app.js';
+import arocapi, { AllPublicAccessTransformer } from './app.js';
 import { PrismaClient } from './generated/prisma/client.js';
 
 declare module 'fastify' {
@@ -22,7 +22,11 @@ const opensearch = new Client({ node: opensearchUrl });
 const fastify = Fastify({
   logger: true,
 });
-fastify.register(arocapi, { prisma, opensearch });
+fastify.register(arocapi, {
+  prisma,
+  opensearch,
+  accessTransformer: AllPublicAccessTransformer,
+});
 
 const start = async () => {
   try {

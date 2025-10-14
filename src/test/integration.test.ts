@@ -1,4 +1,6 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import type { AuthorisedEntity } from '../transformers/default.js';
+import type { StandardErrorResponse } from '../utils/errors.js';
 import {
   cleanupTestData,
   getTestApp,
@@ -32,30 +34,20 @@ describe('Integration Tests', () => {
         method: 'GET',
         url: `/entity/${encodeURIComponent('http://example.com/entity/1')}`,
       });
-
       const body = JSON.parse(response.body);
 
       expect(response.statusCode).toBe(200);
-      expect(body).toEqual({
-        id: 'http://example.com/entity/1',
-        name: 'Test Collection',
-        description: 'First test entity',
-        entityType: 'http://pcdm.org/models#Collection',
-        memberOf: null,
-        rootCollection: null,
-        metadataLicenseId: 'https://creativecommons.org/licenses/by/4.0/',
-        contentLicenseId: 'https://creativecommons.org/licenses/by/4.0/',
-      });
+      expect(body).toMatchSnapshot();
     });
 
     it('should return 404 for non-existent entity', async () => {
       const app = getTestApp();
+
       const response = await app.inject({
         method: 'GET',
         url: '/entity/http://example.com/entity/nonexistent',
       });
-
-      const body = JSON.parse(response.body);
+      const body = JSON.parse(response.body) as StandardErrorResponse;
 
       expect(response.statusCode).toBe(404);
       expect(body.error).toBe('Not Found');
@@ -65,12 +57,12 @@ describe('Integration Tests', () => {
   describe('GET /entities', () => {
     it('should return all entities with pagination', async () => {
       const app = getTestApp();
+
       const response = await app.inject({
         method: 'GET',
         url: '/entities',
       });
-
-      const body = JSON.parse(response.body);
+      const body = JSON.parse(response.body) as { total: number; entities: AuthorisedEntity[] };
 
       expect(response.statusCode).toBe(200);
       expect(body.total).toBe(3);
@@ -84,11 +76,16 @@ describe('Integration Tests', () => {
         rootCollection: null,
         metadataLicenseId: 'https://creativecommons.org/licenses/by/4.0/',
         contentLicenseId: 'https://creativecommons.org/licenses/by/4.0/',
+        access: {
+          metadata: true,
+          content: true,
+        },
       });
     });
 
     it('should filter entities by memberOf', async () => {
       const app = getTestApp();
+
       const response = await app.inject({
         method: 'GET',
         url: '/entities',
@@ -96,8 +93,7 @@ describe('Integration Tests', () => {
           memberOf: 'http://example.com/entity/1',
         },
       });
-
-      const body = JSON.parse(response.body);
+      const body = JSON.parse(response.body) as { total: number; entities: AuthorisedEntity[] };
 
       expect(response.statusCode).toBe(200);
       expect(body.total).toBe(2);
@@ -115,7 +111,7 @@ describe('Integration Tests', () => {
           entityType: 'http://schema.org/Person',
         },
       });
-      const body = JSON.parse(response.body);
+      const body = JSON.parse(response.body) as { total: number; entities: AuthorisedEntity[] };
 
       expect(response.statusCode).toBe(200);
       expect(body.total).toBe(1);
@@ -134,7 +130,7 @@ describe('Integration Tests', () => {
           offset: '1',
         },
       });
-      const body = JSON.parse(response.body);
+      const body = JSON.parse(response.body) as { total: number; entities: AuthorisedEntity[] };
 
       expect(response.statusCode).toBe(200);
       expect(body.total).toBe(3);
@@ -152,7 +148,7 @@ describe('Integration Tests', () => {
           order: 'desc',
         },
       });
-      const body = JSON.parse(response.body);
+      const body = JSON.parse(response.body) as { total: number; entities: AuthorisedEntity[] };
 
       expect(response.statusCode).toBe(200);
       expect(body.entities[0].name).toBe('Test Person');
@@ -173,7 +169,7 @@ describe('Integration Tests', () => {
           searchType: 'basic',
         },
       });
-      const body = JSON.parse(response.body);
+      const body = JSON.parse(response.body) as { total: number; entities: AuthorisedEntity[] };
 
       expect(response.statusCode).toBe(200);
       expect(body.total).toBeGreaterThan(0);
@@ -192,7 +188,7 @@ describe('Integration Tests', () => {
           searchType: 'basic',
         },
       });
-      const body = JSON.parse(response.body);
+      const body = JSON.parse(response.body) as { total: number; entities: AuthorisedEntity[] };
 
       expect(response.statusCode).toBe(200);
       expect(body.total).toBe(0);
@@ -210,7 +206,7 @@ describe('Integration Tests', () => {
           searchType: 'basic',
         },
       });
-      const body = JSON.parse(response.body);
+      const body = JSON.parse(response.body) as { total: number; entities: AuthorisedEntity[]; facets: null };
 
       expect(response.statusCode).toBe(200);
       expect(body.facets).toBeDefined();
@@ -228,7 +224,7 @@ describe('Integration Tests', () => {
           offset: 0,
         },
       });
-      const body = JSON.parse(response.body);
+      const body = JSON.parse(response.body) as { total: number; entities: AuthorisedEntity[] };
 
       expect(response.statusCode).toBe(200);
       expect(body.entities.length).toBeLessThanOrEqual(1);
@@ -245,7 +241,7 @@ describe('Integration Tests', () => {
           sort: 'id',
         },
       });
-      const body = JSON.parse(response.body);
+      const body = JSON.parse(response.body) as { total: number; entities: AuthorisedEntity[] };
 
       expect(response.statusCode).toBe(200);
       expect(body.entities[0].name).toBe('Test Collection');
@@ -262,7 +258,7 @@ describe('Integration Tests', () => {
         method: 'GET',
         url: '/entity/invalid-id',
       });
-      const body = JSON.parse(response.body);
+      const body = JSON.parse(response.body) as StandardErrorResponse;
 
       expect(response.statusCode).toBe(400);
       expect(body.error.code).toBe('VALIDATION_ERROR');

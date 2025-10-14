@@ -1,6 +1,43 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
+exports[`Search Route > POST /search > should apply custom entity transformers 1`] = `
+{
+  "entities": [
+    {
+      "access": {
+        "content": true,
+        "metadata": true,
+      },
+      "contentLicenseId": null,
+      "description": "A test entity",
+      "entityType": "http://pcdm.org/models#Collection",
+      "id": "http://example.com/entity/1",
+      "memberOf": null,
+      "metadataLicenseId": null,
+      "name": "Test Entity 1",
+      "rootCollection": null,
+      "searchExtra": {
+        "highlight": {},
+        "score": 1.5,
+      },
+      "tested": true,
+    },
+  ],
+  "searchTime": 10,
+  "total": 1,
+}
+`;
+
 exports[`Search Route > POST /search > should handle opensearch errors 1`] = `
+{
+  "error": {
+    "code": "INTERNAL_ERROR",
+    "message": "Search failed",
+  },
+}
+`;
+
+exports[`Search Route > POST /search > should handle rocrateId explicitly set to undefined 1`] = `
 {
   "error": {
     "code": "INTERNAL_ERROR",
@@ -13,6 +50,10 @@ exports[`Search Route > POST /search > should perform basic search successfully 
 {
   "entities": [
     {
+      "access": {
+        "content": true,
+        "metadata": true,
+      },
       "contentLicenseId": null,
       "description": "A test entity",
       "entityType": "http://pcdm.org/models#Collection",
@@ -31,6 +72,10 @@ exports[`Search Route > POST /search > should perform basic search successfully 
       },
     },
     {
+      "access": {
+        "content": true,
+        "metadata": true,
+      },
       "contentLicenseId": null,
       "description": "Another test entity",
       "entityType": "http://pcdm.org/models#Object",
@@ -61,6 +106,33 @@ exports[`Search Route > POST /search > should perform basic search successfully 
       },
     ],
   },
+  "searchTime": 10,
+  "total": 2,
+}
+`;
+
+exports[`Search Route > POST /search > should skip entities not found in database and log warning 1`] = `
+{
+  "entities": [
+    {
+      "access": {
+        "content": true,
+        "metadata": true,
+      },
+      "contentLicenseId": null,
+      "description": "A test entity",
+      "entityType": "http://pcdm.org/models#Collection",
+      "id": "http://example.com/entity/1",
+      "memberOf": null,
+      "metadataLicenseId": null,
+      "name": "Test Entity 1",
+      "rootCollection": null,
+      "searchExtra": {
+        "highlight": {},
+        "score": 1.5,
+      },
+    },
+  ],
   "searchTime": 10,
   "total": 2,
 }

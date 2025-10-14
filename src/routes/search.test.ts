@@ -1,13 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { fastify, fastifyAfter, fastifyBefore, opensearch } from '../test/helpers/fastify.js';
-
+import { fastify, fastifyAfter, fastifyBefore, opensearch, prisma } from '../test/helpers/fastify.js';
+import { AllPublicAccessTransformer } from '../transformers/default.js';
 import searchRoute from './search.js';
 
 describe('Search Route', () => {
   beforeEach(async () => {
     await fastifyBefore();
-    await fastify.register(searchRoute);
+    await fastify.register(searchRoute, { accessTransformer: AllPublicAccessTransformer });
   });
 
   afterEach(async () => {
@@ -16,6 +16,33 @@ describe('Search Route', () => {
 
   describe('POST /search', () => {
     it('should perform basic search successfully', async () => {
+      const mockEntities = [
+        {
+          rocrateId: 'http://example.com/entity/1',
+          name: 'Test Entity 1',
+          description: 'A test entity',
+          entityType: 'http://pcdm.org/models#Collection',
+          memberOf: null,
+          rootCollection: null,
+          metadataLicenseId: null,
+          contentLicenseId: null,
+          createdAt: new Date('2024-01-01'),
+          updatedAt: new Date('2024-01-01'),
+        },
+        {
+          rocrateId: 'http://example.com/entity/2',
+          name: 'Test Entity 2',
+          description: 'Another test entity',
+          entityType: 'http://pcdm.org/models#Object',
+          memberOf: null,
+          rootCollection: null,
+          metadataLicenseId: null,
+          contentLicenseId: null,
+          createdAt: new Date('2024-01-01'),
+          updatedAt: new Date('2024-01-01'),
+        },
+      ];
+
       const mockSearchResponse = {
         body: {
           took: 10,
@@ -26,13 +53,6 @@ describe('Search Route', () => {
                 _score: 1.5,
                 _source: {
                   rocrateId: 'http://example.com/entity/1',
-                  name: 'Test Entity 1',
-                  description: 'A test entity',
-                  entityType: 'http://pcdm.org/models#Collection',
-                  memberOf: null,
-                  rootCollection: null,
-                  metadataLicenseId: null,
-                  contentLicenseId: null,
                 },
                 highlight: {
                   name: ['<em>Test</em> Entity 1'],
@@ -42,13 +62,6 @@ describe('Search Route', () => {
                 _score: 1.2,
                 _source: {
                   rocrateId: 'http://example.com/entity/2',
-                  name: 'Test Entity 2',
-                  description: 'Another test entity',
-                  entityType: 'http://pcdm.org/models#Object',
-                  memberOf: null,
-                  rootCollection: null,
-                  metadataLicenseId: null,
-                  contentLicenseId: null,
                 },
                 highlight: {
                   description: ['Another <em>test</em> entity'],
@@ -67,8 +80,10 @@ describe('Search Route', () => {
         },
       };
 
-      // @ts-expect-error TS is looking at the wronf function signature
+      // @ts-expect-error TS is looking at the wrong function signature
       opensearch.search.mockResolvedValue(mockSearchResponse);
+      // @ts-expect-error TS is looking at the wrong function signature
+      prisma.entity.findMany.mockResolvedValue(mockEntities);
 
       const response = await fastify.inject({
         method: 'POST',
@@ -82,6 +97,16 @@ describe('Search Route', () => {
       expect(response.statusCode).toBe(200);
       const body = JSON.parse(response.body);
       expect(body).toMatchSnapshot();
+
+      // Verify database was queried with correct rocrateIds
+      expect(prisma.entity.findMany).toHaveBeenCalledWith({
+        where: {
+          rocrateId: {
+            in: ['http://example.com/entity/1', 'http://example.com/entity/2'],
+          },
+        },
+      });
+
       expect(opensearch.search).toHaveBeenCalledWith({
         index: 'entities',
         body: {
@@ -131,8 +156,9 @@ describe('Search Route', () => {
         },
       };
 
-      // @ts-expect-error TS is looking at the wronf function signature
+      // @ts-expect-error TS is looking at the wrong function signature
       opensearch.search.mockResolvedValue(mockSearchResponse);
+      prisma.entity.findMany.mockResolvedValue([]);
 
       const response = await fastify.inject({
         method: 'POST',
@@ -192,8 +218,9 @@ describe('Search Route', () => {
         },
       };
 
-      // @ts-expect-error TS is looking at the wronf function signature
+      // @ts-expect-error TS is looking at the wrong function signature
       opensearch.search.mockResolvedValue(mockSearchResponse);
+      prisma.entity.findMany.mockResolvedValue([]);
 
       const response = await fastify.inject({
         method: 'POST',
@@ -253,8 +280,9 @@ describe('Search Route', () => {
         },
       };
 
-      // @ts-expect-error TS is looking at the wronf function signature
+      // @ts-expect-error TS is looking at the wrong function signature
       opensearch.search.mockResolvedValue(mockSearchResponse);
+      prisma.entity.findMany.mockResolvedValue([]);
 
       const response = await fastify.inject({
         method: 'POST',
@@ -270,7 +298,7 @@ describe('Search Route', () => {
       });
 
       expect(response.statusCode).toBe(200);
-      const body = JSON.parse(response.body);
+      const body = JSON.parse(response.body) as { geohashGrid: Record<string, number> };
       expect(body.geohashGrid).toEqual({
         gbsuv: 3,
         gbsvb: 1,
@@ -322,8 +350,9 @@ describe('Search Route', () => {
         },
       };
 
-      // @ts-expect-error TS is looking at the wronf function signature
+      // @ts-expect-error TS is looking at the wrong function signature
       opensearch.search.mockResolvedValue(mockSearchResponse);
+      prisma.entity.findMany.mockResolvedValue([]);
 
       const response = await fastify.inject({
         method: 'POST',
@@ -375,7 +404,69 @@ describe('Search Route', () => {
       expect(response.statusCode).toBe(400);
     });
 
-    it('should handle missing _source in search hit', async () => {
+    it('should skip entities not found in database and log warning', async () => {
+      const mockEntities = [
+        {
+          rocrateId: 'http://example.com/entity/1',
+          name: 'Test Entity 1',
+          description: 'A test entity',
+          entityType: 'http://pcdm.org/models#Collection',
+          memberOf: null,
+          rootCollection: null,
+          metadataLicenseId: null,
+          contentLicenseId: null,
+          createdAt: new Date('2024-01-01'),
+          updatedAt: new Date('2024-01-01'),
+        },
+        // Entity 2 is missing from database
+      ];
+
+      const mockSearchResponse = {
+        body: {
+          took: 10,
+          hits: {
+            total: { value: 2 },
+            hits: [
+              {
+                _score: 1.5,
+                _source: {
+                  rocrateId: 'http://example.com/entity/1',
+                },
+                highlight: {},
+              },
+              {
+                _score: 1.2,
+                _source: {
+                  rocrateId: 'http://example.com/entity/2',
+                },
+                highlight: {},
+              },
+            ],
+          },
+          aggregations: {},
+        },
+      };
+
+      // @ts-expect-error TS is looking at the wrong function signature
+      opensearch.search.mockResolvedValue(mockSearchResponse);
+      // @ts-expect-error TS is looking at the wrong function signature
+      prisma.entity.findMany.mockResolvedValue(mockEntities);
+
+      const response = await fastify.inject({
+        method: 'POST',
+        url: '/search',
+        payload: {
+          query: 'test',
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = JSON.parse(response.body);
+
+      expect(body).toMatchSnapshot();
+    });
+
+    it('should handle missing rocrateId in search hit', async () => {
       const mockSearchResponse = {
         body: {
           took: 5,
@@ -384,7 +475,9 @@ describe('Search Route', () => {
             hits: [
               {
                 _score: 1.5,
-                // Missing _source
+                _source: {
+                  // Missing rocrateId
+                },
               },
             ],
           },
@@ -392,7 +485,43 @@ describe('Search Route', () => {
         },
       };
 
-      // @ts-expect-error TS is looking at the wronf function signature
+      // @ts-expect-error TS is looking at the wrong function signature
+      opensearch.search.mockResolvedValue(mockSearchResponse);
+      prisma.entity.findMany.mockResolvedValue([]);
+
+      const response = await fastify.inject({
+        method: 'POST',
+        url: '/search',
+        payload: {
+          query: 'test',
+        },
+      });
+
+      expect(response.statusCode).toBe(500);
+      console.log(response.body);
+    });
+
+    it('should handle rocrateId explicitly set to undefined', async () => {
+      const mockSearchResponse = {
+        body: {
+          took: 5,
+          hits: {
+            total: { value: 1 },
+            hits: [
+              {
+                _score: 1.5,
+                _source: {
+                  rocrateId: undefined,
+                  name: 'Test Entity',
+                },
+              },
+            ],
+          },
+          aggregations: {},
+        },
+      };
+
+      // @ts-expect-error TS is looking at the wrong function signature
       opensearch.search.mockResolvedValue(mockSearchResponse);
 
       const response = await fastify.inject({
@@ -404,6 +533,74 @@ describe('Search Route', () => {
       });
 
       expect(response.statusCode).toBe(500);
+      const body = JSON.parse(response.body);
+      expect(body).toMatchSnapshot();
+    });
+
+    it('should apply custom entity transformers', async () => {
+      // biome-ignore lint/suspicious/noExplicitAny: fine in tests
+      const customTransformer = async (entity: any) => ({
+        ...entity,
+        tested: true,
+      });
+
+      await fastifyBefore();
+      await fastify.register(searchRoute, {
+        accessTransformer: AllPublicAccessTransformer,
+        entityTransformers: [customTransformer],
+      });
+
+      const mockEntities = [
+        {
+          rocrateId: 'http://example.com/entity/1',
+          name: 'Test Entity 1',
+          description: 'A test entity',
+          entityType: 'http://pcdm.org/models#Collection',
+          memberOf: null,
+          rootCollection: null,
+          metadataLicenseId: null,
+          contentLicenseId: null,
+          createdAt: new Date('2024-01-01'),
+          updatedAt: new Date('2024-01-01'),
+        },
+      ];
+
+      const mockSearchResponse = {
+        body: {
+          took: 10,
+          hits: {
+            total: { value: 1 },
+            hits: [
+              {
+                _score: 1.5,
+                _source: {
+                  rocrateId: 'http://example.com/entity/1',
+                },
+                highlight: {},
+              },
+            ],
+          },
+          aggregations: {},
+        },
+      };
+
+      // @ts-expect-error TS is looking at the wrong function signature
+      opensearch.search.mockResolvedValue(mockSearchResponse);
+      // @ts-expect-error TS is looking at the wrong function signature
+      prisma.entity.findMany.mockResolvedValue(mockEntities);
+
+      const response = await fastify.inject({
+        method: 'POST',
+        url: '/search',
+        payload: {
+          query: 'test',
+        },
+      });
+
+      const body = JSON.parse(response.body);
+
+      expect(response.statusCode).toBe(200);
+      expect(body).toMatchSnapshot();
     });
   });
 });

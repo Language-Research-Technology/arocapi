@@ -12,12 +12,11 @@ type ErrorDetails = {
   [key: string]: unknown;
 };
 
-type StandardErrorResponse = {
+export type StandardErrorResponse = {
   error: {
     code: ErrorCode;
     message: string;
     details?: ErrorDetails;
-    requestId?: string;
   };
 };
 

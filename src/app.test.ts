@@ -2,7 +2,7 @@ import Fastify from 'fastify';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { mockReset } from 'vitest-mock-extended';
 
-import app from './app.js';
+import app, { AllPublicAccessTransformer } from './app.js';
 
 import { opensearch, prisma } from './test/helpers/fastify.js';
 
@@ -37,6 +37,19 @@ describe('Entity Route', () => {
       await expect(() => fastify.ready()).rejects.toThrowError('OpenSearch client is required');
     });
 
+    it('should handle missing accessTransformer', async () => {
+      const fastify = Fastify({ logger: false });
+
+      // @ts-expect-error we are testing missing options
+      fastify.register(app, {
+        prisma,
+        opensearch,
+        disableCors: false,
+      });
+
+      await expect(() => fastify.ready()).rejects.toThrowError('accessTransformer is required');
+    });
+
     it('should handle broken opensearch', async () => {
       opensearch.ping.mockRejectedValue(new Error('Connection failed'));
 
@@ -46,6 +59,7 @@ describe('Entity Route', () => {
         prisma,
         opensearch,
         disableCors: false,
+        accessTransformer: AllPublicAccessTransformer,
       });
 
       await expect(() => fastify.ready()).rejects.toThrowError('Connection failed');
@@ -57,6 +71,7 @@ describe('Entity Route', () => {
         prisma,
         opensearch,
         disableCors: false,
+        accessTransformer: AllPublicAccessTransformer,
       });
       fastify.get('/error', async () => {
         throw new Error('Random');

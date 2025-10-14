@@ -1,13 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { fastify, fastifyAfter, fastifyBefore, prisma } from '../test/helpers/fastify.js';
-
+import { AllPublicAccessTransformer } from '../transformers/default.js';
+import type { StandardErrorResponse } from '../utils/errors.js';
 import entityRoute from './entity.js';
 
 describe('Entity Route', () => {
   beforeEach(async () => {
     await fastifyBefore();
-    await fastify.register(entityRoute);
+    await fastify.register(entityRoute, { accessTransformer: AllPublicAccessTransformer });
   });
 
   afterEach(async () => {
@@ -80,10 +81,50 @@ describe('Entity Route', () => {
         method: 'GET',
         url: '/entity/invalid-id',
       });
-      const body = JSON.parse(response.body);
+      const body = JSON.parse(response.body) as StandardErrorResponse;
 
       expect(response.statusCode).toBe(400);
       expect(body.error).toBe('Bad Request');
+    });
+
+    it('should apply custom entity transformers', async () => {
+      // biome-ignore lint/suspicious/noExplicitAny: fine in tests
+      const customTransformer = async (entity: any) => ({
+        ...entity,
+        tested: true,
+      });
+
+      await fastifyBefore();
+      await fastify.register(entityRoute, {
+        accessTransformer: AllPublicAccessTransformer,
+        entityTransformers: [customTransformer],
+      });
+
+      const mockEntity = {
+        id: 1,
+        rocrateId: 'http://example.com/entity/123',
+        name: 'Test Entity',
+        description: 'A test entity',
+        entityType: 'http://pcdm.org/models#Collection',
+        memberOf: null,
+        rootCollection: null,
+        metadataLicenseId: 'https://creativecommons.org/licenses/by/4.0/',
+        contentLicenseId: 'https://creativecommons.org/licenses/by/4.0/',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      // @ts-expect-error TS is looking at the wronf function signature
+      prisma.entity.findFirst.mockResolvedValue(mockEntity);
+
+      const response = await fastify.inject({
+        method: 'GET',
+        url: `/entity/${encodeURIComponent('http://example.com/entity/123')}`,
+      });
+      const body = JSON.parse(response.body);
+
+      expect(response.statusCode).toBe(200);
+      expect(body).toMatchSnapshot();
     });
   });
 });
