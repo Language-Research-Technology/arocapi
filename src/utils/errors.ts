@@ -4,6 +4,7 @@ const ERROR_CODES = {
   RATE_LIMIT_EXCEEDED: 'RATE_LIMIT_EXCEEDED',
   INTERNAL_ERROR: 'INTERNAL_ERROR',
   INVALID_REQUEST: 'INVALID_REQUEST',
+  INVALID_ENTITY_TYPE: 'INVALID_ENTITY_TYPE',
 } as const;
 
 type ErrorCode = (typeof ERROR_CODES)[keyof typeof ERROR_CODES];
@@ -42,3 +43,13 @@ export const createNotFoundError = (message: string, entityId?: string): Standar
 export const createInternalError = (message = 'Internal server error'): StandardErrorResponse => {
   return createErrorResponse(ERROR_CODES.INTERNAL_ERROR, message);
 };
+
+export const createInvalidEntityTypeError = (
+  message: string,
+  entityType: string,
+  expectedType: string,
+): StandardErrorResponse =>
+  createErrorResponse(ERROR_CODES.INVALID_ENTITY_TYPE, message, {
+    entityType,
+    expectedType,
+  });

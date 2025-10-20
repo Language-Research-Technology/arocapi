@@ -73,7 +73,7 @@ OPENSEARCH_URL="http://localhost:9200"
 Create your Fastify application with Typescript support:
 
 ```typescript
-// src/app.ts
+// src/index.ts
 import { Client } from '@opensearch-project/opensearch';
 import arocapi, { AllPublicAccessTransformer } from 'arocapi';
 import Fastify from 'fastify';
@@ -104,6 +104,35 @@ fastify.register(arocapi, {
   prisma,
   opensearch,
   accessTransformer: AllPublicAccessTransformer,
+  // Required: File handler for serving File entity content
+  fileHandler: {
+    get: async (entity) => {
+      const fileUrl = `https://storage.example.com/${entity.meta.storagePath}`;
+      return { type: 'redirect', url: fileUrl };
+    },
+    head: async (entity) => ({
+      contentType: entity.meta.contentType,
+      contentLength: entity.meta.fileSize,
+    }),
+  },
+  // Required: RO-Crate handler for serving RO-Crate metadata
+  roCrateHandler: {
+    get: async (entity) => {
+      const jsonString = JSON.stringify(entity.rocrate, null, 2);
+      return {
+        type: 'stream',
+        stream: Readable.from([jsonString]),
+        metadata: {
+          contentType: 'application/ld+json',
+          contentLength: Buffer.byteLength(jsonString),
+        },
+      };
+    },
+    head: async (entity) => ({
+      contentType: 'application/ld+json',
+      contentLength: Buffer.byteLength(JSON.stringify(entity.rocrate)),
+    }),
+  },
 });
 
 try {
@@ -222,10 +251,9 @@ The arocapi provides the following endpoints:
 
 - `GET /entities` - List all entities with pagination and filtering
 - `GET /entity/:id` - Get a specific entity by ID
-- `POST /entity` - Create a new entity
-- `PUT /entity/:id` - Update an existing entity
-- `DELETE /entity/:id` - Delete an entity
-- `GET /search` - Search entities using OpenSearch
+- `GET /entity/:id/file` - Download or access file content (File entities only)
+- `GET /entity/:id/crate` - Download RO-Crate metadata (any entity type)
+- `POST /search` - Search entities using OpenSearch
 
 ## Customising Entity Responses
 
@@ -252,26 +280,22 @@ await server.register(arocapi, {
 **For restricted content**, implement a custom access transformer:
 
 ```typescript
-await server.register(arocapi, {
-  prisma,
-  opensearch,
-  accessTransformer: async (entity, { request, fastify }) => {
-    // Custom logic to determine access
-    const user = await authenticateUser(request);
-    const canAccessContent = await checkLicense(entity.contentLicenseId, user);
+const accessTransformer = async (entity, { request, fastify }) => {
+  // Custom logic to determine access
+  const user = await authenticateUser(request);
+  const canAccessContent = await checkLicense(entity.contentLicenseId, user);
 
-    return {
-      ...entity,
-      access: {
-        metadata: true, // Metadata always visible
-        content: canAccessContent,
-        contentAuthorisationUrl: canAccessContent
-          ? undefined
-          : 'https://rems.example.com/request-access',
-      },
-    };
-  },
-});
+  return {
+    ...entity,
+    access: {
+      metadata: true, // Metadata always visible
+      content: canAccessContent,
+      contentAuthorisationUrl: canAccessContent
+        ? undefined
+        : 'https://rems.example.com/request-access',
+    },
+  };
+};
 ```
 
 > [!WARNING]
@@ -361,6 +385,168 @@ entityTransformers: [
   }),
 ]
 ```
+
+## File Handler System
+
+The API provides two separate handler systems for serving different types of content:
+
+1. **File Handler** - Serves file content for File entities (`/entity/:id/file`)
+2. **RO-Crate Handler** - Serves RO-Crate metadata for any entity (`/entity/:id/crate`)
+
+### File Handler (Required)
+
+The `fileHandler` parameter is **required**. It serves actual file content for entities
+of type `http://pcdm.org/models#File`. The endpoint validates entity types and returns 400
+for non-File entities.
+
+### RO-Crate Handler (Required)
+
+The `roCrateHandler` parameter is **required**. It serves RO-Crate metadata as JSON-LD
+for any entity type (Collection, Object, or File).
+
+**File Handler Example** (S3 with redirect):
+
+```typescript
+fileHandler: {
+  get: async (entity) => {
+    const command = new GetObjectCommand({
+      Bucket: entity.meta.bucket,
+      Key: entity.meta.s3Key,
+    });
+    const url = await getSignedUrl(s3, command, { expiresIn: 3600 });
+
+    return { type: 'redirect', url };
+  },
+  head: async (entity) => {
+    return {
+      contentType: entity.meta.contentType,
+      contentLength: entity.meta.fileSize,
+    };
+  },
+}
+```
+
+**File Handler Example** (local filesystem):
+
+```typescript
+fileHandler: {
+  get: async (entity) => {
+    const filePath = `/data/files/${entity.meta.storagePath}`;
+    const stats = await stat(filePath);
+
+    return {
+      type: 'stream',
+      stream: createReadStream(filePath),
+      metadata: {
+        contentType: entity.meta.contentType || 'application/octet-stream',
+        contentLength: stats.size,
+        lastModified: stats.mtime,
+      },
+    };
+  },
+  head: async (entity) => {
+    const filePath = `/data/files/${entity.meta.storagePath}`;
+    const stats = await stat(filePath);
+
+    return {
+      contentType: entity.meta.contentType || 'application/octet-stream',
+      contentLength: stats.size,
+      lastModified: stats.mtime,
+    };
+  },
+}
+```
+
+**RO-Crate Handler Example** (stream from database):
+
+```typescript
+roCrateHandler: {
+  get: async (entity) => {
+    const jsonString = JSON.stringify(entity.rocrate, null, 2);
+
+    return {
+      type: 'stream',
+      stream: Readable.from([jsonString]),
+      metadata: {
+        contentType: 'application/ld+json',
+        contentLength: Buffer.byteLength(jsonString),
+      },
+    };
+  },
+  head: async (entity) => {
+    const jsonString = JSON.stringify(entity.rocrate);
+    return {
+      contentType: 'application/ld+json',
+      contentLength: Buffer.byteLength(jsonString),
+    };
+  },
+}
+```
+
+### File Handler Response Types
+
+The file handler must return one of two response types:
+
+**Redirect Response** - Redirect to external file location:
+
+```typescript
+{ type: 'redirect', url: 'https://storage.example.com/file.wav' }
+```
+
+**Stream Response** - Serve file content directly:
+
+```typescript
+{
+  type: 'stream',
+  stream: Readable,  // Node.js readable stream
+  metadata: {
+    contentType: 'audio/wav',
+    contentLength: 1024,
+    etag?: '"abc123"',           // Optional
+    lastModified?: new Date(),    // Optional
+  },
+}
+```
+
+### Query Parameters
+
+The `/entity/:id/file` endpoint supports these query parameters:
+
+- `disposition` - 'inline' (default) or 'attachment' for download prompts
+- `filename` - Custom filename for Content-Disposition header (defaults to entity.name)
+- `noRedirect` - If true with redirect response, returns JSON `{location: url}` instead of HTTP 302
+
+### HTTP Range Support
+
+The endpoint automatically handles HTTP range requests for partial content,
+useful for media streaming:
+
+- Returns **206 Partial Content** for valid range requests
+- Returns **416 Range Not Satisfiable** for invalid ranges
+- Sets appropriate `Content-Range` and `Accept-Ranges` headers
+
+### Entity Meta Field
+
+The `meta` JSON field in the Entity model stores implementation-specific
+metadata for your file handler:
+
+```typescript
+await prisma.entity.create({
+  data: {
+    rocrateId: 'http://example.com/file/123',
+    name: 'audio.wav',
+    entityType: 'http://pcdm.org/models#File',
+    // ... other required fields
+    meta: {
+      bucket: 's3://my-bucket',
+      storagePath: 'collections/col-01',
+      checksum: 'sha256:abc123...',
+    },
+  },
+});
+```
+
+Your file handler can use this metadata to locate files in your storage system.
 
 ## Development Workflow
 

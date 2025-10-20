@@ -1,6 +1,11 @@
 {
   "permissions": {
-    "allow": ["Bash(pnpm run test:*)", "Bash(pnpm run lint:*)"],
+    "allow": [
+      "Bash(pnpm run test:*)",
+      "Bash(pnpm run lint:*)",
+      "Bash(pnpm run lint:biome)",
+      "Bash(pnpm run lint:types)"
+    ],
     "deny": [],
     "ask": []
   }

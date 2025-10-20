@@ -34,6 +34,22 @@ export async function setupIntegrationTests() {
     opensearch,
     disableCors: true,
     accessTransformer: AllPublicAccessTransformer,
+    fileHandler: {
+      get: async () => {
+        throw new Error('File handler not implemented in integration tests');
+      },
+      head: async () => {
+        throw new Error('File handler not implemented in integration tests');
+      },
+    },
+    roCrateHandler: {
+      get: async () => {
+        throw new Error('RO-Crate handler not implemented in integration tests');
+      },
+      head: async () => {
+        throw new Error('RO-Crate head handler not implemented in integration tests');
+      },
+    },
   });
 
   await fastify.ready();
