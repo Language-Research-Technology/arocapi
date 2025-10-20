@@ -80,7 +80,8 @@
     "generate": "npx prisma generate",
     "postinstall": "npm run generate",
     "db:generate": "prisma generate",
-    "db:migrate": "prisma migrate deploy"
+    "db:migrate": "prisma migrate deploy",
+    "seed": "rm -rf dist && pnpm run build:ts && node --env-file=.env example/data/seed.ts"
   },
   "repository": {
     "type": "git",

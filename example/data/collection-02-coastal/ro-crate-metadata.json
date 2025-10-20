@@ -1,0 +1,83 @@
+{
+  "@context": "https://w3id.org/ro/crate/1.1/context",
+  "@graph": [
+    {
+      "@id": "ro-crate-metadata.json",
+      "@type": "CreativeWork",
+      "conformsTo": {
+        "@id": "https://w3id.org/ro/crate/1.1"
+      },
+      "about": {
+        "@id": "./"
+      }
+    },
+    {
+      "@id": "./",
+      "@type": ["Dataset", "http://pcdm.org/models#Collection"],
+      "name": "Coastal Dialects Archive",
+      "description": "Documentation of coastal dialect variations along the Pacific rim. This collection preserves oral traditions, songs, and conversational speech from small fishing communities where traditional language use is declining.",
+      "identifier": "http://example.com/collection/coastal-001",
+      "datePublished": "2024-02-01",
+      "license": {
+        "@id": "https://creativecommons.org/licenses/by-nc-nd/4.0/"
+      },
+      "contentLicense": {
+        "@id": "https://creativecommons.org/licenses/by-nc-nd/4.0/"
+      },
+      "metadataLicense": {
+        "@id": "https://creativecommons.org/licenses/by/4.0/"
+      },
+      "inLanguage": {
+        "@id": "http://iso639-3.sil.org/code/pac"
+      },
+      "spatialCoverage": {
+        "@id": "#place-coastal"
+      },
+      "creator": {
+        "@id": "#person-depositor-coastal"
+      },
+      "hasPart": [
+        {
+          "@id": "http://example.com/item/coastal-narrative-001"
+        },
+        {
+          "@id": "http://example.com/item/coastal-songs-001"
+        },
+        {
+          "@id": "http://example.com/item/coastal-conversation-001"
+        }
+      ]
+    },
+    {
+      "@id": "http://iso639-3.sil.org/code/pac",
+      "@type": "Language",
+      "name": "Pacific Coastal Language",
+      "alternateName": "pac",
+      "identifier": "pac"
+    },
+    {
+      "@id": "#place-coastal",
+      "@type": "Place",
+      "name": "Northern Pacific Coast",
+      "geo": {
+        "@type": "GeoCoordinates",
+        "latitude": 51.4256,
+        "longitude": -127.7158
+      }
+    },
+    {
+      "@id": "#person-depositor-coastal",
+      "@type": "Person",
+      "name": "Dr. Sarah Chen",
+      "email": "s.chen@example.org",
+      "affiliation": {
+        "@id": "#org-coastal-university"
+      }
+    },
+    {
+      "@id": "#org-coastal-university",
+      "@type": "Organization",
+      "name": "Pacific Coast University, Indigenous Languages Program"
+    }
+  ]
+}

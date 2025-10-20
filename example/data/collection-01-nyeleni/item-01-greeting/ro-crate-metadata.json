@@ -1,0 +1,100 @@
+{
+  "@context": "https://w3id.org/ro/crate/1.1/context",
+  "@graph": [
+    {
+      "@id": "ro-crate-metadata.json",
+      "@type": "CreativeWork",
+      "conformsTo": {
+        "@id": "https://w3id.org/ro/crate/1.1"
+      },
+      "about": {
+        "@id": "./"
+      }
+    },
+    {
+      "@id": "./",
+      "@type": ["Dataset", "http://pcdm.org/models#Object"],
+      "name": "Traditional Greetings - Elder Mamadou",
+      "description": "Recording of traditional Nyeleni greetings performed by Elder Mamadou Diarra. The recording demonstrates formal greetings used in community gatherings and includes responses from multiple participants.",
+      "identifier": "http://example.com/item/nyeleni-greeting-001",
+      "dateCreated": "2024-01-10",
+      "license": {
+        "@id": "https://creativecommons.org/licenses/by-nc-sa/4.0/"
+      },
+      "contentLicense": {
+        "@id": "https://creativecommons.org/licenses/by-nc-sa/4.0/"
+      },
+      "metadataLicense": {
+        "@id": "https://creativecommons.org/licenses/by/4.0/"
+      },
+      "isPartOf": {
+        "@id": "http://example.com/collection/nyeleni-001"
+      },
+      "memberOf": {
+        "@id": "http://example.com/collection/nyeleni-001"
+      },
+      "inLanguage": {
+        "@id": "http://iso639-3.sil.org/code/nya"
+      },
+      "recordingDate": "2024-01-10",
+      "contributor": [
+        {
+          "@id": "#speaker-mamadou"
+        },
+        {
+          "@id": "#researcher-aminata"
+        }
+      ],
+      "hasPart": [
+        {
+          "@id": "greeting.wav"
+        },
+        {
+          "@id": "greeting.eaf"
+        }
+      ]
+    },
+    {
+      "@id": "greeting.wav",
+      "@type": ["File", "MediaObject"],
+      "name": "greeting.wav",
+      "description": "Audio recording of traditional greetings",
+      "encodingFormat": "audio/wav",
+      "contentSize": "88200",
+      "duration": "PT3S",
+      "license": {
+        "@id": "https://creativecommons.org/licenses/by-nc-sa/4.0/"
+      }
+    },
+    {
+      "@id": "greeting.eaf",
+      "@type": ["File", "MediaObject"],
+      "name": "greeting.eaf",
+      "description": "ELAN annotation file with transcription and translation",
+      "encodingFormat": "text/x-eaf+xml",
+      "license": {
+        "@id": "https://creativecommons.org/licenses/by-nc-sa/4.0/"
+      }
+    },
+    {
+      "@id": "#speaker-mamadou",
+      "@type": "Person",
+      "name": "Mamadou Diarra",
+      "description": "Village elder and fluent Nyeleni speaker, born 1945",
+      "gender": "male",
+      "birthDate": "1945"
+    },
+    {
+      "@id": "#researcher-aminata",
+      "@type": "Person",
+      "name": "Dr. Aminata Koné",
+      "description": "Linguist and researcher"
+    },
+    {
+      "@id": "http://iso639-3.sil.org/code/nya",
+      "@type": "Language",
+      "name": "Nyeleni",
+      "identifier": "nya"
+    }
+  ]
+}
