@@ -102,6 +102,42 @@ export async function seedTestData() {
       updatedAt: new Date(),
       rocrate: {},
     },
+    {
+      id: 4,
+      rocrateId: 'http://example.com/entity/4',
+      name: 'test-audio.wav',
+      description: 'Test audio file',
+      entityType: 'http://pcdm.org/models#File',
+      memberOf: 'http://example.com/entity/2',
+      rootCollection: 'http://example.com/entity/1',
+      metadataLicenseId: 'https://creativecommons.org/licenses/by/4.0/',
+      contentLicenseId: 'https://creativecommons.org/licenses/by/4.0/',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      rocrate: {
+        '@type': ['http://pcdm.org/models#File', 'MediaObject'],
+        encodingFormat: 'audio/wav',
+        contentSize: '88200',
+      },
+    },
+    {
+      id: 5,
+      rocrateId: 'http://example.com/entity/5',
+      name: 'collection-metadata.csv',
+      description: 'Collection metadata file',
+      entityType: 'http://pcdm.org/models#File',
+      memberOf: 'http://example.com/entity/1',
+      rootCollection: 'http://example.com/entity/1',
+      metadataLicenseId: 'https://creativecommons.org/licenses/by/4.0/',
+      contentLicenseId: 'https://creativecommons.org/licenses/by/4.0/',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      rocrate: {
+        '@type': ['http://pcdm.org/models#File', 'MediaObject'],
+        encodingFormat: 'text/csv',
+        contentSize: '1024',
+      },
+    },
   ];
 
   await prisma.entity.createMany({
