@@ -119,6 +119,43 @@ const processItem = async (
     data: itemEntity,
   });
   console.log(`    ✓ Created item: ${item.name}`);
+
+  // Process File entities from hasPart
+  if (itemRoot.hasPart && Array.isArray(itemRoot.hasPart)) {
+    for (const partRef of itemRoot.hasPart) {
+      const fileNode = itemCrate['@graph'].find((node) => node['@id'] === partRef['@id']);
+
+      if (!fileNode) continue;
+
+      const fileType = extractEntityType(fileNode['@type']);
+
+      // Only create entities for PCDM File types
+      if (fileType === 'http://schema.org/MediaObject' || fileType === 'File') {
+        const fileRocrateId = fileNode.identifier?.['@id'] || `${itemRocrateId}/${fileNode['@id']}`;
+
+        const fileEntity = {
+          rocrateId: fileRocrateId,
+          name: fileNode.name || fileNode['@id'],
+          description: fileNode.description || '',
+          entityType: 'http://schema.org/MediaObject',
+          memberOf: itemRocrateId,
+          rootCollection: collectionRocrateId,
+          metadataLicenseId:
+            itemRoot.metadataLicense?.['@id'] ||
+            itemRoot.license?.['@id'] ||
+            'https://creativecommons.org/licenses/by/4.0/',
+          contentLicenseId:
+            fileNode.license?.['@id'] || itemRoot.license?.['@id'] || 'https://creativecommons.org/licenses/by/4.0/',
+          rocrate: { '@context': itemCrate['@context'], '@graph': [fileNode] },
+        };
+
+        const file = await prisma.entity.create({
+          data: fileEntity,
+        });
+        console.log(`      ✓ Created file: ${file.name}`);
+      }
+    }
+  }
 };
 
 const createOpenSearchIndex = async (): Promise<void> => {
@@ -211,14 +248,23 @@ const seed = async (): Promise<void> => {
     await createOpenSearchIndex();
     await indexEntities();
 
+    const entityCounts = await prisma.entity.groupBy({
+      by: ['entityType'],
+      _count: true,
+    });
+
     console.log('\n✅ Seeding completed successfully!');
     console.log('\nCreated:');
-    console.log('  • 2 collections');
-    console.log('  • 6 items (3 per collection)');
-    console.log('  • Each item includes:');
-    console.log('    - RO-Crate metadata');
-    console.log('    - WAV audio file');
-    console.log('    - ELAN annotation file');
+
+    for (const count of entityCounts) {
+      const typeName = count.entityType.split('#').pop() || count.entityType.split('/').pop();
+      console.log(`  • ${count._count} ${typeName} entities`);
+    }
+
+    console.log('\nEach item includes:');
+    console.log('  - RO-Crate metadata');
+    console.log('  - WAV audio file (indexed as File entity)');
+    console.log('  - ELAN annotation file (indexed as File entity)');
   } catch (error) {
     console.error('\n❌ Seeding failed:', error);
     throw error;

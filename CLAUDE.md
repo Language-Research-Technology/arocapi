@@ -150,6 +150,67 @@ src/
 - `GET /entities` - List/filter entities with pagination
 - `POST /search` - OpenSearch queries with faceting
 
+### Entity Types
+
+The API supports multiple entity types following the PCDM (Portland Common Data Model) and schema.org standards:
+
+#### Entity Types
+
+- **Collection** (`http://pcdm.org/models#Collection`) - Top-level groupings of objects and files
+  - No `memberOf` or `rootCollection` (these are null)
+  - Can contain Objects and Files as children
+
+- **Object** (`http://pcdm.org/models#Object`) - Items within collections
+  - Has `memberOf` pointing to parent Collection
+  - Has `rootCollection` pointing to top-level Collection
+  - Can contain Files as children
+
+- **File** (`http://schema.org/MediaObject`) - Individual files (audio, video, documents, etc.)
+  - Has `memberOf` pointing to parent Object or Collection
+  - Has `rootCollection` pointing to top-level Collection
+  - Stores file metadata in `rocrate` JSON (encodingFormat, contentSize, etc.)
+
+#### Schema.org Entity Types
+
+Supporting entity types for metadata:
+
+- **Person** (`http://schema.org/Person`) - Contributors, researchers, speakers
+- **Language** (`http://schema.org/Language`) - Language information
+- **Place** (`http://schema.org/Place`) - Geographical locations
+- **Organization** (`http://schema.org/Organization`) - Organisations
+
+#### Entity Hierarchy
+
+The typical hierarchy follows this pattern:
+
+```
+Collection (memberOf: null)
+├── Object (memberOf: Collection)
+│   └── File (memberOf: Object)
+└── File (memberOf: Collection)
+```
+
+#### Filtering by Entity Type
+
+All routes support filtering by entity type:
+
+```bash
+# Get all Files Entities
+GET /entities?entityType=http://schema.org/MediaObject
+
+# Get Files belonging to a specific Object
+GET /entities?memberOf=http://example.com/object/1&entityType=http://schema.org/MediaObject
+
+# Search for Files
+POST /search
+{
+  "query": "audio",
+  "filters": {
+    "entityType": ["https://schema.org/MediaObject"]
+  }
+}
+```
+
 ### Error Handling
 
 - Use consistent error response format
@@ -175,6 +236,7 @@ The API provides a flexible transformer system for customising entity responses.
 ### Overview
 
 The transformer system enables:
+
 - **Access control**: Control visibility of metadata and content based on licenses
 - **Data enrichment**: Add computed fields or fetch related data
 - **Response customisation**: Adapt the API response to specific client needs
@@ -329,6 +391,7 @@ import { AllPublicAccessTransformer } from 'arocapi';
 ### Applied Routes
 
 Transformers are applied to all entity routes:
+
 - `GET /entity/:id` - Single entity
 - `GET /entities` - Entity list (each entity transformed)
 - `POST /search` - Search results (entities + search metadata)
@@ -597,4 +660,3 @@ pnpm run dbconsole       # Access database console
 ---
 
 This document should be updated as the project evolves and new patterns emerge.
-
