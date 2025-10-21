@@ -1,6 +1,6 @@
 {
   "$schema": "https://unpkg.com/knip@5/schema-jsonc.json",
-  "ignore": ["example/src/index.express.ts", "example/src/index.fastify.ts", "scripts/loadEntities.ts"],
+  "ignore": ["src/index.dev.ts", "scripts/loadEntities.ts"],
   "ignoreDependencies": [
     // Used in prisma.schema, not directly in code
     "prisma-json-types-generator",

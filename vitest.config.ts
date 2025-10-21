@@ -23,6 +23,7 @@ export default defineConfig({
 
         // Not part of library
         'src/index.ts',
+        'src/index.dev.ts',
 
         // Only types
         'src/types/*',

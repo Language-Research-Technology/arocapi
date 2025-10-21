@@ -1,10 +1,11 @@
 services:
   oni-ui:
-    image: ghcr.io/paradisec-archive/oni-ui:paradisec
+    #image: ghcr.io/language-research-technology/oni-ui:new-api
+    image: ghcr.io/paradisec-archive/oni-ui:new-api
     ports:
-      - 5173:5173
+      - 3000:80
     volumes:
-      - ./docker/oni-config.json:/app/config/configuration.json
+      - ./docker/oni-config.json:/configuration.json
 
   db:
     image: mysql:8
