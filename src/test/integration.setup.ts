@@ -34,6 +34,22 @@ export async function setupIntegrationTests() {
     opensearch,
     disableCors: true,
     accessTransformer: AllPublicAccessTransformer,
+    fileHandler: {
+      get: async () => {
+        throw new Error('File handler not implemented in integration tests');
+      },
+      head: async () => {
+        throw new Error('File handler not implemented in integration tests');
+      },
+    },
+    roCrateHandler: {
+      get: async () => {
+        throw new Error('RO-Crate handler not implemented in integration tests');
+      },
+      head: async () => {
+        throw new Error('RO-Crate head handler not implemented in integration tests');
+      },
+    },
   });
 
   await fastify.ready();
@@ -101,6 +117,42 @@ export async function seedTestData() {
       createdAt: new Date(),
       updatedAt: new Date(),
       rocrate: {},
+    },
+    {
+      id: 4,
+      rocrateId: 'http://example.com/entity/4',
+      name: 'test-audio.wav',
+      description: 'Test audio file',
+      entityType: 'http://pcdm.org/models#File',
+      memberOf: 'http://example.com/entity/2',
+      rootCollection: 'http://example.com/entity/1',
+      metadataLicenseId: 'https://creativecommons.org/licenses/by/4.0/',
+      contentLicenseId: 'https://creativecommons.org/licenses/by/4.0/',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      rocrate: {
+        '@type': ['http://pcdm.org/models#File', 'MediaObject'],
+        encodingFormat: 'audio/wav',
+        contentSize: '88200',
+      },
+    },
+    {
+      id: 5,
+      rocrateId: 'http://example.com/entity/5',
+      name: 'collection-metadata.csv',
+      description: 'Collection metadata file',
+      entityType: 'http://pcdm.org/models#File',
+      memberOf: 'http://example.com/entity/1',
+      rootCollection: 'http://example.com/entity/1',
+      metadataLicenseId: 'https://creativecommons.org/licenses/by/4.0/',
+      contentLicenseId: 'https://creativecommons.org/licenses/by/4.0/',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      rocrate: {
+        '@type': ['http://pcdm.org/models#File', 'MediaObject'],
+        encodingFormat: 'text/csv',
+        contentSize: '1024',
+      },
     },
   ];
 

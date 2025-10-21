@@ -201,6 +201,10 @@ const search: FastifyPluginAsync<SearchRouteOptions> = async (fastify, opts) => 
 
         const response = await fastify.opensearch.search(opensearchQuery);
 
+        if (!response.body?.hits?.hits) {
+          throw new Error('Invalid search response: missing hits data');
+        }
+
         const rocrateIds = response.body.hits.hits
           .map((hit) => hit._source?.rocrateId as string | undefined)
           .filter(Boolean);

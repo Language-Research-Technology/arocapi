@@ -46,6 +46,7 @@ describe('Entity Transformers', () => {
         metadataLicenseId: 'https://creativecommons.org/licenses/by/4.0/',
         contentLicenseId: 'https://creativecommons.org/licenses/by/4.0/',
         rocrate: {},
+        meta: {},
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -191,6 +192,7 @@ describe('Entity Transformers', () => {
         metadataLicenseId: 'https://creativecommons.org/licenses/by/4.0/',
         contentLicenseId: 'https://creativecommons.org/licenses/by/4.0/',
         rocrate: {},
+        meta: {},
         createdAt: new Date(),
         updatedAt: new Date(),
       };
