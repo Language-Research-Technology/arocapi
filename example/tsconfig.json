@@ -1,9 +1,0 @@
-{
-  "extends": "fastify-tsconfig",
-  "compilerOptions": {
-    "lib": ["esnext", "dom"],
-    "outDir": "dist",
-    "sourceMap": true
-  },
-  "include": ["src/**/*.ts"]
-}
