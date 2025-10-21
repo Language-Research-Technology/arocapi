@@ -61,11 +61,10 @@
     "prisma.config.ts"
   ],
   "scripts": {
-    "start": "pnpm run build:ts && node dist/index.js",
     "build:ts": "tsc",
     "watch:ts": "tsc -w",
-    "dev": "pnpm run dev:clean && pnpm run build:ts && concurrently -k -p \"[{name}]\" -n \"TypeScript,App\" -c \"yellow.bold,cyan.bold\" \"pnpm:watch:ts\" \"pnpm:dev:start\"",
-    "dev:start": "node --watch dist/index.js",
+    "dev": "pnpm run dev:clean && pnpm run build:ts && concurrently -k -p \"[{name}]\" -n \"TypeScript,App\" -c \"yellow.bold,cyan.bold\" \"pnpm:dev:start\" \"pnpm:watch:ts\" ",
+    "dev:start": "node --watch --env-file=.env dist/index.dev.js",
     "dev:clean": "rm -rf dist",
     "dbconsole": "docker compose exec db mysql --password=password catalog",
     "load-test-data": "tsx src/scripts/loadEntities.ts",
