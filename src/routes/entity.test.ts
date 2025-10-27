@@ -30,6 +30,7 @@ describe('Entity Route', () => {
         createdAt: new Date(),
         updatedAt: new Date(),
         rocrate: {},
+        meta: {},
       };
 
       prisma.entity.findFirst.mockResolvedValue(mockEntity);

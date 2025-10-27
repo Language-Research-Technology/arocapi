@@ -1,20 +1,55 @@
 import cors from '@fastify/cors';
 import sensible from '@fastify/sensible';
 import type { Client } from '@opensearch-project/opensearch';
-import type { PrismaClient } from '@prisma/client/extension';
 import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
 import fp from 'fastify-plugin';
 import { hasZodFastifySchemaValidationErrors, serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod';
+import type { PrismaClient } from './generated/prisma/client.js';
+import crate from './routes/crate.js';
 import entities from './routes/entities.js';
 import entity from './routes/entity.js';
+import file from './routes/file.js';
+import files from './routes/files.js';
 import search from './routes/search.js';
-import type { AccessTransformer, EntityTransformer } from './types/transformers.js';
+import type { FileHandler, RoCrateHandler } from './types/fileHandlers.js';
+import type {
+  AccessTransformer,
+  EntityTransformer,
+  FileAccessTransformer,
+  FileTransformer,
+} from './types/transformers.js';
 import { createValidationError } from './utils/errors.js';
 
-export type { AuthorisedEntity, StandardEntity } from './transformers/default.js';
-// Re-export transformers and types for external use
-export { AllPublicAccessTransformer } from './transformers/default.js';
-export type { AccessTransformer, EntityTransformer, TransformerContext } from './types/transformers.js';
+export type { AuthorisedEntity, AuthorisedFile, StandardEntity, StandardFile } from './transformers/default.js';
+export { AllPublicAccessTransformer, AllPublicFileAccessTransformer } from './transformers/default.js';
+export type {
+  FileHandler,
+  FileHandlerContext,
+  FileMetadata,
+  FilePathResult,
+  FileRedirectResult,
+  FileResult,
+  FileStreamResult,
+  GetFileHandler,
+  GetRoCrateHandler,
+  HeadFileHandler,
+  HeadRoCrateHandler,
+  RoCrateHandler,
+} from './types/fileHandlers.js';
+export type {
+  AccessTransformer,
+  EntityTransformer,
+  FileAccessTransformer,
+  FileTransformer,
+  TransformerContext,
+} from './types/transformers.js';
+
+declare module 'fastify' {
+  interface FastifyInstance {
+    prisma: PrismaClient;
+    opensearch: Client;
+  }
+}
 
 const setupValidation = (fastify: FastifyInstance) => {
   fastify.setValidatorCompiler(validatorCompiler);
@@ -36,9 +71,11 @@ const setupValidation = (fastify: FastifyInstance) => {
 
 const setupDatabase = async (fastify: FastifyInstance, prisma: PrismaClient) => {
   await prisma.$connect();
+
   fastify.decorate('prisma', prisma);
-  fastify.addHook('onClose', async (server) => {
-    await server.prisma.$disconnect();
+
+  fastify.addHook('onClose', async () => {
+    await prisma.$disconnect();
   });
 };
 
@@ -62,9 +99,23 @@ export type Options = {
   disableCors?: boolean;
   accessTransformer: AccessTransformer;
   entityTransformers?: EntityTransformer[];
+  fileAccessTransformer: FileAccessTransformer;
+  fileTransformers?: FileTransformer[];
+  fileHandler: FileHandler;
+  roCrateHandler: RoCrateHandler;
 };
 const app: FastifyPluginAsync<Options> = async (fastify, options) => {
-  const { prisma, opensearch, disableCors = false, accessTransformer, entityTransformers } = options;
+  const {
+    prisma,
+    opensearch,
+    disableCors = false,
+    accessTransformer,
+    entityTransformers,
+    fileAccessTransformer,
+    fileTransformers,
+    fileHandler,
+    roCrateHandler,
+  } = options;
 
   if (!prisma) {
     throw new Error('Prisma client is required');
@@ -78,6 +129,18 @@ const app: FastifyPluginAsync<Options> = async (fastify, options) => {
     throw new Error('accessTransformer is required');
   }
 
+  if (!fileAccessTransformer) {
+    throw new Error('fileAccessTransformer is required');
+  }
+
+  if (!fileHandler) {
+    throw new Error('fileHandler is required');
+  }
+
+  if (!roCrateHandler) {
+    throw new Error('roCrateHandler is required');
+  }
+
   fastify.register(sensible);
   if (!disableCors) {
     fastify.register(cors);
@@ -88,6 +151,9 @@ const app: FastifyPluginAsync<Options> = async (fastify, options) => {
 
   fastify.register(entities, { accessTransformer, entityTransformers });
   fastify.register(entity, { accessTransformer, entityTransformers });
+  fastify.register(files, { fileAccessTransformer, fileTransformers });
+  fastify.register(file, { fileHandler });
+  fastify.register(crate, { roCrateHandler });
   fastify.register(search, { accessTransformer, entityTransformers });
 };
 

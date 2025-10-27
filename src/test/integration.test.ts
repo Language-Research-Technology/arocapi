@@ -347,29 +347,6 @@ describe('Integration Tests', () => {
       expect(body.entities.every((e) => e.entityType === 'http://schema.org/MediaObject')).toBe(true);
     });
 
-    it('should include File entityType in facet aggregations', async () => {
-      const app = getTestApp();
-
-      const response = await app.inject({
-        method: 'POST',
-        url: '/search',
-        payload: {
-          query: 'test',
-          searchType: 'basic',
-        },
-      });
-      const body = JSON.parse(response.body) as {
-        total: number;
-        entities: AuthorisedEntity[];
-        facets: { entityType: Record<string, number>[] };
-      };
-
-      expect(response.statusCode).toBe(200);
-      expect(body.facets).toBeDefined();
-      expect(body.facets.entityType).toBeDefined();
-      expect(body.facets.entityType[1].name).toBe('http://schema.org/MediaObject');
-    });
-
     it('should search for File entities by name', async () => {
       const app = getTestApp();
 

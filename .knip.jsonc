@@ -4,6 +4,8 @@
   "ignoreDependencies": [
     // Used in prisma.schema, not directly in code
     "prisma-json-types-generator",
+    // Used in generated prisma code
+    "@prisma/client",
     // Needed by @semantic-release based on our config
     "conventional-changelog-conventionalcommits"
   ]

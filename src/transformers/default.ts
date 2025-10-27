@@ -1,4 +1,4 @@
-import type { Entity } from '../generated/prisma/client.js';
+import type { Entity, File } from '../generated/prisma/client.js';
 
 /**
  * Standard entity shape - output of base transformation
@@ -30,6 +30,39 @@ type AccessInfo = {
  */
 export type AuthorisedEntity = StandardEntity & {
   access: AccessInfo;
+};
+
+/**
+ * Access information for a file
+ * Files only control content access - metadata is always accessible
+ */
+type FileAccessInfo = {
+  content: boolean;
+  contentAuthorizationUrl?: string;
+};
+
+/**
+ * Standard file shape - output of base file transformation
+ * Does not include access information
+ * Files only have contentLicenseId (no metadataLicenseId)
+ */
+export type StandardFile = {
+  id: string;
+  filename: string;
+  mediaType: string;
+  size: number;
+  memberOf: string;
+  rootCollection: string;
+  contentLicenseId: string;
+};
+
+/**
+ * Authorised file - includes access information
+ * This is the output of the file access transformer
+ * File metadata is always accessible - only content access is controlled
+ */
+export type AuthorisedFile = StandardFile & {
+  access: FileAccessInfo;
 };
 
 /**
@@ -69,6 +102,49 @@ export const AllPublicAccessTransformer = (entity: StandardEntity): AuthorisedEn
   ...entity,
   access: {
     metadata: true,
+    content: true,
+  },
+});
+
+/**
+ * Base file transformer - always applied first
+ * Transforms raw database file to standard file shape (without access)
+ */
+export const baseFileTransformer = (file: File): StandardFile => ({
+  id: file.fileId,
+  filename: file.filename,
+  mediaType: file.mediaType,
+  size: Number(file.size),
+  memberOf: file.memberOf,
+  rootCollection: file.rootCollection,
+  contentLicenseId: file.contentLicenseId,
+});
+
+/**
+ * All Public File Access Transformer - grants full access to file content
+ *
+ * WARNING: This transformer makes ALL file content publicly accessible without restrictions.
+ * Only use this for fully public datasets where no access control is needed.
+ *
+ * For repositories with restricted content, implement a custom fileAccessTransformer
+ * that checks user permissions and licenses.
+ *
+ * Note: File metadata (filename, size, mediaType, etc.) is always accessible.
+ * This transformer only controls content access.
+ *
+ * @example
+ * ```typescript
+ * await server.register(arocapi, {
+ *   prisma,
+ *   opensearch,
+ *   accessTransformer: AllPublicAccessTransformer,
+ *   fileAccessTransformer: AllPublicFileAccessTransformer, // Explicit choice for public data
+ * });
+ * ```
+ */
+export const AllPublicFileAccessTransformer = (file: StandardFile): AuthorisedFile => ({
+  ...file,
+  access: {
     content: true,
   },
 });

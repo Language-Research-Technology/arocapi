@@ -1,7 +1,7 @@
 import { Client } from '@opensearch-project/opensearch';
 import type { FastifyInstance } from 'fastify';
 import Fastify from 'fastify';
-import app, { AllPublicAccessTransformer } from '../app.js';
+import app, { AllPublicAccessTransformer, AllPublicFileAccessTransformer } from '../app.js';
 import { PrismaClient } from '../generated/prisma/client.js';
 
 let fastify: FastifyInstance;
@@ -34,6 +34,23 @@ export async function setupIntegrationTests() {
     opensearch,
     disableCors: true,
     accessTransformer: AllPublicAccessTransformer,
+    fileAccessTransformer: AllPublicFileAccessTransformer,
+    fileHandler: {
+      get: async () => {
+        throw new Error('File handler not implemented in integration tests');
+      },
+      head: async () => {
+        throw new Error('File handler not implemented in integration tests');
+      },
+    },
+    roCrateHandler: {
+      get: async () => {
+        throw new Error('RO-Crate handler not implemented in integration tests');
+      },
+      head: async () => {
+        throw new Error('RO-Crate head handler not implemented in integration tests');
+      },
+    },
   });
 
   await fastify.ready();

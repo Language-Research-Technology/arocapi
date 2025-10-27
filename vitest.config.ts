@@ -28,6 +28,10 @@ export default defineConfig({
         'src/types/*',
         'src/reset.d.ts',
 
+        // Test helpers and setup
+        'src/test/integration.setup.ts',
+        'src/test/helpers/*',
+
         // TODO
         'src/express.ts',
       ],

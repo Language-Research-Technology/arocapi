@@ -30,6 +30,7 @@ describe('Entities Route', () => {
           createdAt: new Date(),
           updatedAt: new Date(),
           rocrate: {},
+          meta: {},
         },
         {
           id: 2,
@@ -44,6 +45,7 @@ describe('Entities Route', () => {
           createdAt: new Date(),
           updatedAt: new Date(),
           rocrate: {},
+          meta: {},
         },
       ];
 

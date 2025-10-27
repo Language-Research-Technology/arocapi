@@ -52,7 +52,6 @@ const entities: FastifyPluginAsync<EntitiesRouteOptions> = async (fastify, opts)
           };
         }
 
-        // Map sort field to database field
         const sortField = sort === 'id' ? 'rocrateId' : sort;
 
         const dbEntities = await fastify.prisma.entity.findMany({
@@ -64,7 +63,6 @@ const entities: FastifyPluginAsync<EntitiesRouteOptions> = async (fastify, opts)
           take: limit,
         });
 
-        // Get total count for pagination metadata
         const total = await fastify.prisma.entity.count({ where });
 
         // Apply transformers to each entity: base -> access -> additional
