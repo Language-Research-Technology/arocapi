@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE `Entity` ADD COLUMN `fileId` VARCHAR(2048) NULL;

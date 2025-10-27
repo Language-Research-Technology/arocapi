@@ -48,18 +48,17 @@
       ],
       "hasPart": [
         {
-          "@id": "narrative.wav"
+          "@id": "http://example.com/item/coastal-narrative-001/file/narrative.wav"
         },
         {
-          "@id": "narrative.eaf"
+          "@id": "http://example.com/item/coastal-narrative-001/file/narrative.eaf"
         }
       ]
     },
     {
-      "@id": "narrative.wav",
+      "@id": "http://example.com/item/coastal-narrative-001/file/narrative.wav",
       "@type": ["File", "MediaObject"],
-      "name": "narrative.wav",
-      "description": "Audio recording of personal narrative",
+      "filename": "narrative.wav",
       "encodingFormat": "audio/wav",
       "contentSize": "147000",
       "duration": "PT5S",
@@ -68,10 +67,9 @@
       }
     },
     {
-      "@id": "narrative.eaf",
+      "@id": "http://example.com/item/coastal-narrative-001/file/narrative.eaf",
       "@type": ["File", "MediaObject"],
-      "name": "narrative.eaf",
-      "description": "ELAN annotation file with transcription, free translation, and discourse analysis",
+      "filename": "narrative.eaf",
       "encodingFormat": "text/x-eaf+xml",
       "license": {
         "@id": "https://creativecommons.org/licenses/by-nc-nd/4.0/"

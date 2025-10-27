@@ -47,18 +47,17 @@
       ],
       "hasPart": [
         {
-          "@id": "greeting.wav"
+          "@id": "http://example.com/item/nyeleni-greeting-001/file/greeting.wav"
         },
         {
-          "@id": "greeting.eaf"
+          "@id": "http://example.com/item/nyeleni-greeting-001/file/greeting.eaf"
         }
       ]
     },
     {
-      "@id": "greeting.wav",
+      "@id": "http://example.com/item/nyeleni-greeting-001/file/greeting.wav",
       "@type": ["File", "MediaObject"],
-      "name": "greeting.wav",
-      "description": "Audio recording of traditional greetings",
+      "filename": "greeting.wav",
       "encodingFormat": "audio/wav",
       "contentSize": "88200",
       "duration": "PT3S",
@@ -69,8 +68,7 @@
     {
       "@id": "greeting.eaf",
       "@type": ["File", "MediaObject"],
-      "name": "greeting.eaf",
-      "description": "ELAN annotation file with transcription and translation",
+      "filename": "greeting.eaf",
       "encodingFormat": "text/x-eaf+xml",
       "license": {
         "@id": "https://creativecommons.org/licenses/by-nc-sa/4.0/"

@@ -8,12 +8,11 @@ export type StandardEntity = {
   id: string;
   name: string;
   description: string;
-  entityType: string;
   memberOf: string | null;
   rootCollection: string | null;
   metadataLicenseId: string;
   contentLicenseId: string;
-};
+} & ({ entityType: string; fileId?: never } | { entityType: 'http://schema.org/MediaObject'; fileId: string });
 
 /**
  * Access information for an entity
@@ -69,16 +68,32 @@ export type AuthorisedFile = StandardFile & {
  * Base entity transformer - always applied first
  * Transforms raw database entity to standard entity shape (without access)
  */
-export const baseEntityTransformer = (entity: Entity): StandardEntity => ({
-  id: entity.rocrateId,
-  name: entity.name,
-  description: entity.description,
-  entityType: entity.entityType,
-  memberOf: entity.memberOf,
-  rootCollection: entity.rootCollection,
-  metadataLicenseId: entity.metadataLicenseId,
-  contentLicenseId: entity.contentLicenseId,
-});
+export const baseEntityTransformer = (entity: Entity): StandardEntity => {
+  const base: StandardEntity = {
+    id: entity.rocrateId,
+    name: entity.name,
+    description: entity.description,
+    entityType: entity.entityType,
+    memberOf: entity.memberOf,
+    rootCollection: entity.rootCollection,
+    metadataLicenseId: entity.metadataLicenseId,
+    contentLicenseId: entity.contentLicenseId,
+  };
+
+  if (base.entityType === ('http://schema.org/MediaObject' as const)) {
+    if (!entity.fileId) {
+      return base;
+    }
+
+    return {
+      ...base,
+      entityType: base.entityType,
+      fileId: entity.fileId,
+    };
+  }
+
+  return base;
+};
 
 /**
  * All Public Access Transformer - grants full access to metadata and content

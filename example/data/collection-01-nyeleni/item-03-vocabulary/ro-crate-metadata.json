@@ -49,18 +49,17 @@
       ],
       "hasPart": [
         {
-          "@id": "vocabulary.wav"
+          "@id": "http://example.com/item/nyeleni-vocabulary-001/file/vocabulary.wav"
         },
         {
-          "@id": "vocabulary.eaf"
+          "@id": "http://example.com/item/nyeleni-vocabulary-001/file/vocabulary.eaf"
         }
       ]
     },
     {
-      "@id": "vocabulary.wav",
+      "@id": "http://example.com/item/nyeleni-vocabulary-001/file/vocabulary.wav",
       "@type": ["File", "MediaObject"],
-      "name": "vocabulary.wav",
-      "description": "Audio recording of kinship terms elicitation",
+      "filename": "vocabulary.wav",
       "encodingFormat": "audio/wav",
       "contentSize": "117600",
       "duration": "PT4S",
@@ -69,10 +68,9 @@
       }
     },
     {
-      "@id": "vocabulary.eaf",
+      "@id": "http://example.com/item/nyeleni-vocabulary-001/file/vocabulary.eaf",
       "@type": ["File", "MediaObject"],
-      "name": "vocabulary.eaf",
-      "description": "ELAN annotation file with word-level segmentation and glosses",
+      "filename": "vocabulary.eaf",
       "encodingFormat": "text/x-eaf+xml",
       "license": {
         "@id": "https://creativecommons.org/licenses/by-nc-sa/4.0/"

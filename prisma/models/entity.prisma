@@ -11,6 +11,7 @@ model Entity {
   rootCollection      String?    @db.VarChar(2048)
   metadataLicenseId   String     @db.VarChar(2048)
   contentLicenseId    String     @db.VarChar(2048)
+  fileId              String?    @db.VarChar(2048)
 
   rocrate             Json
   meta                Json?

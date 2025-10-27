@@ -48,18 +48,17 @@
       ],
       "hasPart": [
         {
-          "@id": "story.wav"
+          "@id": "http://example.com/item/nyeleni-story-001/file/story.wav"
         },
         {
-          "@id": "story.eaf"
+          "@id": "http://example.com/item/nyeleni-story-001/file/story.eaf"
         }
       ]
     },
     {
-      "@id": "story.wav",
+      "@id": "http://example.com/item/nyeleni-story-001/file/story.wav",
       "@type": ["File", "MediaObject"],
-      "name": "story.wav",
-      "description": "Audio recording of traditional folktale",
+      "filename": "story.wav",
       "encodingFormat": "audio/wav",
       "contentSize": "132300",
       "duration": "PT4.5S",
@@ -68,10 +67,9 @@
       }
     },
     {
-      "@id": "story.eaf",
+      "@id": "http://example.com/item/nyeleni-story-001/file/story.eaf",
       "@type": ["File", "MediaObject"],
-      "name": "story.eaf",
-      "description": "ELAN annotation file with transcription, translation, and narrative structure annotations",
+      "filename": "story.eaf",
       "encodingFormat": "text/x-eaf+xml",
       "license": {
         "@id": "https://creativecommons.org/licenses/by-nc-sa/4.0/"

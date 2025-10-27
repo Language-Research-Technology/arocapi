@@ -52,18 +52,17 @@
       ],
       "hasPart": [
         {
-          "@id": "conversation.wav"
+          "@id": "http://example.com/item/coastal-conversation-001/file/conversation.wav"
         },
         {
-          "@id": "conversation.eaf"
+          "@id": "http://example.com/item/coastal-conversation-001/file/conversation.eaf"
         }
       ]
     },
     {
-      "@id": "conversation.wav",
+      "@id": "http://example.com/item/coastal-conversation-001/file/conversation.wav",
       "@type": ["File", "MediaObject"],
-      "name": "conversation.wav",
-      "description": "Audio recording of natural conversation",
+      "filename": "conversation.wav",
       "encodingFormat": "audio/wav",
       "contentSize": "123200",
       "duration": "PT4.2S",
@@ -72,10 +71,9 @@
       }
     },
     {
-      "@id": "conversation.eaf",
+      "@id": "http://example.com/item/coastal-conversation-001/file/conversation.eaf",
       "@type": ["File", "MediaObject"],
-      "name": "conversation.eaf",
-      "description": "ELAN annotation file with multi-speaker transcription and translation",
+      "filename": "conversation.eaf",
       "encodingFormat": "text/x-eaf+xml",
       "license": {
         "@id": "https://creativecommons.org/licenses/by-nc-nd/4.0/"

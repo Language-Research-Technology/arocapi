@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { Client } from '@opensearch-project/opensearch';
@@ -75,6 +75,9 @@ const processCollection = async (
       collectionRoot.license?.['@id'] ||
       'https://creativecommons.org/licenses/by/4.0/',
     rocrate: collectionCrate,
+    meta: {
+      storagePath: collectionPath,
+    },
   };
 
   const collection = await prisma.entity.create({
@@ -113,6 +116,9 @@ const processItem = async (
     contentLicenseId:
       itemRoot.contentLicense?.['@id'] || itemRoot.license?.['@id'] || 'https://creativecommons.org/licenses/by/4.0/',
     rocrate: itemCrate,
+    meta: {
+      storagePath: itemPath,
+    },
   };
 
   const item = await prisma.entity.create({
@@ -131,28 +137,68 @@ const processItem = async (
 
       // Only create entities for PCDM File types
       if (fileType === 'http://schema.org/MediaObject' || fileType === 'File') {
-        const fileRocrateId = fileNode.identifier?.['@id'] || `${itemRocrateId}/${fileNode['@id']}`;
+        const fileRocrateId = partRef['@id'];
+        const filename = fileNode.filename as string;
+        const filePath = join(import.meta.dirname, collectionDir, itemDir, filename);
+
+        // Get file stats from filesystem
+        if (!existsSync(filePath)) {
+          console.warn(`      ! File not found: ${filePath}`);
+          throw new Error(`File not found: ${filePath}`);
+        }
+
+        const stats = statSync(filePath);
 
         const fileEntity = {
           rocrateId: fileRocrateId,
-          name: fileNode.name || fileNode['@id'],
+          name: fileNode.name || filename,
           description: fileNode.description || '',
           entityType: 'http://schema.org/MediaObject',
+          fileId: fileRocrateId,
           memberOf: itemRocrateId,
           rootCollection: collectionRocrateId,
           metadataLicenseId:
-            itemRoot.metadataLicense?.['@id'] ||
+            fileNode.license?.['@id'] ||
+            itemRoot.contentLicense?.['@id'] ||
             itemRoot.license?.['@id'] ||
             'https://creativecommons.org/licenses/by/4.0/',
           contentLicenseId:
-            fileNode.license?.['@id'] || itemRoot.license?.['@id'] || 'https://creativecommons.org/licenses/by/4.0/',
-          rocrate: { '@context': itemCrate['@context'], '@graph': [fileNode] },
+            fileNode.license?.['@id'] ||
+            itemRoot.contentLicense?.['@id'] ||
+            itemRoot.license?.['@id'] ||
+            'https://creativecommons.org/licenses/by/4.0/',
+          rocrate: fileNode,
+          meta: {
+            remapRootTo: fileRocrateId,
+            storagePath: itemPath,
+          },
         };
 
-        const file = await prisma.entity.create({
+        await prisma.entity.create({
           data: fileEntity,
         });
-        console.log(`      ✓ Created file: ${file.name}`);
+
+        const fileRecord = {
+          fileId: fileRocrateId,
+          filename: filename,
+          mediaType: (fileNode.encodingFormat as string) || 'application/octet-stream',
+          size: BigInt(stats.size),
+          memberOf: itemRocrateId,
+          rootCollection: collectionRocrateId,
+          contentLicenseId:
+            fileNode.license?.['@id'] ||
+            itemRoot.contentLicense?.['@id'] ||
+            itemRoot.license?.['@id'] ||
+            'https://creativecommons.org/licenses/by/4.0/',
+          meta: {
+            storagePath: filePath,
+          },
+        };
+
+        await prisma.file.create({
+          data: fileRecord,
+        });
+        console.log(`      ✓ Created file entity and record: ${filename}`);
       }
     }
   }
@@ -231,6 +277,7 @@ const seed = async (): Promise<void> => {
   try {
     console.log('Clearing existing data...');
     await prisma.entity.deleteMany({});
+    await prisma.file.deleteMany({});
     console.log('  ✓ Database cleared');
 
     await processCollection('collection-01-nyeleni', 'http://example.com/collection/nyeleni-001', [

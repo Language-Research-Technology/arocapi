@@ -49,18 +49,17 @@
       ],
       "hasPart": [
         {
-          "@id": "songs.wav"
+          "@id": "http://example.com/item/coastal-songs-001/file/songs.wav"
         },
         {
-          "@id": "songs.eaf"
+          "@id": "http://example.com/item/coastal-songs-001/file/songs.eaf"
         }
       ]
     },
     {
-      "@id": "songs.wav",
+      "@id": "http://example.com/item/coastal-songs-001/file/songs.wav",
       "@type": ["File", "MediaObject"],
-      "name": "songs.wav",
-      "description": "Audio recording of traditional fishing songs",
+      "filename": "songs.wav",
       "encodingFormat": "audio/wav",
       "contentSize": "102900",
       "duration": "PT3.5S",
@@ -69,10 +68,9 @@
       }
     },
     {
-      "@id": "songs.eaf",
+      "@id": "http://example.com/item/coastal-songs-001/file/songs.eaf",
       "@type": ["File", "MediaObject"],
-      "name": "songs.eaf",
-      "description": "ELAN annotation file with lyrics transcription and musical notation references",
+      "filename": "songs.eaf",
       "encodingFormat": "text/x-eaf+xml",
       "license": {
         "@id": "https://creativecommons.org/licenses/by-nc-nd/4.0/"

@@ -23,6 +23,7 @@ describe('Entity Route', () => {
         name: 'Test Entity',
         description: 'A test entity',
         entityType: 'http://schema.org/Person',
+        fileId: null,
         memberOf: null,
         rootCollection: null,
         metadataLicenseId: 'https://creativecommons.org/licenses/by/4.0/',

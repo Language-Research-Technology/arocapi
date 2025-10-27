@@ -10,6 +10,7 @@ describe('baseEntityTransformer', () => {
       name: 'Test Entity',
       description: 'A test entity description',
       entityType: 'http://pcdm.org/models#Collection',
+      fileId: null,
       memberOf: 'http://example.com/parent',
       rootCollection: 'http://example.com/root',
       metadataLicenseId: 'https://creativecommons.org/licenses/by/4.0/',
@@ -41,6 +42,7 @@ describe('baseEntityTransformer', () => {
       name: 'Top Collection',
       description: 'A top-level collection',
       entityType: 'http://pcdm.org/models#Collection',
+      fileId: null,
       memberOf: null,
       rootCollection: null,
       metadataLicenseId: 'https://creativecommons.org/licenses/by/4.0/',
@@ -64,6 +66,7 @@ describe('baseEntityTransformer', () => {
       name: 'Test',
       description: 'Test',
       entityType: 'http://pcdm.org/models#Object',
+      fileId: null,
       memberOf: null,
       rootCollection: null,
       metadataLicenseId: 'https://creativecommons.org/licenses/by/4.0/',
@@ -92,6 +95,40 @@ describe('baseEntityTransformer', () => {
       'metadataLicenseId',
       'contentLicenseId',
     ]);
+  });
+
+  it('should handle File entity (MediaObject) with fileId', () => {
+    const entity: Entity = {
+      id: 1,
+      rocrateId: 'http://example.com/file/audio.wav',
+      name: 'Audio File',
+      description: 'An audio recording',
+      entityType: 'http://schema.org/MediaObject',
+      fileId: 'http://example.com/files/audio.wav',
+      memberOf: 'http://example.com/collection',
+      rootCollection: 'http://example.com/collection',
+      metadataLicenseId: 'https://creativecommons.org/licenses/by/4.0/',
+      contentLicenseId: 'https://creativecommons.org/licenses/by/4.0/',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      rocrate: {},
+      meta: null,
+    };
+
+    const result = baseEntityTransformer(entity);
+
+    expect(result).toEqual({
+      id: 'http://example.com/file/audio.wav',
+      name: 'Audio File',
+      description: 'An audio recording',
+      entityType: 'http://schema.org/MediaObject',
+      fileId: 'http://example.com/files/audio.wav',
+      memberOf: 'http://example.com/collection',
+      rootCollection: 'http://example.com/collection',
+      metadataLicenseId: 'https://creativecommons.org/licenses/by/4.0/',
+      contentLicenseId: 'https://creativecommons.org/licenses/by/4.0/',
+    });
+    expect(result.fileId).toBe('http://example.com/files/audio.wav');
   });
 });
 

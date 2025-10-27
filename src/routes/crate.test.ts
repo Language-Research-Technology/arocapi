@@ -32,6 +32,7 @@ describe('Crate Route', () => {
     name: 'test.wav',
     description: 'A test file',
     entityType: 'http://schema.org/MediaObject',
+    fileId: null,
     memberOf: 'http://example.com/collection',
     rootCollection: 'http://example.com/collection',
     metadataLicenseId: 'https://creativecommons.org/licenses/by/4.0/',
