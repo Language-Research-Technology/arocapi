@@ -83,8 +83,6 @@ const transformRoCrate = (filePath: string, remapRootTo: string): { rocrate: unk
   }
 
   rootNode.about['@id'] = remapRootTo;
-  fastify.log.error('🪚 ⭕');
-  fastify.log.error('🪚 rootNode:', JSON.stringify(rootNode, null, 2));
 
   const jsonString = JSON.stringify(rocrate);
 
@@ -148,7 +146,6 @@ const roCrateHandler: RoCrateHandler = {
       };
     }
 
-    fastify.log.error('🪚 ⭕ MOO');
     const stats = statSync(filePath);
 
     return {

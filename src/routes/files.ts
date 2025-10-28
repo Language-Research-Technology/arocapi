@@ -62,7 +62,7 @@ const files: FastifyPluginAsync<FilesRouteOptions> = async (fastify, opts) => {
 
             let result = authorisedFile;
             for (const transformer of fileTransformers) {
-              result = await transformer(authorisedFile, {
+              result = await transformer(result, {
                 request,
                 fastify,
               });
