@@ -675,9 +675,9 @@ describe('Search Route', () => {
           query: 'test',
         },
       });
+      const body = JSON.parse(response.body) as { facets?: unknown; geohashGrid?: unknown; entities: unknown[] };
 
       expect(response.statusCode).toBe(200);
-      const body = JSON.parse(response.body);
       expect(body.facets).toBeUndefined();
       expect(body.geohashGrid).toBeUndefined();
       expect(body.entities).toHaveLength(1);
@@ -738,9 +738,9 @@ describe('Search Route', () => {
           query: 'test',
         },
       });
+      const body = JSON.parse(response.body) as { facets?: unknown; entities: unknown[] };
 
       expect(response.statusCode).toBe(200);
-      const body = JSON.parse(response.body);
       expect(body.facets).toBeUndefined();
       expect(body.entities).toHaveLength(1);
     });
@@ -797,9 +797,9 @@ describe('Search Route', () => {
           query: 'test',
         },
       });
+      const body = JSON.parse(response.body) as { geohashGrid?: unknown; entities: unknown[] };
 
       expect(response.statusCode).toBe(200);
-      const body = JSON.parse(response.body);
       expect(body.geohashGrid).toBeUndefined();
       expect(body.entities).toHaveLength(1);
     });
