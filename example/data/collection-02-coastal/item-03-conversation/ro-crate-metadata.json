@@ -1,0 +1,111 @@
+{
+  "@context": "https://w3id.org/ro/crate/1.1/context",
+  "@graph": [
+    {
+      "@id": "ro-crate-metadata.json",
+      "@type": "CreativeWork",
+      "conformsTo": {
+        "@id": "https://w3id.org/ro/crate/1.1"
+      },
+      "about": {
+        "@id": "./"
+      }
+    },
+    {
+      "@id": "./",
+      "@type": ["Dataset", "http://pcdm.org/models#Object"],
+      "name": "Preparing the Net - Conversation",
+      "description": "Natural conversation between two fishermen discussing traditional net preparation techniques. This recording captures authentic language use in a work context and includes technical vocabulary related to fishing practices.",
+      "identifier": "http://example.com/item/coastal-conversation-001",
+      "dateCreated": "2024-01-25",
+      "license": {
+        "@id": "https://creativecommons.org/licenses/by-nc-nd/4.0/"
+      },
+      "contentLicense": {
+        "@id": "https://creativecommons.org/licenses/by-nc-nd/4.0/"
+      },
+      "metadataLicense": {
+        "@id": "https://creativecommons.org/licenses/by/4.0/"
+      },
+      "isPartOf": {
+        "@id": "http://example.com/collection/coastal-001"
+      },
+      "memberOf": {
+        "@id": "http://example.com/collection/coastal-001"
+      },
+      "inLanguage": {
+        "@id": "http://iso639-3.sil.org/code/pac"
+      },
+      "recordingDate": "2024-01-25",
+      "genre": "Conversation",
+      "keywords": ["conversation", "fishing", "technical vocabulary"],
+      "contributor": [
+        {
+          "@id": "#speaker-james"
+        },
+        {
+          "@id": "#speaker-robert"
+        },
+        {
+          "@id": "#researcher-sarah"
+        }
+      ],
+      "hasPart": [
+        {
+          "@id": "http://example.com/item/coastal-conversation-001/file/conversation.wav"
+        },
+        {
+          "@id": "http://example.com/item/coastal-conversation-001/file/conversation.eaf"
+        }
+      ]
+    },
+    {
+      "@id": "http://example.com/item/coastal-conversation-001/file/conversation.wav",
+      "@type": ["File", "MediaObject"],
+      "filename": "conversation.wav",
+      "encodingFormat": "audio/wav",
+      "contentSize": "123200",
+      "duration": "PT4.2S",
+      "license": {
+        "@id": "https://creativecommons.org/licenses/by-nc-nd/4.0/"
+      }
+    },
+    {
+      "@id": "http://example.com/item/coastal-conversation-001/file/conversation.eaf",
+      "@type": ["File", "MediaObject"],
+      "filename": "conversation.eaf",
+      "encodingFormat": "text/x-eaf+xml",
+      "license": {
+        "@id": "https://creativecommons.org/licenses/by-nc-nd/4.0/"
+      }
+    },
+    {
+      "@id": "#speaker-james",
+      "@type": "Person",
+      "name": "James Wilson",
+      "description": "Fisherman and language consultant, born 1965",
+      "gender": "male",
+      "birthDate": "1965"
+    },
+    {
+      "@id": "#speaker-robert",
+      "@type": "Person",
+      "name": "Robert Anderson",
+      "description": "Fisherman and boat builder, born 1968",
+      "gender": "male",
+      "birthDate": "1968"
+    },
+    {
+      "@id": "#researcher-sarah",
+      "@type": "Person",
+      "name": "Dr. Sarah Chen",
+      "description": "Linguist and researcher"
+    },
+    {
+      "@id": "http://iso639-3.sil.org/code/pac",
+      "@type": "Language",
+      "name": "Pacific Coastal Language",
+      "identifier": "pac"
+    }
+  ]
+}

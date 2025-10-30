@@ -23,6 +23,7 @@ describe('Entities Route', () => {
           name: 'Test Entity 1',
           description: 'First test entity',
           entityType: 'http://pcdm.org/models#Collection',
+          fileId: null,
           memberOf: null,
           rootCollection: null,
           metadataLicenseId: 'https://creativecommons.org/licenses/by/4.0/',
@@ -30,6 +31,7 @@ describe('Entities Route', () => {
           createdAt: new Date(),
           updatedAt: new Date(),
           rocrate: {},
+          meta: {},
         },
         {
           id: 2,
@@ -37,6 +39,7 @@ describe('Entities Route', () => {
           name: 'Test Entity 2',
           description: 'Second test entity',
           entityType: 'http://pcdm.org/models#Object',
+          fileId: null,
           memberOf: 'http://example.com/entity/1',
           rootCollection: 'http://example.com/entity/1',
           metadataLicenseId: 'https://creativecommons.org/licenses/by/4.0/',
@@ -44,6 +47,7 @@ describe('Entities Route', () => {
           createdAt: new Date(),
           updatedAt: new Date(),
           rocrate: {},
+          meta: {},
         },
       ];
 

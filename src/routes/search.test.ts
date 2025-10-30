@@ -537,6 +537,31 @@ describe('Search Route', () => {
       expect(body).toMatchSnapshot();
     });
 
+    it('should handle invalid search response with missing hits data', async () => {
+      const mockSearchResponse = {
+        body: {
+          took: 5,
+          // Missing hits object
+        },
+      };
+
+      // @ts-expect-error TS is looking at the wrong function signature
+      opensearch.search.mockResolvedValue(mockSearchResponse);
+
+      const response = await fastify.inject({
+        method: 'POST',
+        url: '/search',
+        payload: {
+          query: 'test',
+        },
+      });
+
+      expect(response.statusCode).toBe(500);
+      const body = JSON.parse(response.body) as { error: { code: string; message: string } };
+      expect(body.error.code).toBe('INTERNAL_ERROR');
+      expect(body.error.message).toBe('Search failed');
+    });
+
     it('should apply custom entity transformers', async () => {
       // biome-ignore lint/suspicious/noExplicitAny: fine in tests
       const customTransformer = async (entity: any) => ({

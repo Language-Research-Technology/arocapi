@@ -1,8 +1,8 @@
 import Fastify from 'fastify';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { mockReset } from 'vitest-mock-extended';
 
-import app, { AllPublicAccessTransformer } from './app.js';
+import app, { AllPublicAccessTransformer, AllPublicFileAccessTransformer } from './app.js';
 
 import { opensearch, prisma } from './test/helpers/fastify.js';
 
@@ -50,6 +50,54 @@ describe('Entity Route', () => {
       await expect(() => fastify.ready()).rejects.toThrowError('accessTransformer is required');
     });
 
+    it('should handle missing fileAccessTransformer', async () => {
+      const fastify = Fastify({ logger: false });
+
+      // @ts-expect-error we are testing missing options
+      fastify.register(app, {
+        prisma,
+        opensearch,
+        disableCors: false,
+        accessTransformer: AllPublicAccessTransformer,
+      });
+
+      await expect(() => fastify.ready()).rejects.toThrowError('fileAccessTransformer is required');
+    });
+
+    it('should handle missing fileHandler', async () => {
+      const fastify = Fastify({ logger: false });
+
+      // @ts-expect-error we are testing missing options
+      fastify.register(app, {
+        prisma,
+        opensearch,
+        disableCors: false,
+        accessTransformer: AllPublicAccessTransformer,
+        fileAccessTransformer: AllPublicFileAccessTransformer,
+      });
+
+      await expect(() => fastify.ready()).rejects.toThrowError('fileHandler is required');
+    });
+
+    it('should handle missing roCrateHandler', async () => {
+      const fastify = Fastify({ logger: false });
+
+      // @ts-expect-error we are testing missing options
+      fastify.register(app, {
+        prisma,
+        opensearch,
+        disableCors: false,
+        accessTransformer: AllPublicAccessTransformer,
+        fileAccessTransformer: AllPublicFileAccessTransformer,
+        fileHandler: {
+          get: vi.fn(),
+          head: vi.fn(),
+        },
+      });
+
+      await expect(() => fastify.ready()).rejects.toThrowError('roCrateHandler is required');
+    });
+
     it('should handle broken opensearch', async () => {
       opensearch.ping.mockRejectedValue(new Error('Connection failed'));
 
@@ -60,6 +108,15 @@ describe('Entity Route', () => {
         opensearch,
         disableCors: false,
         accessTransformer: AllPublicAccessTransformer,
+        fileAccessTransformer: AllPublicFileAccessTransformer,
+        fileHandler: {
+          get: vi.fn(),
+          head: vi.fn(),
+        },
+        roCrateHandler: {
+          get: vi.fn(),
+          head: vi.fn(),
+        },
       });
 
       await expect(() => fastify.ready()).rejects.toThrowError('Connection failed');
@@ -72,6 +129,15 @@ describe('Entity Route', () => {
         opensearch,
         disableCors: false,
         accessTransformer: AllPublicAccessTransformer,
+        fileAccessTransformer: AllPublicFileAccessTransformer,
+        fileHandler: {
+          get: vi.fn(),
+          head: vi.fn(),
+        },
+        roCrateHandler: {
+          get: vi.fn(),
+          head: vi.fn(),
+        },
       });
       fastify.get('/error', async () => {
         throw new Error('Random');

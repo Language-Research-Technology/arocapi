@@ -23,10 +23,15 @@ export default defineConfig({
 
         // Not part of library
         'src/index.ts',
+        'src/index.dev.ts',
 
         // Only types
         'src/types/*',
         'src/reset.d.ts',
+
+        // Test helpers and setup
+        'src/test/integration.setup.ts',
+        'src/test/helpers/*',
 
         // TODO
         'src/express.ts',

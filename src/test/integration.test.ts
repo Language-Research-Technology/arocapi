@@ -40,6 +40,23 @@ describe('Integration Tests', () => {
       expect(body).toMatchSnapshot();
     });
 
+    it('should return File entity from database', async () => {
+      const app = getTestApp();
+
+      const response = await app.inject({
+        method: 'GET',
+        url: `/entity/${encodeURIComponent('http://example.com/entity/4')}`,
+      });
+      const body = JSON.parse(response.body) as AuthorisedEntity;
+
+      expect(response.statusCode).toBe(200);
+      expect(body.id).toBe('http://example.com/entity/4');
+      expect(body.name).toBe('test-audio.wav');
+      expect(body.entityType).toBe('http://schema.org/MediaObject');
+      expect(body.memberOf).toBe('http://example.com/entity/2');
+      expect(body.rootCollection).toBe('http://example.com/entity/1');
+    });
+
     it('should return 404 for non-existent entity', async () => {
       const app = getTestApp();
 
@@ -65,8 +82,8 @@ describe('Integration Tests', () => {
       const body = JSON.parse(response.body) as { total: number; entities: AuthorisedEntity[] };
 
       expect(response.statusCode).toBe(200);
-      expect(body.total).toBe(3);
-      expect(body.entities).toHaveLength(3);
+      expect(body.total).toBe(5);
+      expect(body.entities).toHaveLength(5);
       expect(body.entities[0]).toEqual({
         id: 'http://example.com/entity/1',
         name: 'Test Collection',
@@ -96,8 +113,8 @@ describe('Integration Tests', () => {
       const body = JSON.parse(response.body) as { total: number; entities: AuthorisedEntity[] };
 
       expect(response.statusCode).toBe(200);
-      expect(body.total).toBe(2);
-      expect(body.entities).toHaveLength(2);
+      expect(body.total).toBe(3);
+      expect(body.entities).toHaveLength(3);
       expect(body.entities[0].id).toBe('http://example.com/entity/2');
     });
 
@@ -119,6 +136,67 @@ describe('Integration Tests', () => {
       expect(body.entities[0].id).toBe('http://example.com/entity/3');
     });
 
+    it('should filter entities by File entityType', async () => {
+      const app = getTestApp();
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/entities',
+        query: {
+          entityType: 'http://schema.org/MediaObject',
+        },
+      });
+      const body = JSON.parse(response.body) as { total: number; entities: AuthorisedEntity[] };
+
+      expect(response.statusCode).toBe(200);
+      expect(body.total).toBe(2);
+      expect(body.entities).toHaveLength(2);
+      expect(body.entities[0].entityType).toBe('http://schema.org/MediaObject');
+      expect(body.entities[1].entityType).toBe('http://schema.org/MediaObject');
+    });
+
+    it('should filter File entities by memberOf (Object parent)', async () => {
+      const app = getTestApp();
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/entities',
+        query: {
+          memberOf: 'http://example.com/entity/2',
+          entityType: 'http://schema.org/MediaObject',
+        },
+      });
+      const body = JSON.parse(response.body) as { total: number; entities: AuthorisedEntity[] };
+
+      expect(response.statusCode).toBe(200);
+      expect(body.total).toBe(1);
+      expect(body.entities).toHaveLength(1);
+      expect(body.entities[0].id).toBe('http://example.com/entity/4');
+      expect(body.entities[0].name).toBe('test-audio.wav');
+      expect(body.entities[0].memberOf).toBe('http://example.com/entity/2');
+    });
+
+    it('should filter File entities by memberOf (Collection parent)', async () => {
+      const app = getTestApp();
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/entities',
+        query: {
+          memberOf: 'http://example.com/entity/1',
+          entityType: 'http://schema.org/MediaObject',
+        },
+      });
+      const body = JSON.parse(response.body) as { total: number; entities: AuthorisedEntity[] };
+
+      expect(response.statusCode).toBe(200);
+      expect(body.total).toBe(1);
+      expect(body.entities).toHaveLength(1);
+      expect(body.entities[0].id).toBe('http://example.com/entity/5');
+      expect(body.entities[0].name).toBe('collection-metadata.csv');
+      expect(body.entities[0].memberOf).toBe('http://example.com/entity/1');
+    });
+
     it('should handle pagination', async () => {
       const app = getTestApp();
 
@@ -133,7 +211,7 @@ describe('Integration Tests', () => {
       const body = JSON.parse(response.body) as { total: number; entities: AuthorisedEntity[] };
 
       expect(response.statusCode).toBe(200);
-      expect(body.total).toBe(3);
+      expect(body.total).toBe(5);
       expect(body.entities).toHaveLength(2);
     });
 
@@ -151,9 +229,9 @@ describe('Integration Tests', () => {
       const body = JSON.parse(response.body) as { total: number; entities: AuthorisedEntity[] };
 
       expect(response.statusCode).toBe(200);
-      expect(body.entities[0].name).toBe('Test Person');
-      expect(body.entities[1].name).toBe('Test Object');
-      expect(body.entities[2].name).toBe('Test Collection');
+      expect(body.entities[0].name).toBe('test-audio.wav');
+      expect(body.entities[1].name).toBe('Test Person');
+      expect(body.entities[2].name).toBe('Test Object');
     });
   });
 
@@ -247,6 +325,46 @@ describe('Integration Tests', () => {
       expect(body.entities[0].name).toBe('Test Collection');
       expect(body.entities[1].name).toBe('Test Object');
       expect(body.entities[2].name).toBe('Test Person');
+    });
+
+    it('should filter search results by File entityType', async () => {
+      const app = getTestApp();
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/search',
+        payload: {
+          query: 'test',
+          searchType: 'basic',
+          filters: {
+            entityType: ['http://schema.org/MediaObject'],
+          },
+        },
+      });
+      const body = JSON.parse(response.body) as { total: number; entities: AuthorisedEntity[] };
+
+      expect(response.statusCode).toBe(200);
+      expect(body.entities.every((e) => e.entityType === 'http://schema.org/MediaObject')).toBe(true);
+    });
+
+    it('should search for File entities by name', async () => {
+      const app = getTestApp();
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/search',
+        payload: {
+          query: 'audio',
+          searchType: 'basic',
+        },
+      });
+      const body = JSON.parse(response.body) as { total: number; entities: AuthorisedEntity[] };
+
+      expect(response.statusCode).toBe(200);
+      expect(body.total).toBeGreaterThan(0);
+      const audioFile = body.entities.find((e) => e.name === 'test-audio.wav');
+      expect(audioFile).toBeDefined();
+      expect(audioFile?.entityType).toBe('http://schema.org/MediaObject');
     });
   });
 

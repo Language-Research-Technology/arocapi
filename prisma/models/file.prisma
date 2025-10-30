@@ -1,0 +1,20 @@
+model File {
+  id                Int      @id @default(autoincrement())
+
+  fileId            String   @db.VarChar(2048)
+
+  filename          String   @db.VarChar(255)
+  mediaType         String   @db.VarChar(127)
+  size              BigInt
+
+  memberOf          String   @db.VarChar(2048)
+  rootCollection    String   @db.VarChar(2048)
+  contentLicenseId  String   @db.VarChar(2048)
+
+  meta              Json?
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([fileId(length: 768)])
+}

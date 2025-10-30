@@ -1,0 +1,83 @@
+{
+  "@context": "https://w3id.org/ro/crate/1.1/context",
+  "@graph": [
+    {
+      "@id": "ro-crate-metadata.json",
+      "@type": "CreativeWork",
+      "conformsTo": {
+        "@id": "https://w3id.org/ro/crate/1.1"
+      },
+      "about": {
+        "@id": "./"
+      }
+    },
+    {
+      "@id": "./",
+      "@type": ["Dataset", "http://pcdm.org/models#Collection"],
+      "name": "Nyeleni Language Documentation Archive",
+      "description": "A collection of audio recordings documenting the Nyeleni language, an endangered language spoken in West Africa. This archive contains traditional greetings, stories, and vocabulary elicitation sessions recorded with fluent speakers.",
+      "identifier": "http://example.com/collection/nyeleni-001",
+      "datePublished": "2024-01-15",
+      "license": {
+        "@id": "https://creativecommons.org/licenses/by-nc-sa/4.0/"
+      },
+      "contentLicense": {
+        "@id": "https://creativecommons.org/licenses/by-nc-sa/4.0/"
+      },
+      "metadataLicense": {
+        "@id": "https://creativecommons.org/licenses/by/4.0/"
+      },
+      "inLanguage": {
+        "@id": "http://iso639-3.sil.org/code/nya"
+      },
+      "spatialCoverage": {
+        "@id": "#place-mali"
+      },
+      "creator": {
+        "@id": "#person-depositor"
+      },
+      "hasPart": [
+        {
+          "@id": "http://example.com/item/nyeleni-greeting-001"
+        },
+        {
+          "@id": "http://example.com/item/nyeleni-story-001"
+        },
+        {
+          "@id": "http://example.com/item/nyeleni-vocabulary-001"
+        }
+      ]
+    },
+    {
+      "@id": "http://iso639-3.sil.org/code/nya",
+      "@type": "Language",
+      "name": "Nyeleni",
+      "alternateName": "nya",
+      "identifier": "nya"
+    },
+    {
+      "@id": "#place-mali",
+      "@type": "Place",
+      "name": "Mopti Region, Mali",
+      "geo": {
+        "@type": "GeoCoordinates",
+        "latitude": -3.9969,
+        "longitude": 14.4919
+      }
+    },
+    {
+      "@id": "#person-depositor",
+      "@type": "Person",
+      "name": "Dr. Aminata Koné",
+      "email": "a.kone@example.org",
+      "affiliation": {
+        "@id": "#org-university"
+      }
+    },
+    {
+      "@id": "#org-university",
+      "@type": "Organization",
+      "name": "University of Bamako, Department of Linguistics"
+    }
+  ]
+}
