@@ -1,3 +1,27 @@
+## [1.2.0](https://github.com/Language-Research-Technology/arocapi/compare/v1.1.0...v1.2.0) (2025-10-30)
+
+### Features
+
+* add development server with file handler and Oni UI integration ([0dba3e4](https://github.com/Language-Research-Technology/arocapi/commit/0dba3e4e6efb0cc8ee848e1f41d85d4dc246e868))
+* add entity transformer system ([7c639de](https://github.com/Language-Research-Technology/arocapi/commit/7c639dec3e2d42cc211f5d2a49b64c8444239a58))
+* add file and RO-Crate handler system with streaming support ([cffe023](https://github.com/Language-Research-Technology/arocapi/commit/cffe0239029cec06d4fb9fdee29e53b1e22a8561))
+* add support for File entity type ([edab2bb](https://github.com/Language-Research-Technology/arocapi/commit/edab2bb90395562529b3a574ca6c999267394964))
+* add tests ([dde7485](https://github.com/Language-Research-Technology/arocapi/commit/dde748553da3486f6e8d3216616511ac05ab6a0c))
+* create dummy data for development ([747c774](https://github.com/Language-Research-Technology/arocapi/commit/747c774b1de9cc9bb857bdeefe4210d065dd2ef8))
+* refactor in line with latest API changes ([7bc19d8](https://github.com/Language-Research-Technology/arocapi/commit/7bc19d8e6a379715874fb12549e13ccd72f28163))
+* switch entityType to a string so we don't restrict upstream types ([24b9e72](https://github.com/Language-Research-Technology/arocapi/commit/24b9e72d7a437248fc043a87fec4dc570e1d6ec2))
+
+### Bug Fixes
+
+* add migration for entityType ([56c1dc5](https://github.com/Language-Research-Technology/arocapi/commit/56c1dc538b15beae3600e05091a1d755f5138750))
+* broken types from test additions ([e12d7a0](https://github.com/Language-Research-Technology/arocapi/commit/e12d7a0242b241436bf4da69cead8bfaa9bcbcd7))
+* fixes after testing against oni ([32b1b87](https://github.com/Language-Research-Technology/arocapi/commit/32b1b87a7a3b183f738e48f47e510f6d9b67e21a))
+* issues picked up in review ([f0587b1](https://github.com/Language-Research-Technology/arocapi/commit/f0587b1a7ddf51021e759bbfc504af26a0ca1fed))
+* make changes for upcoming prisma v7 ([bfce95a](https://github.com/Language-Research-Technology/arocapi/commit/bfce95a84df6776195306b3d7e70987da9d710ee))
+* recordType is now a scalar ([8b064cc](https://github.com/Language-Research-Technology/arocapi/commit/8b064ccc738724ae5dca4598449704c23ea98cb0))
+* vite 4 uses esbuild and needs v8 ignore comments preserved ([29de4ad](https://github.com/Language-Research-Technology/arocapi/commit/29de4ad30ea4bc1d16a0fa4634e7be49c2a6deef))
+* vite4 has better coverage detection - fill in the blanks ([8f3829e](https://github.com/Language-Research-Technology/arocapi/commit/8f3829e63bcf92bd82caf394afe06e6db39b3706))
+
 ## [1.1.0](https://github.com/Language-Research-Technology/arocapi/compare/v1.0.5...v1.1.0) (2025-08-27)
 
 ### Features

@@ -1,7 +1,7 @@
 {
   "type": "module",
   "name": "arocapi",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "An RO-Crate API",
   "main": "dist/app.js",
   "exports": {
