@@ -416,4 +416,26 @@ describe('Crate Route', () => {
       expect(body.error.code).toBe('INTERNAL_ERROR');
     });
   });
+
+  describe('GET /entity/:id/rocrate - exhaustiveness check', () => {
+    it('should handle unexpected RO-Crate result type', async () => {
+      prisma.entity.findFirst.mockResolvedValue(mockFileEntity);
+
+      // Mock an invalid result type to test exhaustiveness check
+      const invalidResult = {
+        type: 'invalid',
+        metadata: { contentType: 'application/ld+json', contentLength: 1024 },
+      };
+      vi.mocked(mockRoCrateHandler.get).mockResolvedValue(invalidResult as never);
+
+      const response = await fastify.inject({
+        method: 'GET',
+        url: `/entity/${encodeURIComponent('http://example.com/entity/file.wav')}/rocrate`,
+      });
+      const body = JSON.parse(response.body) as { error: { code: string } };
+
+      expect(response.statusCode).toBe(500);
+      expect(body.error.code).toBe('INTERNAL_ERROR');
+    });
+  });
 });

@@ -127,6 +127,9 @@ const crate: FastifyPluginAsync<CrateRouteOptions> = async (fastify, opts) => {
           const stream = createReadStream(result.path);
           return reply.code(200).send(stream);
         }
+
+        // Exhaustiveness check - should never reach here with proper types
+        throw new Error(`Unexpected RO-Crate result type: ${(result as { type: string }).type}`);
       } catch (error) {
         fastify.log.error('RO-Crate retrieval error:', error);
         return reply.code(500).send(createInternalError());

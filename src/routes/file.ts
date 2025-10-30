@@ -135,6 +135,13 @@ const file: FastifyPluginAsync<FileRouteOptions> = async (fastify, opts) => {
           const stream = createReadStream(result.path);
           return reply.code(200).send(stream);
         }
+
+        // Exhaustiveness check - should never reach here with proper types
+        console.error(`Unexpected file result type: ${(result as { type: string }).type}`);
+        reply.removeHeader('Content-Disposition');
+        reply.removeHeader('Content-Type');
+        reply.removeHeader('Content-Length');
+        return reply.code(500).send(createInternalError());
       } catch (error) {
         fastify.log.error('File retrieval error:', error);
         return reply.code(500).send(createInternalError());

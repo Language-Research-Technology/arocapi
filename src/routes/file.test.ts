@@ -374,4 +374,26 @@ describe('File Route', () => {
       expect(body.error.message).toBe('The requested file metadata was not found');
     });
   });
+
+  describe('GET /file/:id - exhaustiveness check', () => {
+    it('should handle unexpected file result type', async () => {
+      prisma.file.findFirst.mockResolvedValue(mockFile);
+
+      // Mock an invalid result type to test exhaustiveness check
+      const invalidResult = {
+        type: 'invalid',
+        metadata: { contentType: 'audio/wav', contentLength: 1024 },
+      };
+      vi.mocked(mockFileHandler.get).mockResolvedValue(invalidResult as never);
+
+      const response = await fastify.inject({
+        method: 'GET',
+        url: `/file/${encodeURIComponent('http://example.com/file/test.wav')}`,
+      });
+      const body = JSON.parse(response.body) as { error: { code: string; message: string } };
+
+      expect(response.statusCode).toBe(500);
+      expect(body.error.code).toBe('INTERNAL_ERROR');
+    });
+  });
 });

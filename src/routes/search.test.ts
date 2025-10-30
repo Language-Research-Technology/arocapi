@@ -627,5 +627,181 @@ describe('Search Route', () => {
       expect(response.statusCode).toBe(200);
       expect(body).toMatchSnapshot();
     });
+
+    it('should handle search response with no aggregations field', async () => {
+      const mockEntities = [
+        {
+          rocrateId: 'http://example.com/entity/1',
+          name: 'Test Entity 1',
+          description: 'A test entity',
+          entityType: 'http://pcdm.org/models#Collection',
+          memberOf: null,
+          rootCollection: null,
+          metadataLicenseId: null,
+          contentLicenseId: null,
+          createdAt: new Date('2024-01-01'),
+          updatedAt: new Date('2024-01-01'),
+        },
+      ];
+
+      const mockSearchResponse = {
+        body: {
+          took: 10,
+          hits: {
+            total: { value: 1 },
+            hits: [
+              {
+                _score: 1.5,
+                _source: {
+                  rocrateId: 'http://example.com/entity/1',
+                },
+                highlight: {},
+              },
+            ],
+          },
+          // No aggregations field
+        },
+      };
+
+      // @ts-expect-error TS is looking at the wrong function signature
+      opensearch.search.mockResolvedValue(mockSearchResponse);
+      // @ts-expect-error TS is looking at the wrong function signature
+      prisma.entity.findMany.mockResolvedValue(mockEntities);
+
+      const response = await fastify.inject({
+        method: 'POST',
+        url: '/search',
+        payload: {
+          query: 'test',
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = JSON.parse(response.body);
+      expect(body.facets).toBeUndefined();
+      expect(body.geohashGrid).toBeUndefined();
+      expect(body.entities).toHaveLength(1);
+    });
+
+    it('should handle search response with malformed aggregation buckets', async () => {
+      const mockEntities = [
+        {
+          rocrateId: 'http://example.com/entity/1',
+          name: 'Test Entity 1',
+          description: 'A test entity',
+          entityType: 'http://pcdm.org/models#Collection',
+          memberOf: null,
+          rootCollection: null,
+          metadataLicenseId: null,
+          contentLicenseId: null,
+          createdAt: new Date('2024-01-01'),
+          updatedAt: new Date('2024-01-01'),
+        },
+      ];
+
+      const mockSearchResponse = {
+        body: {
+          took: 10,
+          hits: {
+            total: { value: 1 },
+            hits: [
+              {
+                _score: 1.5,
+                _source: {
+                  rocrateId: 'http://example.com/entity/1',
+                },
+                highlight: {},
+              },
+            ],
+          },
+          aggregations: {
+            entityType: {
+              // buckets is not an array
+              buckets: null,
+            },
+            inLanguage: {
+              // buckets is undefined
+            },
+          },
+        },
+      };
+
+      // @ts-expect-error TS is looking at the wrong function signature
+      opensearch.search.mockResolvedValue(mockSearchResponse);
+      // @ts-expect-error TS is looking at the wrong function signature
+      prisma.entity.findMany.mockResolvedValue(mockEntities);
+
+      const response = await fastify.inject({
+        method: 'POST',
+        url: '/search',
+        payload: {
+          query: 'test',
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = JSON.parse(response.body);
+      expect(body.facets).toBeUndefined();
+      expect(body.entities).toHaveLength(1);
+    });
+
+    it('should handle search response with malformed geohash aggregation buckets', async () => {
+      const mockEntities = [
+        {
+          rocrateId: 'http://example.com/entity/1',
+          name: 'Test Entity 1',
+          description: 'A test entity',
+          entityType: 'http://pcdm.org/models#Collection',
+          memberOf: null,
+          rootCollection: null,
+          metadataLicenseId: null,
+          contentLicenseId: null,
+          createdAt: new Date('2024-01-01'),
+          updatedAt: new Date('2024-01-01'),
+        },
+      ];
+
+      const mockSearchResponse = {
+        body: {
+          took: 10,
+          hits: {
+            total: { value: 1 },
+            hits: [
+              {
+                _score: 1.5,
+                _source: {
+                  rocrateId: 'http://example.com/entity/1',
+                },
+                highlight: {},
+              },
+            ],
+          },
+          aggregations: {
+            geohash_grid: {
+              // buckets is not an array
+              buckets: 'invalid',
+            },
+          },
+        },
+      };
+
+      // @ts-expect-error TS is looking at the wrong function signature
+      opensearch.search.mockResolvedValue(mockSearchResponse);
+      // @ts-expect-error TS is looking at the wrong function signature
+      prisma.entity.findMany.mockResolvedValue(mockEntities);
+
+      const response = await fastify.inject({
+        method: 'POST',
+        url: '/search',
+        payload: {
+          query: 'test',
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = JSON.parse(response.body);
+      expect(body.geohashGrid).toBeUndefined();
+      expect(body.entities).toHaveLength(1);
+    });
   });
 });
