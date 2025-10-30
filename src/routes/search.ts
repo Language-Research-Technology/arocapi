@@ -283,7 +283,7 @@ const search: FastifyPluginAsync<SearchRouteOptions> = async (fastify, opts) => 
           }
         }
 
-        /* v8 ignore next 3 -- Not sure how to force opensearch to hit the other path */
+        /* v8 ignore next 3 -- Not sure how to force opensearch to hit the other path -- @preserve */
         const total =
           typeof response.body.hits.total === 'number'
             ? response.body.hits.total
