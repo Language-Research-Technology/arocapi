@@ -75,9 +75,10 @@ Create your Fastify application with Typescript support:
 ```typescript
 // src/index.ts
 import { Client } from '@opensearch-project/opensearch';
-import arocapi, { AllPublicAccessTransformer } from 'arocapi';
+import arocapi, { AllPublicAccessTransformer, AllPublicFileAccessTransformer } from 'arocapi';
 import Fastify from 'fastify';
 import { PrismaClient } from './generated/prisma/client.js';
+import { Readable } from 'stream';
 
 // NOTE: Only needed if you are going to use these yourself
 declare module 'fastify' {
@@ -104,6 +105,7 @@ fastify.register(arocapi, {
   prisma,
   opensearch,
   accessTransformer: AllPublicAccessTransformer,
+  fileAccessTransformer: AllPublicFileAccessTransformer,
   // Required: File handler for serving File entity content
   fileHandler: {
     get: async (file) => {
@@ -186,7 +188,7 @@ npx prisma init --datasource-provider mysql
 
 ### 2. Configure Prisma Multi-Model Setup
 
-Create a `prisma.config.ts` file in your project root:
+Modify the `prisma.config.ts` file in your project root to support folder based schemas:
 
 ```typescript
 // prisma.config.ts
@@ -194,6 +196,7 @@ import 'dotenv/config';
 import { defineConfig } from 'prisma/config';
 
 export default defineConfig({
+  // Adds support for folder based schemas
   schema: 'prisma',
 });
 ```
@@ -207,42 +210,18 @@ Create the directory structure and link to arocapi models:
 mkdir -p prisma/models
 
 # Link to the upstream arocapi models
-cd prisma && ln -s ../node_modules/arocapi/prisma/models upstream && cd ..
+ln -s ../../node_modules/arocapi/prisma/models prisma/arocapi
 ```
 
-### 4. Configure Prisma Schema
-
-Update your `prisma/schema.prisma` file:
-
-```prisma
-// prisma/schema.prisma
-generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
-  importFileExtension = "js"
-}
-
-generator json {
-  provider = "prisma-json-types-generator"
-}
-
-datasource db {
-  provider = "mysql"  // or "postgresql"
-  url      = env("DATABASE_URL")
-}
-```
-
-### 5. Generate Prisma Client and Run Migrations
+### 4. Generate Prisma Client and Run Migrations
 
 ```bash
+# Create database migrations for this version of arocapi
+npx prisma migrate dev --name="arocapi-$(pnpm list | grep arocapi | awk '{ print $2 }')"
+
 # Generate the Prisma client
 npx prisma generate
 
-# Apply database migrations
-npx prisma migrate deploy
-
-# Or for development with migration creation
-npx prisma migrate dev
 ```
 
 ## Available API Routes
@@ -387,21 +366,140 @@ entityTransformers: [
 ]
 ```
 
+## Customising File Responses
+
+The API provides a separate transformer system for file responses, similar to entity transformers but specifically designed for files.
+
+### File Access Transformer (Required)
+
+The `fileAccessTransformer` parameter is **required** for security. You must explicitly choose how access control is handled for file content.
+
+**Key Difference from Entity Transformers**: File metadata (filename, size, mediaType, etc.) is always accessible. Only content access is controlled via the `access.content` field.
+
+**For fully public datasets**, use `AllPublicFileAccessTransformer`:
+
+```typescript
+import arocapi, { AllPublicAccessTransformer, AllPublicFileAccessTransformer } from 'arocapi';
+
+await server.register(arocapi, {
+  prisma,
+  opensearch,
+  accessTransformer: AllPublicAccessTransformer,
+  fileAccessTransformer: AllPublicFileAccessTransformer,
+});
+```
+
+**For restricted content**, implement a custom file access transformer:
+
+```typescript
+const fileAccessTransformer = async (file, { request, fastify }) => {
+  // Custom logic to determine file content access
+  const user = await authenticateUser(request);
+  const canAccessContent = await checkLicense(file.contentLicenseId, user);
+
+  return {
+    ...file,
+    access: {
+      content: canAccessContent,
+      contentAuthorizationUrl: canAccessContent
+        ? undefined
+        : 'https://rems.example.com/request-access',
+    },
+  };
+};
+
+await server.register(arocapi, {
+  prisma,
+  opensearch,
+  accessTransformer: AllPublicAccessTransformer,
+  fileAccessTransformer,
+});
+```
+
+> [!WARNING]
+> The `fileAccessTransformer` is required to prevent accidental exposure of
+> restricted file content. You must make an explicit choice about access control
+> for your files.
+
+### File Transformers
+
+Optional transformations for enriching or modifying file response data. Multiple
+file transformers can be chained together.
+
+```typescript
+await server.register(arocapi, {
+  prisma,
+  opensearch,
+  accessTransformer: AllPublicAccessTransformer,
+  fileAccessTransformer: AllPublicFileAccessTransformer,
+  fileTransformers: [
+    // Add computed fields
+    (file) => ({
+      ...file,
+      displayFilename: file.filename.toUpperCase(),
+      sizeInKB: Math.round(file.size / 1024),
+      extension: file.filename.split('.').pop(),
+    }),
+    // Fetch parent entity information
+    async (file, { fastify }) => {
+      const parent = await fastify.prisma.entity.findFirst({
+        where: { rocrateId: file.memberOf },
+      });
+
+      return {
+        ...file,
+        parentEntity: parent ? {
+          id: parent.rocrateId,
+          name: parent.name,
+          type: parent.entityType,
+        } : null,
+      };
+    },
+  ],
+});
+```
+
+### File Transformation Pipeline
+
+Every file response flows through this three-stage pipeline:
+
+1. **Base file transformer** - Converts database File records to standard format
+2. **File access transformer** - Adds access control information (content only)
+3. **File transformers** - Optional additional transformations
+
+### Applied Routes
+
+File transformers are applied to the files listing route:
+
+- `GET /files` - File list (each file transformed)
+
+**Note**: The `/file/:id` endpoint (for downloading file content) uses the `fileHandler` system, not file transformers. See the File Handler System section below for details.
+
 ## File Handler System
 
-The API provides two separate handler systems for serving different types of content:
+The API provides two separate handler systems for serving different types of content. These are distinct from the file transformer system described above.
 
-1. **File Handler** - Serves file content for Files (`/files/:id`)
-2. **RO-Crate Handler** - Serves RO-Crate metadata for any entity (`/entity/:id/rocrate`)
+**Important Distinction:**
+
+- **File Transformers** (above) - Transform file metadata in the `/files` listing endpoint response
+- **File Handler** (this section) - Serves actual file content via the `/file/:id` download endpoint
+- **RO-Crate Handler** (this section) - Serves RO-Crate metadata via the `/entity/:id/rocrate` endpoint
 
 ### File Handler (Required)
 
-The `fileHandler` parameter is **required**. It serves actual file content.
+The `fileHandler` parameter is **required**. It serves actual file content for the `/file/:id` endpoint.
+
+This handler is responsible for:
+
+- Streaming file content from your storage backend
+- Generating redirect URLs to external storage (S3, CDN, etc.)
+- Implementing access control for file downloads
+- Supporting HTTP range requests for media streaming
 
 ### RO-Crate Handler (Required)
 
 The `roCrateHandler` parameter is **required**. It serves RO-Crate metadata as JSON-LD
-for any entity type (Collection, Object, or File).
+for any entity type (Collection, Object, or File) via the `/entity/:id/rocrate` endpoint.
 
 **File Handler Example** (S3 with redirect):
 
