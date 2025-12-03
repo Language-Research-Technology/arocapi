@@ -55,12 +55,3 @@ exports[`Entity Route > GET /entity/:id > should return entity when found 1`] = 
   "rootCollection": null,
 }
 `;
-
-exports[`Entity Route > GET /entity/:id > should validate ID parameter format 1`] = `
-{
-  "code": "FST_ERR_VALIDATION",
-  "error": "Bad Request",
-  "message": "params/id Invalid URI format",
-  "statusCode": 400,
-}
-`;
