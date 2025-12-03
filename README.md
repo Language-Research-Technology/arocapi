@@ -1,4 +1,3 @@
-
 # An RO-Crate API for Data Collections : Arocapi
 
 This project a prototype implementation of an RO-Crate based collections
