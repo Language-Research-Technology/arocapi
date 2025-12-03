@@ -37,7 +37,7 @@ jobs:
           node.name: test-opensearch
           discovery.type: single-node
           bootstrap.memory_lock: true
-          OPENSEARCH_JAVA_OPTS: -Xms256m -Xmx256m
+          OPENSEARCH_JAVA_OPTS: -Xms256m -Xmx256m -Dplugins.performance_analyzer.enabled=false
           DISABLE_SECURITY_PLUGIN: true
         ports:
           - 9201:9200
