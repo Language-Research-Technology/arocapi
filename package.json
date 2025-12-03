@@ -78,7 +78,6 @@
     "test:coverage": "./scripts/setup-integration.sh && vitest run --coverage",
     "prepublishOnly": "pnpm run lint:biome && pnpm run lint:types && pnpm run build:ts",
     "generate": "npx prisma generate",
-    "postinstall": "pnpm run generate",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate deploy",
     "seed": "rm -rf dist && pnpm run build:ts && node --env-file=.env example/data/seed.ts"
