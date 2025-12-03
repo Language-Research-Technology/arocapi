@@ -76,7 +76,6 @@
     "test:watch": "./scripts/setup-integration.sh && vitest",
     "test:ui": "./scripts/setup-integration.sh && vitest --ui",
     "test:coverage": "./scripts/setup-integration.sh && vitest run --coverage",
-    "prepublishOnly": "pnpm run lint:biome && pnpm run lint:types && pnpm run build:ts",
     "generate": "npx prisma generate",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate deploy",
