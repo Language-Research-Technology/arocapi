@@ -300,8 +300,7 @@ const search: FastifyPluginAsync<SearchRouteOptions> = async (fastify, opts) => 
         return result;
       } catch (error) {
         const err = error as Error;
-        console.error(err);
-        fastify.log.error('Search error:', err.message);
+        fastify.log.error(`Search error: ${err.message}`);
 
         return reply.code(500).send(createInternalError('Search failed'));
       }

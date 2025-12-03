@@ -71,7 +71,9 @@ const file: FastifyPluginAsync<FileRouteOptions> = async (fastify, opts) => {
 
         return reply.code(200).send();
       } catch (error) {
-        fastify.log.error('File metadata retrieval error:', error);
+        const err = error as Error;
+        fastify.log.error(`File metadata retrieval error: ${err.message}`);
+
         return reply.code(500).send(createInternalError());
       }
     },
@@ -143,7 +145,9 @@ const file: FastifyPluginAsync<FileRouteOptions> = async (fastify, opts) => {
         reply.removeHeader('Content-Length');
         return reply.code(500).send(createInternalError());
       } catch (error) {
-        fastify.log.error('File retrieval error:', error);
+        const err = error as Error;
+        fastify.log.error(`File retrieval error: ${err}`);
+
         return reply.code(500).send(createInternalError());
       }
     },

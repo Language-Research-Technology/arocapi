@@ -55,13 +55,14 @@ const setupValidation = (fastify: FastifyInstance) => {
   fastify.setValidatorCompiler(validatorCompiler);
   fastify.setSerializerCompiler(serializerCompiler);
 
-  fastify.setErrorHandler((err, _req, reply) => {
-    if (hasZodFastifySchemaValidationErrors(err)) {
-      return reply.code(400).send(createValidationError('The request parameters are invalid', err.validation));
+  fastify.setErrorHandler((error, _req, reply) => {
+    if (hasZodFastifySchemaValidationErrors(error)) {
+      return reply.code(400).send(createValidationError('The request parameters are invalid', error.validation));
     }
 
     // NOTE: We are exposing the error message here for development purposes.
     // In production, consider hiding error details to avoid leaking sensitive information.
+    const err = error as Error;
     return reply.code(500).send({
       error: 'Internal Server Error',
       message: err.message,

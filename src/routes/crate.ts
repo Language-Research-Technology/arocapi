@@ -65,7 +65,9 @@ const crate: FastifyPluginAsync<CrateRouteOptions> = async (fastify, opts) => {
 
         return reply.code(200).send();
       } catch (error) {
-        fastify.log.error('RO-Crate metadata retrieval error:', error);
+        const err = error as Error;
+        fastify.log.error(`RO-Crate metadata retrieval error: ${err}`);
+
         return reply.code(500).send(createInternalError());
       }
     },
@@ -131,7 +133,9 @@ const crate: FastifyPluginAsync<CrateRouteOptions> = async (fastify, opts) => {
         // Exhaustiveness check - should never reach here with proper types
         throw new Error(`Unexpected RO-Crate result type: ${(result as { type: string }).type}`);
       } catch (error) {
-        fastify.log.error('RO-Crate retrieval error:', error);
+        const err = error as Error;
+        fastify.log.error(`RO-Crate retrieval error: ${err.message}`);
+
         return reply.code(500).send(createInternalError());
       }
     },

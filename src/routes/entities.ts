@@ -91,7 +91,9 @@ const entities: FastifyPluginAsync<EntitiesRouteOptions> = async (fastify, opts)
           entities,
         };
       } catch (error) {
-        fastify.log.error('Database error:', error);
+        const err = error as Error;
+        fastify.log.error(`Database error: ${err.message}`);
+
         return reply.code(500).send(createInternalError());
       }
     },
