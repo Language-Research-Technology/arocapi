@@ -1,3 +1,9 @@
+## [1.2.1](https://github.com/Language-Research-Technology/arocapi/compare/v1.2.0...v1.2.1) (2025-12-03)
+
+### Bug Fixes
+
+* errors with error type console logs ([d54fd05](https://github.com/Language-Research-Technology/arocapi/commit/d54fd05e3f30c9735e92ac8e9b8dd987f471b58c))
+
 ## [1.2.0](https://github.com/Language-Research-Technology/arocapi/compare/v1.1.0...v1.2.0) (2025-10-30)
 
 ### Features
