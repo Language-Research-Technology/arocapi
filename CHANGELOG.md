@@ -1,3 +1,9 @@
+## [1.2.2](https://github.com/Language-Research-Technology/arocapi/compare/v1.2.1...v1.2.2) (2025-12-03)
+
+### Bug Fixes
+
+* bump for release ([f8e4c00](https://github.com/Language-Research-Technology/arocapi/commit/f8e4c006b51c2238acc078ace3befbb674b3ae98))
+
 ## [1.2.1](https://github.com/Language-Research-Technology/arocapi/compare/v1.2.0...v1.2.1) (2025-12-03)
 
 ### Bug Fixes
