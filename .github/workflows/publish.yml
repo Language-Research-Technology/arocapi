@@ -41,7 +41,7 @@ jobs:
         run: |
           pnpm run lint:biome
 
-          pnpm run generare
+          pnpm run generate
           pnpm run lint:types
 
       - name: Build package
