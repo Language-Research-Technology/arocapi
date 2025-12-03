@@ -40,10 +40,15 @@ jobs:
       - name: Run linting and type checking
         run: |
           pnpm run lint:biome
+
+          pnpm run generare
           pnpm run lint:types
 
       - name: Build package
-        run: pnpm run build:ts
+        run: |
+          pnpm run build:ts
+          rm -rf src/generated
+          rm -rf dist/generated
 
       - name: Verify the integrity of provenance attestations and registry signatures for installed dependencies
         run: npm audit signatures
