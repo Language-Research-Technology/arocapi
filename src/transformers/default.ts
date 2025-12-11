@@ -1,15 +1,37 @@
-import type { Entity, File } from '../generated/prisma/client.js';
+import type { Entity, File, PrismaClient } from '../generated/prisma/client.js';
 
 /**
- * Standard entity shape - output of base transformation
+ * Entity reference - used for memberOf and rootCollection
+ */
+export type EntityReference = {
+  id: string;
+  name: string;
+};
+
+/**
+ * Base entity shape - output of base transformation with unresolved references
+ * Used internally before reference resolution
+ */
+export type BaseEntity = {
+  id: string;
+  name: string;
+  description: string;
+  memberOf: string | null;
+  rootCollection: string | null;
+  metadataLicenseId: string;
+  contentLicenseId: string;
+} & ({ entityType: string; fileId?: never } | { entityType: 'http://schema.org/MediaObject'; fileId: string });
+
+/**
+ * Standard entity shape - with resolved references
  * Does not include access information
  */
 export type StandardEntity = {
   id: string;
   name: string;
   description: string;
-  memberOf: string | null;
-  rootCollection: string | null;
+  memberOf: EntityReference | null;
+  rootCollection: EntityReference | null;
   metadataLicenseId: string;
   contentLicenseId: string;
 } & ({ entityType: string; fileId?: never } | { entityType: 'http://schema.org/MediaObject'; fileId: string });
@@ -66,10 +88,10 @@ export type AuthorisedFile = StandardFile & {
 
 /**
  * Base entity transformer - always applied first
- * Transforms raw database entity to standard entity shape (without access)
+ * Transforms raw database entity to base entity shape with unresolved references
  */
-export const baseEntityTransformer = (entity: Entity): StandardEntity => {
-  const base: StandardEntity = {
+export const baseEntityTransformer = (entity: Entity): BaseEntity => {
+  const base: BaseEntity = {
     id: entity.rocrateId,
     name: entity.name,
     description: entity.description,
@@ -163,3 +185,39 @@ export const AllPublicFileAccessTransformer = (file: StandardFile): AuthorisedFi
     content: true,
   },
 });
+
+/**
+ * Resolve entity references (memberOf/rootCollection) to objects with id and name
+ * Batch-fetches all referenced entities in a single query for performance
+ *
+ * @param entities - Array of entities with memberOf/rootCollection string IDs
+ * @param prisma - Prisma client instance
+ * @returns Map of entity ID to EntityReference object
+ */
+export const resolveEntityReferences = async (
+  entities: Array<{ memberOf: string | null; rootCollection: string | null }>,
+  prisma: PrismaClient,
+): Promise<Map<string, EntityReference>> => {
+  const refIds = new Set<string>();
+
+  entities.forEach((e) => {
+    if (e.memberOf) {
+      refIds.add(e.memberOf);
+    }
+
+    if (e.rootCollection) {
+      refIds.add(e.rootCollection);
+    }
+  });
+
+  if (refIds.size === 0) {
+    return new Map();
+  }
+
+  const refs = await prisma.entity.findMany({
+    where: { rocrateId: { in: [...refIds] } },
+    select: { rocrateId: true, name: true },
+  });
+
+  return new Map(refs.map((r) => [r.rocrateId, { id: r.rocrateId, name: r.name }]));
+};

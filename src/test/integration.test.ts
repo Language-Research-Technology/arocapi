@@ -53,8 +53,8 @@ describe('Integration Tests', () => {
       expect(body.id).toBe('http://example.com/entity/4');
       expect(body.name).toBe('test-audio.wav');
       expect(body.entityType).toBe('http://schema.org/MediaObject');
-      expect(body.memberOf).toBe('http://example.com/entity/2');
-      expect(body.rootCollection).toBe('http://example.com/entity/1');
+      expect(body.memberOf?.id).toBe('http://example.com/entity/2');
+      expect(body.rootCollection?.id).toBe('http://example.com/entity/1');
     });
 
     it('should return 404 for non-existent entity', async () => {
@@ -173,7 +173,7 @@ describe('Integration Tests', () => {
       expect(body.entities).toHaveLength(1);
       expect(body.entities[0].id).toBe('http://example.com/entity/4');
       expect(body.entities[0].name).toBe('test-audio.wav');
-      expect(body.entities[0].memberOf).toBe('http://example.com/entity/2');
+      expect(body.entities[0].memberOf?.id).toBe('http://example.com/entity/2');
     });
 
     it('should filter File entities by memberOf (Collection parent)', async () => {
@@ -194,7 +194,7 @@ describe('Integration Tests', () => {
       expect(body.entities).toHaveLength(1);
       expect(body.entities[0].id).toBe('http://example.com/entity/5');
       expect(body.entities[0].name).toBe('collection-metadata.csv');
-      expect(body.entities[0].memberOf).toBe('http://example.com/entity/1');
+      expect(body.entities[0].memberOf?.id).toBe('http://example.com/entity/1');
     });
 
     it('should handle pagination', async () => {

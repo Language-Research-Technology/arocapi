@@ -803,5 +803,62 @@ describe('Search Route', () => {
       expect(body.geohashGrid).toBeUndefined();
       expect(body.entities).toHaveLength(1);
     });
+
+    it('should return null for memberOf/rootCollection when parent entity not found', async () => {
+      const mockEntities = [
+        {
+          id: 1,
+          fileId: null,
+          meta: {},
+          rocrate: '',
+          rocrateId: 'http://example.com/entity/1',
+          name: 'Test Entity 1',
+          description: 'Entity with missing parent',
+          entityType: 'http://pcdm.org/models#Object',
+          memberOf: 'http://example.com/entity/deleted',
+          rootCollection: 'http://example.com/entity/deleted',
+          metadataLicenseId: 'https://creativecommons.org/licenses/by/4.0/',
+          contentLicenseId: 'https://creativecommons.org/licenses/by/4.0/',
+          createdAt: new Date('2024-01-01'),
+          updatedAt: new Date('2024-01-01'),
+        },
+      ];
+
+      const mockSearchResponse = {
+        body: {
+          took: 10,
+          hits: {
+            total: { value: 1 },
+            hits: [
+              {
+                _score: 1.5,
+                _source: {
+                  rocrateId: 'http://example.com/entity/1',
+                },
+              },
+            ],
+          },
+          aggregations: {},
+        },
+      };
+
+      // @ts-expect-error TS is looking at the wrong function signature
+      opensearch.search.mockResolvedValue(mockSearchResponse);
+      // First findMany returns the entities, second (for reference resolution) returns empty
+      prisma.entity.findMany.mockResolvedValueOnce(mockEntities);
+      prisma.entity.findMany.mockResolvedValueOnce([]);
+
+      const response = await fastify.inject({
+        method: 'POST',
+        url: '/search',
+        payload: {
+          query: 'test',
+        },
+      });
+      const body = JSON.parse(response.body);
+
+      expect(response.statusCode).toBe(200);
+      expect(body).toMatchSnapshot();
+    });
   });
 });

@@ -4,6 +4,7 @@ import type { AccessTransformer, EntityTransformer, TransformerContext } from '.
 import {
   AllPublicAccessTransformer,
   type AuthorisedEntity,
+  type BaseEntity,
   baseEntityTransformer,
   type StandardEntity,
 } from './default.js';
@@ -19,8 +20,8 @@ describe('Entity Transformers', () => {
     name: 'Test Entity',
     description: 'A test entity',
     entityType: 'http://schema.org/Person',
-    memberOf: 'http://example.com/collection',
-    rootCollection: 'http://example.com/root',
+    memberOf: { id: 'http://example.com/collection', name: 'Test Collection' },
+    rootCollection: { id: 'http://example.com/root', name: 'Root Collection' },
     metadataLicenseId: 'https://creativecommons.org/licenses/by/4.0/',
     contentLicenseId: 'https://creativecommons.org/licenses/by/4.0/',
   };
@@ -34,7 +35,7 @@ describe('Entity Transformers', () => {
   };
 
   describe('baseEntityTransformer', () => {
-    it('should transform raw entity to standard shape', () => {
+    it('should transform raw entity to base shape with unresolved references', () => {
       const rawEntity = {
         id: 1,
         rocrateId: 'http://example.com/entity/123',
@@ -54,7 +55,19 @@ describe('Entity Transformers', () => {
 
       const result = baseEntityTransformer(rawEntity);
 
-      expect(result).toEqual(mockStandardEntity);
+      // baseEntityTransformer returns BaseEntity with string references
+      const expectedBaseEntity: BaseEntity = {
+        id: 'http://example.com/entity/123',
+        name: 'Test Entity',
+        description: 'A test entity',
+        entityType: 'http://schema.org/Person',
+        memberOf: 'http://example.com/collection',
+        rootCollection: 'http://example.com/root',
+        metadataLicenseId: 'https://creativecommons.org/licenses/by/4.0/',
+        contentLicenseId: 'https://creativecommons.org/licenses/by/4.0/',
+      };
+
+      expect(result).toEqual(expectedBaseEntity);
     });
   });
 
@@ -181,7 +194,7 @@ describe('Entity Transformers', () => {
       });
     });
 
-    it('should demonstrate full pipeline: base -> access -> custom', async () => {
+    it('should demonstrate full pipeline: base -> resolve -> access -> custom', async () => {
       const rawEntity = {
         id: 1,
         rocrateId: 'http://example.com/entity/123',
@@ -213,14 +226,24 @@ describe('Entity Transformers', () => {
         processed: true,
       });
 
-      // Full pipeline
-      const standard = baseEntityTransformer(rawEntity);
+      // Full pipeline: base -> resolve references -> access -> custom
+      const base = baseEntityTransformer(rawEntity);
+
+      // Simulate reference resolution (in real code, this uses resolveEntityReferences)
+      const standard: StandardEntity = {
+        ...base,
+        memberOf: base.memberOf ? { id: base.memberOf, name: 'Parent Collection' } : null,
+        rootCollection: base.rootCollection ? { id: base.rootCollection, name: 'Root Collection' } : null,
+      };
+
       const authorised = await customAccessTransformer(standard, mockContext);
       const final = await addMetadata(authorised, mockContext);
 
       expect(final).toMatchObject({
         id: 'http://example.com/entity/123',
         name: 'Test Entity',
+        memberOf: { id: 'http://example.com/collection', name: 'Parent Collection' },
+        rootCollection: { id: 'http://example.com/root', name: 'Root Collection' },
         access: {
           metadata: true,
           content: false,

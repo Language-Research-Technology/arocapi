@@ -128,5 +128,37 @@ describe('Entity Route', () => {
       expect(response.statusCode).toBe(200);
       expect(body).toMatchSnapshot();
     });
+
+    it('should return null for memberOf/rootCollection when parent entity not found', async () => {
+      const mockEntity = {
+        id: 1,
+        rocrateId: 'http://example.com/entity/123',
+        name: 'Test Entity',
+        description: 'A test entity',
+        entityType: 'http://pcdm.org/models#Object',
+        fileId: null,
+        memberOf: 'http://example.com/entity/deleted',
+        rootCollection: 'http://example.com/entity/deleted',
+        metadataLicenseId: 'https://creativecommons.org/licenses/by/4.0/',
+        contentLicenseId: 'https://creativecommons.org/licenses/by/4.0/',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        rocrate: {},
+        meta: {},
+      };
+
+      // First call returns the entity, second call (for reference resolution) returns empty
+      prisma.entity.findFirst.mockResolvedValue(mockEntity);
+      prisma.entity.findMany.mockResolvedValue([]);
+
+      const response = await fastify.inject({
+        method: 'GET',
+        url: `/entity/${encodeURIComponent('http://example.com/entity/123')}`,
+      });
+      const body = JSON.parse(response.body);
+
+      expect(response.statusCode).toBe(200);
+      expect(body).toMatchSnapshot();
+    });
   });
 });

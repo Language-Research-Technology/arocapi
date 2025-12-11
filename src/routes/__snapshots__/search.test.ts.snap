@@ -111,6 +111,32 @@ exports[`Search Route > POST /search > should perform basic search successfully 
 }
 `;
 
+exports[`Search Route > POST /search > should return null for memberOf/rootCollection when parent entity not found 1`] = `
+{
+  "entities": [
+    {
+      "access": {
+        "content": true,
+        "metadata": true,
+      },
+      "contentLicenseId": "https://creativecommons.org/licenses/by/4.0/",
+      "description": "Entity with missing parent",
+      "entityType": "http://pcdm.org/models#Object",
+      "id": "http://example.com/entity/1",
+      "memberOf": null,
+      "metadataLicenseId": "https://creativecommons.org/licenses/by/4.0/",
+      "name": "Test Entity 1",
+      "rootCollection": null,
+      "searchExtra": {
+        "score": 1.5,
+      },
+    },
+  ],
+  "searchTime": 10,
+  "total": 1,
+}
+`;
+
 exports[`Search Route > POST /search > should skip entities not found in database and log warning 1`] = `
 {
   "entities": [

@@ -57,12 +57,40 @@ exports[`Entities Route > GET /entities > should return entities with default pa
       "description": "Second test entity",
       "entityType": "http://pcdm.org/models#Object",
       "id": "http://example.com/entity/2",
-      "memberOf": "http://example.com/entity/1",
+      "memberOf": {
+        "id": "http://example.com/entity/1",
+        "name": "Test Entity 1",
+      },
       "metadataLicenseId": "https://creativecommons.org/licenses/by/4.0/",
       "name": "Test Entity 2",
-      "rootCollection": "http://example.com/entity/1",
+      "rootCollection": {
+        "id": "http://example.com/entity/1",
+        "name": "Test Entity 1",
+      },
     },
   ],
   "total": 2,
+}
+`;
+
+exports[`Entities Route > GET /entities > should return null for memberOf/rootCollection when parent entity not found 1`] = `
+{
+  "entities": [
+    {
+      "access": {
+        "content": true,
+        "metadata": true,
+      },
+      "contentLicenseId": "https://creativecommons.org/licenses/by/4.0/",
+      "description": "Entity with missing parent",
+      "entityType": "http://pcdm.org/models#Object",
+      "id": "http://example.com/entity/1",
+      "memberOf": null,
+      "metadataLicenseId": "https://creativecommons.org/licenses/by/4.0/",
+      "name": "Test Entity 1",
+      "rootCollection": null,
+    },
+  ],
+  "total": 1,
 }
 `;

@@ -1,7 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod/v4';
-import { baseEntityTransformer } from '../transformers/default.js';
+import { baseEntityTransformer, resolveEntityReferences } from '../transformers/default.js';
 import type { AccessTransformer, EntityTransformer } from '../types/transformers.js';
 import { createInternalError, createNotFoundError } from '../utils/errors.js';
 
@@ -37,7 +37,15 @@ const entity: FastifyPluginAsync<EntityRouteOptions> = async (fastify, opts) => 
           return reply.code(404).send(createNotFoundError('The requested entity was not found', id));
         }
 
-        const standardEntity = baseEntityTransformer(entity);
+        // Resolve memberOf and rootCollection references
+        const refMap = await resolveEntityReferences([entity], fastify.prisma);
+
+        const base = baseEntityTransformer(entity);
+        const standardEntity = {
+          ...base,
+          memberOf: base.memberOf ? (refMap.get(base.memberOf) ?? null) : null,
+          rootCollection: base.rootCollection ? (refMap.get(base.rootCollection) ?? null) : null,
+        };
         const authorisedEntity = await accessTransformer(standardEntity, {
           request,
           fastify,

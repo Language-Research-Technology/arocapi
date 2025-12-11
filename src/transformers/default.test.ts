@@ -139,8 +139,8 @@ describe('AllPublicAccessTransformer', () => {
       name: 'Test Entity',
       description: 'A test entity',
       entityType: 'http://schema.org/MediaObject',
-      memberOf: 'http://example.com/parent',
-      rootCollection: 'http://example.com/root',
+      memberOf: { id: 'http://example.com/parent', name: 'Parent Entity' },
+      rootCollection: { id: 'http://example.com/root', name: 'Root Collection' },
       metadataLicenseId: 'https://creativecommons.org/licenses/by/4.0/',
       contentLicenseId: 'https://creativecommons.org/licenses/by/4.0/',
     };

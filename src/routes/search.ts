@@ -4,7 +4,7 @@ import type { Search_Request, Search_RequestBody } from '@opensearch-project/ope
 import type { FastifyPluginAsync } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod/v4';
-import { baseEntityTransformer } from '../transformers/default.js';
+import { baseEntityTransformer, resolveEntityReferences } from '../transformers/default.js';
 import type { AccessTransformer, EntityTransformer } from '../types/transformers.js';
 import { createInternalError } from '../utils/errors.js';
 
@@ -219,6 +219,9 @@ const search: FastifyPluginAsync<SearchRouteOptions> = async (fastify, opts) => 
 
         const entityMap = new Map(dbEntities.map((entity) => [entity.rocrateId, entity]));
 
+        // Resolve memberOf and rootCollection references
+        const refMap = await resolveEntityReferences(dbEntities, fastify.prisma);
+
         const entities = await Promise.all(
           response.body.hits.hits.map(async (hit) => {
             if (!hit._source?.rocrateId) {
@@ -232,7 +235,12 @@ const search: FastifyPluginAsync<SearchRouteOptions> = async (fastify, opts) => 
               return null;
             }
 
-            const standardEntity = baseEntityTransformer(dbEntity);
+            const base = baseEntityTransformer(dbEntity);
+            const standardEntity = {
+              ...base,
+              memberOf: base.memberOf ? (refMap.get(base.memberOf) ?? null) : null,
+              rootCollection: base.rootCollection ? (refMap.get(base.rootCollection) ?? null) : null,
+            };
             const authorisedEntity = await accessTransformer(standardEntity, {
               request,
               fastify,

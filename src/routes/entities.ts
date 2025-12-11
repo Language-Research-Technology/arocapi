@@ -1,7 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod/v4';
-import { baseEntityTransformer } from '../transformers/default.js';
+import { baseEntityTransformer, resolveEntityReferences } from '../transformers/default.js';
 import type { AccessTransformer, EntityTransformer } from '../types/transformers.js';
 import { createInternalError } from '../utils/errors.js';
 
@@ -65,10 +65,18 @@ const entities: FastifyPluginAsync<EntitiesRouteOptions> = async (fastify, opts)
 
         const total = await fastify.prisma.entity.count({ where });
 
+        // Resolve memberOf and rootCollection references
+        const refMap = await resolveEntityReferences(dbEntities, fastify.prisma);
+
         // Apply transformers to each entity: base -> access -> additional
         const entities = await Promise.all(
           dbEntities.map(async (dbEntity) => {
-            const standardEntity = baseEntityTransformer(dbEntity);
+            const base = baseEntityTransformer(dbEntity);
+            const standardEntity = {
+              ...base,
+              memberOf: base.memberOf ? (refMap.get(base.memberOf) ?? null) : null,
+              rootCollection: base.rootCollection ? (refMap.get(base.rootCollection) ?? null) : null,
+            };
             const authorisedEntity = await accessTransformer(standardEntity, {
               request,
               fastify,
