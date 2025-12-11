@@ -1,3 +1,38 @@
+## [2.0.0](https://github.com/Language-Research-Technology/arocapi/compare/v1.2.2...v2.0.0) (2025-12-11)
+
+### ⚠ BREAKING CHANGES
+
+* The rocrate JSON column has been removed from the Entity table.
+RO-Crate metadata is now served exclusively via the roCrateHandler from external
+sources (filesystem, S3, etc.) rather than being stored in the database.
+
+Changes:
+- Remove rocrate column from Prisma schema
+- Add migration to drop the column
+- Update seed script and loadEntities to not store rocrate
+- Remove rocrate from OpenSearch index mapping
+- Update all test files to remove rocrate from mock data
+- Update documentation to clarify rocrate is not stored in DB
+
+The /entity/:id/rocrate endpoint continues to work using the configured
+roCrateHandler to serve RO-Crate data from external storage.
+* memberOf and rootCollection fields now return objects
+with {id, name} instead of string IDs. When the referenced parent entity
+doesn't exist, the field returns null.
+
+- Add EntityReference type for memberOf/rootCollection fields
+- Add BaseEntity type for intermediate transformation state
+- Add resolveEntityReferences helper for batch-fetching parent entities
+- Update StandardEntity type to use EntityReference | null
+
+This provides richer entity data without requiring additional API calls
+to resolve parent entity names.
+
+### Features
+
+* remove rocrate column from Entity table ([942914e](https://github.com/Language-Research-Technology/arocapi/commit/942914e5668ee716dad3bfb99246398c3047cb83))
+* transform memberOf and rootCollection to objects with id and name ([f2cae2a](https://github.com/Language-Research-Technology/arocapi/commit/f2cae2a2bc35d2acedccf2b68766eb716fb4128b))
+
 ## [1.2.2](https://github.com/Language-Research-Technology/arocapi/compare/v1.2.1...v1.2.2) (2025-12-03)
 
 ### Bug Fixes
