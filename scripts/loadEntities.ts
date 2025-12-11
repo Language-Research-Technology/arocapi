@@ -48,19 +48,6 @@ const fetchEntities = async (limit: number, offset: number) => {
   return result;
 };
 
-const fetchEntityRocrate = async (entityId: string) => {
-  const url = `${API_URL}/entity/${encodeURIComponent(entityId)}`;
-  console.log(`Fetching ROCrate for ${entityId}`);
-
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(`ROCrate API request failed with status ${response.status} for entity ${entityId}`);
-  }
-
-  const rocrate = await response.json();
-  return rocrate;
-};
-
 const generateDummyData = () => {
   const languages = ['English', 'Japanese', 'French', 'Spanish', 'German', 'Italian'];
   const mediaTypes = ['audio/wav', 'audio/mp3', 'video/mp4', 'text/plain', 'image/jpeg'];
@@ -114,7 +101,6 @@ const createIndex = async () => {
             location: { type: 'geo_point' },
             createdAt: { type: 'date' },
             updatedAt: { type: 'date' },
-            rocrate: { type: 'text' },
           },
         },
       },
@@ -129,7 +115,7 @@ const createIndex = async () => {
 
 // Index entity to OpenSearch
 // biome-ignore lint/suspicious/noExplicitAny: FIXME
-const indexEntity = async (entity: any, dummyData: any, rocrate: any) => {
+const indexEntity = async (entity: any, dummyData: any) => {
   const document = {
     rocrateId: entity.id,
     name: entity.name,
@@ -144,7 +130,6 @@ const indexEntity = async (entity: any, dummyData: any, rocrate: any) => {
     location: dummyData.location,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
-    rocrate: JSON.stringify(rocrate),
   };
 
   await opensearch.index({
@@ -174,9 +159,6 @@ const loadEntities = async (): Promise<void> => {
       for (const entity of data.entities) {
         const dummyData = generateDummyData();
 
-        // Fetch ROCrate data for this entity
-        const rocrate = await fetchEntityRocrate(entity.id);
-
         await prisma.entity.create({
           data: {
             rocrateId: entity.id,
@@ -185,11 +167,12 @@ const loadEntities = async (): Promise<void> => {
             entityType: entity.entityType,
             memberOf: entity.memberOf || null,
             rootCollection: entity.root || null,
-            rocrate: rocrate,
+            metadataLicenseId: 'https://creativecommons.org/licenses/by/4.0/',
+            contentLicenseId: 'https://creativecommons.org/licenses/by/4.0/',
           },
         });
 
-        await indexEntity(entity, dummyData, rocrate);
+        await indexEntity(entity, dummyData);
       }
 
       processedCount += data.entities.length;

@@ -39,22 +39,6 @@ describe('Crate Route', () => {
     contentLicenseId: 'https://creativecommons.org/licenses/by/4.0/',
     createdAt: new Date(),
     updatedAt: new Date(),
-    rocrate: {
-      '@context': 'https://w3id.org/ro/crate/1.1/context',
-      '@graph': [
-        {
-          '@id': 'ro-crate-metadata.json',
-          '@type': 'CreativeWork',
-          conformsTo: { '@id': 'https://w3id.org/ro/crate/1.1' },
-          about: { '@id': './' },
-        },
-        {
-          '@id': './',
-          '@type': 'Dataset',
-          name: 'Test RO-Crate',
-        },
-      ],
-    },
     meta: {},
   };
 

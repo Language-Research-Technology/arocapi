@@ -17,7 +17,6 @@ describe('baseEntityTransformer', () => {
       contentLicenseId: 'https://creativecommons.org/licenses/by-sa/4.0/',
       createdAt: new Date('2025-01-01'),
       updatedAt: new Date('2025-01-02'),
-      rocrate: { '@context': 'test' },
       meta: { test: 'data' },
     };
 
@@ -49,7 +48,6 @@ describe('baseEntityTransformer', () => {
       contentLicenseId: 'https://creativecommons.org/licenses/by/4.0/',
       createdAt: new Date(),
       updatedAt: new Date(),
-      rocrate: {},
       meta: null,
     };
 
@@ -73,7 +71,6 @@ describe('baseEntityTransformer', () => {
       contentLicenseId: 'https://creativecommons.org/licenses/by/4.0/',
       createdAt: new Date(),
       updatedAt: new Date(),
-      rocrate: { test: 'value' },
       meta: { storage: 'path' },
     };
 
@@ -83,7 +80,6 @@ describe('baseEntityTransformer', () => {
     expect(result.id).toBe('http://example.com/entity/456');
     expect(result).not.toHaveProperty('createdAt');
     expect(result).not.toHaveProperty('updatedAt');
-    expect(result).not.toHaveProperty('rocrate');
     expect(result).not.toHaveProperty('meta');
     expect(Object.keys(result)).toEqual([
       'id',
@@ -111,7 +107,6 @@ describe('baseEntityTransformer', () => {
       contentLicenseId: 'https://creativecommons.org/licenses/by/4.0/',
       createdAt: new Date(),
       updatedAt: new Date(),
-      rocrate: {},
       meta: null,
     };
 

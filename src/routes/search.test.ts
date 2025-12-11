@@ -810,7 +810,6 @@ describe('Search Route', () => {
           id: 1,
           fileId: null,
           meta: {},
-          rocrate: '',
           rocrateId: 'http://example.com/entity/1',
           name: 'Test Entity 1',
           description: 'Entity with missing parent',

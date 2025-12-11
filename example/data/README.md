@@ -277,7 +277,9 @@ Entities are stored in the `Entity` table with:
 - `rootCollection`: Top-level collection reference
 - `metadataLicenseId`: License for metadata
 - `contentLicenseId`: License for content
-- `rocrate`: Full RO-Crate metadata (JSON)
+- `meta`: Storage metadata (JSON, optional)
+
+Note: RO-Crate metadata is served via the `/entity/:id/rocrate` endpoint using the configured `roCrateHandler`, not stored in the database.
 
 ### OpenSearch Mappings
 

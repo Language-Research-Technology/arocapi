@@ -1386,36 +1386,7 @@ type HeadRoCrateHandler = (
 
 #### RO-Crate Handler Examples
 
-**Stream from Database**:
-
-```typescript
-roCrateHandler: {
-  get: async (entity) => {
-    const rocrate = entity.rocrate;
-    const jsonString = JSON.stringify(rocrate, null, 2);
-
-    return {
-      type: 'stream',
-      stream: Readable.from([jsonString]),
-      metadata: {
-        contentType: 'application/ld+json',
-        contentLength: Buffer.byteLength(jsonString),
-        etag: `"${entity.id}-rocrate"`,
-        lastModified: entity.updatedAt,
-      },
-    };
-  },
-  head: async (entity) => {
-    const jsonString = JSON.stringify(entity.rocrate);
-    return {
-      contentType: 'application/ld+json',
-      contentLength: Buffer.byteLength(jsonString),
-      etag: `"${entity.id}-rocrate"`,
-      lastModified: entity.updatedAt,
-    };
-  },
-}
-```
+**Note**: RO-Crate metadata is NOT stored in the database. The `roCrateHandler` must serve RO-Crate data from external sources (filesystem, S3, etc.).
 
 **Serve from Filesystem**:
 

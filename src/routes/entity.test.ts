@@ -30,7 +30,6 @@ describe('Entity Route', () => {
         contentLicenseId: 'https://creativecommons.org/licenses/by/4.0/',
         createdAt: new Date(),
         updatedAt: new Date(),
-        rocrate: {},
         meta: {},
       };
 
@@ -143,7 +142,6 @@ describe('Entity Route', () => {
         contentLicenseId: 'https://creativecommons.org/licenses/by/4.0/',
         createdAt: new Date(),
         updatedAt: new Date(),
-        rocrate: {},
         meta: {},
       };
 

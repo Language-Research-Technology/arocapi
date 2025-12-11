@@ -74,7 +74,6 @@ const processCollection = async (
       collectionRoot.contentLicense?.['@id'] ||
       collectionRoot.license?.['@id'] ||
       'https://creativecommons.org/licenses/by/4.0/',
-    rocrate: collectionCrate,
     meta: {
       storagePath: collectionPath,
     },
@@ -115,7 +114,6 @@ const processItem = async (
       itemRoot.metadataLicense?.['@id'] || itemRoot.license?.['@id'] || 'https://creativecommons.org/licenses/by/4.0/',
     contentLicenseId:
       itemRoot.contentLicense?.['@id'] || itemRoot.license?.['@id'] || 'https://creativecommons.org/licenses/by/4.0/',
-    rocrate: itemCrate,
     meta: {
       storagePath: itemPath,
     },
@@ -167,7 +165,6 @@ const processItem = async (
             itemRoot.contentLicense?.['@id'] ||
             itemRoot.license?.['@id'] ||
             'https://creativecommons.org/licenses/by/4.0/',
-          rocrate: fileNode,
           meta: {
             remapRootTo: fileRocrateId,
             storagePath: itemPath,

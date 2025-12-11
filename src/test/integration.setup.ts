@@ -89,7 +89,6 @@ export async function seedTestData() {
       contentLicenseId: 'https://creativecommons.org/licenses/by/4.0/',
       createdAt: new Date(),
       updatedAt: new Date(),
-      rocrate: {},
     },
     {
       id: 2,
@@ -103,7 +102,6 @@ export async function seedTestData() {
       contentLicenseId: 'https://creativecommons.org/licenses/by/4.0/',
       createdAt: new Date(),
       updatedAt: new Date(),
-      rocrate: {},
     },
     {
       id: 3,
@@ -117,7 +115,6 @@ export async function seedTestData() {
       contentLicenseId: 'https://creativecommons.org/licenses/by/4.0/',
       createdAt: new Date(),
       updatedAt: new Date(),
-      rocrate: {},
     },
     {
       id: 4,
@@ -131,11 +128,6 @@ export async function seedTestData() {
       contentLicenseId: 'https://creativecommons.org/licenses/by/4.0/',
       createdAt: new Date(),
       updatedAt: new Date(),
-      rocrate: {
-        '@type': ['http://schema.org/MediaObject', 'MediaObject'],
-        encodingFormat: 'audio/wav',
-        contentSize: '88200',
-      },
     },
     {
       id: 5,
@@ -149,11 +141,6 @@ export async function seedTestData() {
       contentLicenseId: 'https://creativecommons.org/licenses/by/4.0/',
       createdAt: new Date(),
       updatedAt: new Date(),
-      rocrate: {
-        '@type': ['http://schema.org/MediaObject', 'MediaObject'],
-        encodingFormat: 'text/csv',
-        contentSize: '1024',
-      },
     },
   ];
 
