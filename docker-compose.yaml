@@ -1,7 +1,6 @@
 services:
   oni-ui:
-    #image: ghcr.io/language-research-technology/oni-ui:new-api
-    image: ghcr.io/paradisec-archive/oni-ui:new-api
+    image: ghcr.io/language-research-technology/oni-ui:new-api
     ports:
       - 3000:80
     volumes:

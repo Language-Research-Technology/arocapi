@@ -1,7 +1,7 @@
 {
   "api": {
     "rocrate": {
-      "endpoint": "http://localhost:5173",
+      "endpoint": "http://localhost:9000",
       "path": ""
     }
   },
@@ -14,6 +14,15 @@
       "image": "splash-background-1.png",
       "enabled": true,
       "launcher": "Acknowledgement of Country"
+    },
+    "home": {
+      "enabled": true,
+      "hero": {
+        "title": "Welcome to RO Crate API Reference Implementation",
+        "subtitle": "Thanks for contributing to the development!",
+        "backgroundClass": ""
+      },
+      "content": "<div class='text-left text-gray-700'><div><h3 class='text-lg font-semibold mb-2'>Hi!</div></div>"
     },
     "navHeight": "80px",
     "showEllipsis": true,
@@ -146,9 +155,7 @@
         "hide": []
       }
     },
-    "googleForm": {
-      "takedown": "https://docs.google.com/forms/d/e/1FAIpQLSc3wWGYLgkEtba65mL46BUhMAPWiHt5EHrQ2rWiI4nJqPjpDg/viewform?usp=pp_url&entry.812577446="
-    },
+    "takedown": "https://docs.google.com/forms/d/e/1FAIpQLSc3wWGYLgkEtba65mL46BUhMAPWiHt5EHrQ2rWiI4nJqPjpDg/viewform?usp=pp_url&entry.812577446=",
     "citeData": {
       "help": {
         "text": "See this <span style=\"display: inline-flex; align-items: center;\"><a class=\"el-link el-link--primary\" target=\"_blank\" href=\"https://www.ldaca.edu.au/resources/user-guides/portal/cite-data/\">help</a></span> page for more detail."
