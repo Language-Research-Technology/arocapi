@@ -126,10 +126,10 @@ describe('Search Route', () => {
             },
           },
           aggs: {
-            inLanguage: { terms: { field: 'inLanguage', size: 20 } },
-            mediaType: { terms: { field: 'mediaType', size: 20 } },
-            communicationMode: { terms: { field: 'communicationMode', size: 20 } },
-            entityType: { terms: { field: 'entityType', size: 20 } },
+            inLanguage: { terms: { field: 'inLanguage.keyword', size: 20 } },
+            mediaType: { terms: { field: 'mediaType.keyword', size: 20 } },
+            communicationMode: { terms: { field: 'communicationMode.keyword', size: 20 } },
+            entityType: { terms: { field: 'entityType.keyword', size: 20 } },
           },
           highlight: {
             fields: {
@@ -188,10 +188,10 @@ describe('Search Route', () => {
             },
           },
           aggs: {
-            inLanguage: { terms: { field: 'inLanguage', size: 20 } },
-            mediaType: { terms: { field: 'mediaType', size: 20 } },
-            communicationMode: { terms: { field: 'communicationMode', size: 20 } },
-            entityType: { terms: { field: 'entityType', size: 20 } },
+            inLanguage: { terms: { field: 'inLanguage.keyword', size: 20 } },
+            mediaType: { terms: { field: 'mediaType.keyword', size: 20 } },
+            communicationMode: { terms: { field: 'communicationMode.keyword', size: 20 } },
+            entityType: { terms: { field: 'entityType.keyword', size: 20 } },
           },
           highlight: {
             fields: {

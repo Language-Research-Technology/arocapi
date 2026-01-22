@@ -103,25 +103,25 @@ const buildAggregations = (
   const aggs: Search_RequestBody['aggs'] = {
     inLanguage: {
       terms: {
-        field: 'inLanguage',
+        field: 'inLanguage.keyword',
         size: 20,
       },
     },
     mediaType: {
       terms: {
-        field: 'mediaType',
+        field: 'mediaType.keyword',
         size: 20,
       },
     },
     communicationMode: {
       terms: {
-        field: 'communicationMode',
+        field: 'communicationMode.keyword',
         size: 20,
       },
     },
     entityType: {
       terms: {
-        field: 'entityType',
+        field: 'entityType.keyword',
         size: 20,
       },
     },
