@@ -1,3 +1,10 @@
+## [2.0.1](https://github.com/Language-Research-Technology/arocapi/compare/v2.0.0...v2.0.1) (2026-01-22)
+
+### Bug Fixes
+
+* **search:** use keyword subfield for term aggregations ([80930a8](https://github.com/Language-Research-Technology/arocapi/commit/80930a82551fa2d3ef8ae50a8084ccc5fdce2eb3))
+* update to latest oni ([4d8d1f9](https://github.com/Language-Research-Technology/arocapi/commit/4d8d1f9cd377e51f491d19f80b9149b0c54c3f26))
+
 ## [2.0.0](https://github.com/Language-Research-Technology/arocapi/compare/v1.2.2...v2.0.0) (2025-12-11)
 
 ### ⚠ BREAKING CHANGES
