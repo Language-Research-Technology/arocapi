@@ -1,3 +1,9 @@
+## [2.0.2](https://github.com/Language-Research-Technology/arocapi/compare/v2.0.1...v2.0.2) (2026-02-09)
+
+### Bug Fixes
+
+* make sure search returns everything on an empty search ([c6204e6](https://github.com/Language-Research-Technology/arocapi/commit/c6204e61b5134ceb28b57d314f99fed42b72f677))
+
 ## [2.0.1](https://github.com/Language-Research-Technology/arocapi/compare/v2.0.0...v2.0.1) (2026-01-22)
 
 ### Bug Fixes
