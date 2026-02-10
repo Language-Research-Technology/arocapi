@@ -119,6 +119,7 @@ describe('Search Route', () => {
                     fields: ['name^2', 'description'],
                     type: 'best_fields',
                     fuzziness: 'AUTO',
+                    zero_terms_query: 'all',
                   },
                 },
               ],

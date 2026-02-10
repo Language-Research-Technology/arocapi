@@ -6,7 +6,7 @@ import type { FileMetadata, RoCrateHandler } from '../types/fileHandlers.js';
 import { createInternalError, createNotFoundError } from '../utils/errors.js';
 
 const paramsSchema = z.object({
-  id: z.string().regex(/^https?:\/\/.+/, 'Invalid URI format'),
+  id: z.url(),
 });
 
 type CrateRouteOptions = {
