@@ -6,7 +6,7 @@ import type { AccessTransformer, EntityTransformer } from '../types/transformers
 import { createInternalError, createNotFoundError } from '../utils/errors.js';
 
 const paramsSchema = z.object({
-  id: z.string().regex(/^https?:\/\/.+/, 'Invalid URI format'),
+  id: z.string(),
 });
 
 type EntityRouteOptions = {
