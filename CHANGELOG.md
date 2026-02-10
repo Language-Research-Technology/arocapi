@@ -1,3 +1,9 @@
+## [2.0.3](https://github.com/Language-Research-Technology/arocapi/compare/v2.0.2...v2.0.3) (2026-02-10)
+
+### Bug Fixes
+
+* loosen the id schema so that any URI is acceptable ([a187d20](https://github.com/Language-Research-Technology/arocapi/commit/a187d204e8ad002f056464822ace0e737e32d0af))
+
 ## [2.0.2](https://github.com/Language-Research-Technology/arocapi/compare/v2.0.1...v2.0.2) (2026-02-09)
 
 ### Bug Fixes
