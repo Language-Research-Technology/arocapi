@@ -1,3 +1,9 @@
+## [2.0.4](https://github.com/Language-Research-Technology/arocapi/compare/v2.0.3...v2.0.4) (2026-02-12)
+
+### Bug Fixes
+
+* remove MySQL-specific prefix length from File unique constraint ([4c8d1c1](https://github.com/Language-Research-Technology/arocapi/commit/4c8d1c168d1f66b91da09b5cf8a61ca262979dc9))
+
 ## [2.0.3](https://github.com/Language-Research-Technology/arocapi/compare/v2.0.2...v2.0.3) (2026-02-10)
 
 ### Bug Fixes
