@@ -19,6 +19,7 @@ import type {
   FileTransformer,
 } from './types/transformers.js';
 import { createValidationError } from './utils/errors.js';
+import { OpensearchQueryBuilder, QueryBuilderOptions } from './utils/queryBuilder.js';
 
 export type { AuthorisedEntity, AuthorisedFile, StandardEntity, StandardFile } from './transformers/default.js';
 export { AllPublicAccessTransformer, AllPublicFileAccessTransformer } from './transformers/default.js';
@@ -43,6 +44,8 @@ export type {
   FileTransformer,
   TransformerContext,
 } from './types/transformers.js';
+export { OpensearchQueryBuilder };
+export type { QueryBuilderOptions };
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -97,6 +100,8 @@ const setupSearch = async (fastify: FastifyInstance, opensearch: Client) => {
 export type Options = {
   prisma: PrismaClient;
   opensearch: Client;
+  queryBuilderClass?: typeof OpensearchQueryBuilder;
+  queryBuilderOptions?: QueryBuilderOptions;
   disableCors?: boolean;
   accessTransformer: AccessTransformer;
   entityTransformers?: EntityTransformer[];
@@ -109,6 +114,8 @@ const app: FastifyPluginAsync<Options> = async (fastify, options) => {
   const {
     prisma,
     opensearch,
+    queryBuilderClass,
+    queryBuilderOptions,
     disableCors = false,
     accessTransformer,
     entityTransformers,
@@ -142,6 +149,7 @@ const app: FastifyPluginAsync<Options> = async (fastify, options) => {
     throw new Error('roCrateHandler is required');
   }
 
+  
   fastify.register(sensible);
   if (!disableCors) {
     fastify.register(cors);
@@ -155,7 +163,7 @@ const app: FastifyPluginAsync<Options> = async (fastify, options) => {
   fastify.register(files, { fileAccessTransformer, fileTransformers });
   fastify.register(file, { fileHandler });
   fastify.register(crate, { roCrateHandler });
-  fastify.register(search, { accessTransformer, entityTransformers });
+  fastify.register(search, { accessTransformer, entityTransformers, queryBuilderClass, queryBuilderOptions });
 };
 
 export default fp(app);
