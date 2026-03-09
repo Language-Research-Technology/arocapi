@@ -1,0 +1,31 @@
+import type { FastifyInstance } from 'fastify';
+import Fastify from 'fastify';
+export declare const getTestApp: () => FastifyInstance<Fastify.RawServerDefault, import("http").IncomingMessage, import("http").ServerResponse<import("http").IncomingMessage>, Fastify.FastifyBaseLogger, Fastify.FastifyTypeProviderDefault>;
+export declare function setupIntegrationTests(): Promise<void>;
+export declare function teardownIntegrationTests(): Promise<void>;
+export declare function cleanupTestData(): Promise<void>;
+export declare function seedTestData(): Promise<({
+    id: number;
+    rocrateId: string;
+    name: string;
+    description: string;
+    entityType: string;
+    memberOf: null;
+    rootCollection: null;
+    metadataLicenseId: string;
+    contentLicenseId: string;
+    createdAt: Date;
+    updatedAt: Date;
+} | {
+    id: number;
+    rocrateId: string;
+    name: string;
+    description: string;
+    entityType: string;
+    memberOf: string;
+    rootCollection: string;
+    metadataLicenseId: string;
+    contentLicenseId: string;
+    createdAt: Date;
+    updatedAt: Date;
+})[]>;

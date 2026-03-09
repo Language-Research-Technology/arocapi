@@ -1,0 +1,191 @@
+import { describe, expect, it } from 'vitest';
+import { AllPublicAccessTransformer, baseEntityTransformer, } from './default.js';
+describe('Entity Transformers', () => {
+    const mockContext = {
+        request: {},
+        fastify: {},
+    };
+    const mockStandardEntity = {
+        id: 'http://example.com/entity/123',
+        name: 'Test Entity',
+        description: 'A test entity',
+        entityType: 'http://schema.org/Person',
+        memberOf: { id: 'http://example.com/collection', name: 'Test Collection' },
+        rootCollection: { id: 'http://example.com/root', name: 'Root Collection' },
+        metadataLicenseId: 'https://creativecommons.org/licenses/by/4.0/',
+        contentLicenseId: 'https://creativecommons.org/licenses/by/4.0/',
+    };
+    const mockAuthorisedEntity = {
+        ...mockStandardEntity,
+        access: {
+            metadata: true,
+            content: true,
+        },
+    };
+    describe('baseEntityTransformer', () => {
+        it('should transform raw entity to base shape with unresolved references', () => {
+            const rawEntity = {
+                id: 1,
+                rocrateId: 'http://example.com/entity/123',
+                name: 'Test Entity',
+                description: 'A test entity',
+                entityType: 'http://schema.org/Person',
+                fileId: null,
+                memberOf: 'http://example.com/collection',
+                rootCollection: 'http://example.com/root',
+                metadataLicenseId: 'https://creativecommons.org/licenses/by/4.0/',
+                contentLicenseId: 'https://creativecommons.org/licenses/by/4.0/',
+                meta: {},
+                createdAt: new Date(),
+                updatedAt: new Date(),
+            };
+            const result = baseEntityTransformer(rawEntity);
+            const expectedBaseEntity = {
+                id: 'http://example.com/entity/123',
+                name: 'Test Entity',
+                description: 'A test entity',
+                entityType: 'http://schema.org/Person',
+                memberOf: 'http://example.com/collection',
+                rootCollection: 'http://example.com/root',
+                metadataLicenseId: 'https://creativecommons.org/licenses/by/4.0/',
+                contentLicenseId: 'https://creativecommons.org/licenses/by/4.0/',
+            };
+            expect(result).toEqual(expectedBaseEntity);
+        });
+    });
+    describe('AllPublicAccessTransformer', () => {
+        it('should add full access to standard entity', () => {
+            const result = AllPublicAccessTransformer(mockStandardEntity);
+            expect(result).toEqual({
+                ...mockStandardEntity,
+                access: {
+                    metadata: true,
+                    content: true,
+                },
+            });
+        });
+        it('should grant metadata and content access', () => {
+            const result = AllPublicAccessTransformer(mockStandardEntity);
+            expect(result.access.metadata).toBe(true);
+            expect(result.access.content).toBe(true);
+            expect(result.access.contentAuthorizationUrl).toBeUndefined();
+        });
+    });
+    describe('Custom transformers', () => {
+        it('should allow custom transformer to add computed fields', () => {
+            const customTransformer = (entity) => ({
+                id: entity.id,
+                displayName: entity.name.toUpperCase(),
+                uri: entity.id,
+            });
+            const result = customTransformer(mockAuthorisedEntity, mockContext);
+            expect(result).toEqual({
+                id: 'http://example.com/entity/123',
+                displayName: 'TEST ENTITY',
+                uri: 'http://example.com/entity/123',
+            });
+        });
+        it('should support async transformers for fetching related data', async () => {
+            const asyncTransformer = async (entity) => {
+                await new Promise((resolve) => setTimeout(resolve, 1));
+                return {
+                    id: entity.id,
+                    name: entity.name,
+                    relatedData: 'fetched-data',
+                };
+            };
+            const result = await asyncTransformer(mockAuthorisedEntity, mockContext);
+            expect(result).toEqual({
+                id: 'http://example.com/entity/123',
+                name: 'Test Entity',
+                relatedData: 'fetched-data',
+            });
+        });
+        it('should allow transformer to access context', async () => {
+            const contextAwareTransformer = async (entity, context) => ({
+                id: entity.id,
+                name: entity.name,
+                requestUrl: context.request.url || 'unknown',
+            });
+            const contextWithUrl = {
+                request: { url: '/test-url' },
+                fastify: {},
+            };
+            const result = await contextAwareTransformer(mockAuthorisedEntity, contextWithUrl);
+            expect(result).toEqual({
+                id: 'http://example.com/entity/123',
+                name: 'Test Entity',
+                requestUrl: '/test-url',
+            });
+        });
+        it('should support transformer pipeline', async () => {
+            const addDisplayName = (entity) => ({
+                ...entity,
+                displayName: `${entity.name} [${entity.entityType.split('/').pop()}]`,
+            });
+            const addUpperCase = (entity) => ({
+                ...entity,
+                upperName: entity.name.toUpperCase(),
+            });
+            let result = mockAuthorisedEntity;
+            result = await addDisplayName(result, mockContext);
+            result = await addUpperCase(result, mockContext);
+            expect(result).toMatchObject({
+                id: 'http://example.com/entity/123',
+                name: 'Test Entity',
+                displayName: 'Test Entity [Person]',
+                upperName: 'TEST ENTITY',
+            });
+        });
+        it('should demonstrate full pipeline: base -> resolve -> access -> custom', async () => {
+            const rawEntity = {
+                id: 1,
+                rocrateId: 'http://example.com/entity/123',
+                name: 'Test Entity',
+                description: 'A test entity',
+                entityType: 'http://schema.org/Person',
+                fileId: null,
+                memberOf: 'http://example.com/collection',
+                rootCollection: 'http://example.com/root',
+                metadataLicenseId: 'https://creativecommons.org/licenses/by/4.0/',
+                contentLicenseId: 'https://creativecommons.org/licenses/by/4.0/',
+                meta: {},
+                createdAt: new Date(),
+                updatedAt: new Date(),
+            };
+            const customAccessTransformer = (entity) => ({
+                ...entity,
+                access: {
+                    metadata: true,
+                    content: false,
+                    contentAuthorizationUrl: 'https://example.com/auth',
+                },
+            });
+            const addMetadata = (entity) => ({
+                ...entity,
+                processed: true,
+            });
+            const base = baseEntityTransformer(rawEntity);
+            const standard = {
+                ...base,
+                memberOf: base.memberOf ? { id: base.memberOf, name: 'Parent Collection' } : null,
+                rootCollection: base.rootCollection ? { id: base.rootCollection, name: 'Root Collection' } : null,
+            };
+            const authorised = await customAccessTransformer(standard, mockContext);
+            const final = await addMetadata(authorised, mockContext);
+            expect(final).toMatchObject({
+                id: 'http://example.com/entity/123',
+                name: 'Test Entity',
+                memberOf: { id: 'http://example.com/collection', name: 'Parent Collection' },
+                rootCollection: { id: 'http://example.com/root', name: 'Root Collection' },
+                access: {
+                    metadata: true,
+                    content: false,
+                    contentAuthorizationUrl: 'https://example.com/auth',
+                },
+                processed: true,
+            });
+        });
+    });
+});
+//# sourceMappingURL=transformer.test.js.map
