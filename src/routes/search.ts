@@ -1,12 +1,12 @@
 import type { MultiBucketAggregateBaseFiltersBucket } from '@opensearch-project/opensearch/api/_types/_common.aggregations.js';
-import type { BoolQuery } from '@opensearch-project/opensearch/api/_types/_common.query_dsl.js';
-import type { Search_Request, Search_RequestBody } from '@opensearch-project/opensearch/api/index.js';
+import type { Search_Request } from '@opensearch-project/opensearch/api/index.js';
 import type { FastifyPluginAsync } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod/v4';
 import { baseEntityTransformer, resolveEntityReferences } from '../transformers/default.js';
 import type { AccessTransformer, EntityTransformer } from '../types/transformers.js';
 import { createInternalError } from '../utils/errors.js';
+import { OpensearchQueryBuilder, QueryBuilderOptions } from '../utils/queryBuilder.js';
 
 const boundingBoxSchema = z.object({
   topRight: z.object({
@@ -30,148 +30,17 @@ const searchParamsSchema = z.object({
   sort: z.enum(['id', 'name', 'createdAt', 'updatedAt', 'relevance']).default('relevance'),
   order: z.enum(['asc', 'desc']).default('asc'),
 });
-type SearchParams = z.infer<typeof searchParamsSchema>;
-
-const buildQuery = (
-  searchType: SearchParams['searchType'],
-  query: SearchParams['query'],
-  filters: SearchParams['filters'],
-  boundingBox: SearchParams['boundingBox'],
-) => {
-  const must: BoolQuery['must'] = [];
-  const filter: BoolQuery['filter'] = [];
-
-  if (searchType === 'basic') {
-    must.push({
-      multi_match: {
-        query,
-        fields: ['name^2', 'description'],
-        type: 'best_fields',
-        fuzziness: 'AUTO',
-        zero_terms_query: 'all',
-      },
-    });
-  } else {
-    must.push({
-      query_string: {
-        query,
-        fields: ['name^2', 'description'],
-        default_operator: 'AND',
-      },
-    });
-  }
-
-  if (filters) {
-    Object.entries(filters).forEach(([field, values]) => {
-      filter.push({
-        terms: {
-          [field]: values,
-        },
-      });
-    });
-  }
-
-  if (boundingBox) {
-    filter.push({
-      geo_bounding_box: {
-        location: {
-          top_left: {
-            lat: boundingBox.topRight.lat,
-            lon: boundingBox.bottomLeft.lng,
-          },
-          bottom_right: {
-            lat: boundingBox.bottomLeft.lat,
-            lon: boundingBox.topRight.lng,
-          },
-        },
-      },
-    });
-  }
-
-  return {
-    bool: {
-      must,
-      filter,
-    },
-  };
-};
-
-// TODO: Pull these from a config file
-const buildAggregations = (
-  geohashPrecision: SearchParams['geohashPrecision'],
-  boundingBox: SearchParams['boundingBox'],
-) => {
-  const aggs: Search_RequestBody['aggs'] = {
-    inLanguage: {
-      terms: {
-        field: 'inLanguage.keyword',
-        size: 20,
-      },
-    },
-    mediaType: {
-      terms: {
-        field: 'mediaType.keyword',
-        size: 20,
-      },
-    },
-    communicationMode: {
-      terms: {
-        field: 'communicationMode.keyword',
-        size: 20,
-      },
-    },
-    entityType: {
-      terms: {
-        field: 'entityType.keyword',
-        size: 20,
-      },
-    },
-  };
-
-  // Add geohash aggregation if precision is specified
-  if (geohashPrecision && boundingBox) {
-    aggs.geohash_grid = {
-      geohash_grid: {
-        field: 'location',
-        precision: geohashPrecision,
-        bounds: {
-          top_left: {
-            lat: boundingBox.topRight.lat,
-            lon: boundingBox.bottomLeft.lng,
-          },
-          bottom_right: {
-            lat: boundingBox.bottomLeft.lat,
-            lon: boundingBox.topRight.lng,
-          },
-        },
-      },
-    };
-  }
-
-  return aggs;
-};
-
-const buildSort = (sort: SearchParams['sort'], order: SearchParams['order']) => {
-  if (sort === 'relevance') {
-    return;
-  }
-
-  const sortField = sort === 'id' ? 'rocrateId' : sort;
-
-  if (sortField === 'name') {
-    return [{ 'name.keyword': order }];
-  }
-
-  return [{ [sortField]: order }];
-};
 
 type SearchRouteOptions = {
   accessTransformer: AccessTransformer;
   entityTransformers?: EntityTransformer[];
+  queryBuilderClass?: typeof OpensearchQueryBuilder;
+  queryBuilderOptions?: QueryBuilderOptions;
 };
 
 const search: FastifyPluginAsync<SearchRouteOptions> = async (fastify, opts) => {
-  const { accessTransformer, entityTransformers = [] } = opts;
+  const { accessTransformer, entityTransformers = [], queryBuilderClass = OpensearchQueryBuilder, queryBuilderOptions } = opts;
+  const queryBuilder = new queryBuilderClass(queryBuilderOptions);
   fastify.withTypeProvider<ZodTypeProvider>().post(
     '/search',
     {
@@ -186,20 +55,22 @@ const search: FastifyPluginAsync<SearchRouteOptions> = async (fastify, opts) => 
         const opensearchQuery: Search_Request = {
           index: 'entities',
           body: {
-            query: buildQuery(searchType, query, filters, boundingBox),
-            aggs: buildAggregations(geohashPrecision, boundingBox),
+            query: queryBuilder.buildQuery(searchType, query, filters, boundingBox),
+            aggs: queryBuilder.buildAggregations(geohashPrecision, boundingBox),
             highlight: {
               fields: {
                 name: {},
                 description: {},
               },
             },
-            sort: buildSort(sort, order),
+            sort: queryBuilder.buildSort(sort, order),
             from: offset,
             size: limit,
           },
         };
-
+        if (fastify.log.level in { debug: 0, trace: 0 }) {
+          fastify.log.debug(JSON.stringify(opensearchQuery, null, 2));
+        }
         const response = await fastify.opensearch.search(opensearchQuery);
 
         if (!response.body?.hits?.hits) {

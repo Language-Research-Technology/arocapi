@@ -234,6 +234,30 @@ The arocapi provides the following endpoints:
 - `GET /file/:id` - Download or access file content
 - `POST /search` - Search entities using OpenSearch
 
+## Customising OpenSearch query
+
+The OpenSearch query builder used in the `/search` endpoint can be customised to match any
+structure of the actual OpenSearch data. The default OpensearchQueryBuilder class is used to 
+build all the queries for the search and an optional config can be passed on 
+to customise the class behaviour. 
+
+### Query Builder (Optional)
+Use the `queryBuilderClass` optional parameter to specify a custom builder class.
+If not apecified, the default `OpensearchQueryBuilder` is used.
+The custom class should extend the `OpensearchQueryBuilder` class and 
+may override any or all of the methods as required:
+
+- `buildQuery`: For generating the base search query.
+- `buildAggregations`: For generating the facets or aggregations related query.
+- `buildSort`: For generating the ordering/sorting part of the query.
+
+### Query Builder Options (Optional)
+The `queryBuilderOptions` optional parameter is passed as a constructor argument
+when instantiating the queryBuilderClass. The default `OpensearchQueryBuilder` can be
+configured with:
+
+- `aggregations`: This field controls the aggregation and will be passed verbatim as the `aggs` field in the generated search query.
+
 ## Customising Entity Responses
 
 The API provides a flexible transformer system for customising entity responses
