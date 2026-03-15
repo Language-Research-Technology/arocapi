@@ -1,0 +1,14 @@
+pre-commit:
+  parallel: true
+  commands:
+    lint-biome:
+      run: pnpm lint:biome
+    lint-types:
+      run: pnpm lint:types
+    lint-knip:
+      run: pnpm lint:knip
+
+commit-msg:
+  commands:
+    commitlint:
+      run: pnpm commitlint --edit {1}
