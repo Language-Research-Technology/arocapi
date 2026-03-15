@@ -3,7 +3,7 @@ import type { Entity, File, PrismaClient } from '../generated/prisma/client.js';
 /**
  * Entity reference - used for memberOf and rootCollection
  */
-export type EntityReference = {
+type EntityReference = {
   id: string;
   name: string;
 };
