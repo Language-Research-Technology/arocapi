@@ -73,9 +73,7 @@ const search: FastifyPluginAsync<SearchRouteOptions> = async (fastify, opts) => 
             size: limit,
           },
         };
-        if (fastify.log.level in { debug: 0, trace: 0 }) {
-          fastify.log.debug(JSON.stringify(opensearchQuery, null, 2));
-        }
+        fastify.log.debug(opensearchQuery);
         const response = await fastify.opensearch.search(opensearchQuery);
 
         if (!response.body?.hits?.hits) {

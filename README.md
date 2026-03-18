@@ -243,7 +243,7 @@ to customise the class behaviour.
 
 ### Query Builder (Optional)
 Use the `queryBuilderClass` optional parameter to specify a custom builder class.
-If not apecified, the default `OpensearchQueryBuilder` is used.
+If not specified, the default `OpensearchQueryBuilder` is used.
 The custom class should extend the `OpensearchQueryBuilder` class and 
 may override any or all of the methods as required:
 
