@@ -1,24 +1,39 @@
-import { SortOrder } from '@opensearch-project/opensearch/api/_types/_common.js';
+import type { SortOrder } from '@opensearch-project/opensearch/api/_types/_common.js';
 import type { BoolQuery } from '@opensearch-project/opensearch/api/_types/_common.query_dsl.js';
 import type { Search_RequestBody } from '@opensearch-project/opensearch/api/index.js';
 
 type Aggregations = Required<Search_RequestBody>['aggs'];
 
+type BoundingBox = {
+  topRight: {
+    lat: number;
+    lng: number;
+  };
+  bottomLeft: {
+    lat: number;
+    lng: number;
+  };
+};
+
 export type QueryBuilderOptions = {
-  aggregations?: Aggregations
+  aggregations?: Aggregations;
 };
 
 export class OpensearchQueryBuilder {
   aggregations: Aggregations;
 
   constructor(opts?: QueryBuilderOptions) {
-    this.aggregations = opts?.aggregations ||
-      Object.fromEntries(['inLanguage', 'mediaType', 'communicationMode', 'entityType'].map(
-        name => [name, { terms: { field: name + '.keyword', size: 20 } }]
-      ));
+    this.aggregations =
+      opts?.aggregations ||
+      Object.fromEntries(
+        ['inLanguage', 'mediaType', 'communicationMode', 'entityType'].map((name) => [
+          name,
+          { terms: { field: `${name}.keyword`, size: 20 } },
+        ]),
+      );
   }
 
-  buildQuery(searchType: string, query: string, filters: any, boundingBox: any) {
+  buildQuery(searchType: string, query: string, filters?: Record<string, string[]>, boundingBox?: BoundingBox) {
     const must: BoolQuery['must'] = [];
     const filter: BoolQuery['filter'] = [];
 
@@ -77,7 +92,7 @@ export class OpensearchQueryBuilder {
     };
   }
 
-  buildAggregations(geohashPrecision: number, boundingBox: any) {
+  buildAggregations(geohashPrecision: number, boundingBox?: BoundingBox) {
     const aggs = { ...this.aggregations };
 
     // Add geohash aggregation if precision is specified
@@ -116,5 +131,4 @@ export class OpensearchQueryBuilder {
 
     return [{ [sortField]: order }];
   }
-
 }

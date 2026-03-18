@@ -19,7 +19,8 @@ import type {
   FileTransformer,
 } from './types/transformers.js';
 import { createValidationError } from './utils/errors.js';
-import { OpensearchQueryBuilder, QueryBuilderOptions } from './utils/queryBuilder.js';
+import type { QueryBuilderOptions } from './utils/queryBuilder.js';
+import { OpensearchQueryBuilder } from './utils/queryBuilder.js';
 
 export type { AuthorisedEntity, AuthorisedFile, StandardEntity, StandardFile } from './transformers/default.js';
 export { AllPublicAccessTransformer, AllPublicFileAccessTransformer } from './transformers/default.js';
@@ -149,7 +150,6 @@ const app: FastifyPluginAsync<Options> = async (fastify, options) => {
     throw new Error('roCrateHandler is required');
   }
 
-  
   fastify.register(sensible);
   if (!disableCors) {
     fastify.register(cors);

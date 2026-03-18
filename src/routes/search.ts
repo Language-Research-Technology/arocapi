@@ -6,7 +6,7 @@ import { z } from 'zod/v4';
 import { baseEntityTransformer, resolveEntityReferences } from '../transformers/default.js';
 import type { AccessTransformer, EntityTransformer } from '../types/transformers.js';
 import { createInternalError } from '../utils/errors.js';
-import { OpensearchQueryBuilder, QueryBuilderOptions } from '../utils/queryBuilder.js';
+import { OpensearchQueryBuilder, type QueryBuilderOptions } from '../utils/queryBuilder.js';
 
 const boundingBoxSchema = z.object({
   topRight: z.object({
@@ -39,7 +39,12 @@ type SearchRouteOptions = {
 };
 
 const search: FastifyPluginAsync<SearchRouteOptions> = async (fastify, opts) => {
-  const { accessTransformer, entityTransformers = [], queryBuilderClass = OpensearchQueryBuilder, queryBuilderOptions } = opts;
+  const {
+    accessTransformer,
+    entityTransformers = [],
+    queryBuilderClass = OpensearchQueryBuilder,
+    queryBuilderOptions,
+  } = opts;
   const queryBuilder = new queryBuilderClass(queryBuilderOptions);
   fastify.withTypeProvider<ZodTypeProvider>().post(
     '/search',
