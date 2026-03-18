@@ -1,3 +1,9 @@
+## [2.1.0](https://github.com/Language-Research-Technology/arocapi/compare/v2.0.4...v2.1.0) (2026-03-18)
+
+### Features
+
+* refactor the search endpoint to allow for customisation ([#10](https://github.com/Language-Research-Technology/arocapi/issues/10)) ([66c9ac8](https://github.com/Language-Research-Technology/arocapi/commit/66c9ac827525aa45dc26d57d4cd1e97a9452c380))
+
 ## [2.0.4](https://github.com/Language-Research-Technology/arocapi/compare/v2.0.3...v2.0.4) (2026-02-12)
 
 ### Bug Fixes
