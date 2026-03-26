@@ -45,8 +45,8 @@ export type {
   FileTransformer,
   TransformerContext,
 } from './types/transformers.js';
-export { OpensearchQueryBuilder };
 export type { QueryBuilderOptions };
+export { OpensearchQueryBuilder };
 
 declare module 'fastify' {
   interface FastifyInstance {
