@@ -51,7 +51,6 @@ describe('Entity Route', () => {
     });
 
     it('should return 404 when entity not found', async () => {
-      console.log('🪚 ♊');
       prisma.entity.findFirst.mockResolvedValue(null);
 
       const response = await fastify.inject({
