@@ -17,4 +17,5 @@ model File {
   updatedAt         DateTime @updatedAt
 
   @@unique([fileId])
+  @@map("file")
 }
