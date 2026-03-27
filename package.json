@@ -61,7 +61,7 @@
     "dist",
     "!dist/generated",
     "README.md",
-    "prisma",
+    "prisma/models",
     "prisma.config.ts"
   ],
   "scripts": {
