@@ -638,12 +638,60 @@ The `/file/:id` endpoint supports these query parameters:
 
 ### HTTP Range Support
 
-The endpoint automatically handles HTTP range requests for partial content,
-useful for media streaming:
+Range request support for media streaming can be implemented in your file
+handler by parsing the `Range` header from the request context and returning
+a partial stream:
 
-- Returns **206 Partial Content** for valid range requests
-- Returns **416 Range Not Satisfiable** for invalid ranges
-- Sets appropriate `Content-Range` and `Accept-Ranges` headers
+```typescript
+fileHandler: {
+  get: async (file, { request }) => {
+    const range = request.headers.range;
+    // Parse range header and return partial content stream
+    // Your storage backend (S3, filesystem, etc.) likely supports range reads natively
+  },
+}
+```
+
+### Authentication and Authorisation
+
+The library delegates authentication and authorisation to your transformers.
+The access transformer receives the full Fastify request context, so you can
+verify credentials and set access flags accordingly:
+
+```typescript
+accessTransformer: async (entity, { request }) => {
+  const token = request.headers.authorization;
+  const user = await verifyToken(token);
+
+  if (!user) {
+    // Unauthenticated — metadata visible but content restricted
+    return {
+      ...entity,
+      access: {
+        metadata: true,
+        content: false,
+        contentAuthorizationUrl: 'https://auth.example.com/login',
+      },
+    };
+  }
+
+  const canAccess = await checkUserLicense(user, entity.contentLicenseId);
+
+  return {
+    ...entity,
+    access: {
+      metadata: true,
+      content: canAccess,
+      contentAuthorizationUrl: canAccess
+        ? undefined
+        : 'https://rems.example.com/request-access',
+    },
+  };
+}
+```
+
+The same pattern applies to `fileAccessTransformer` for controlling file
+content downloads.
 
 ### Entity Meta Field
 
@@ -739,7 +787,7 @@ your-project/
 ├── prisma/
 │   ├── schema.prisma         # Prisma schema
 │   ├── models/              # Your custom models
-│   └── upstream/            # Symlink to arocapi models
+│   └── arocapi/             # Symlink to arocapi models
 ├── prisma.config.ts         # Prisma configuration
 ├── .env                     # Environment variables
 └── package.json
