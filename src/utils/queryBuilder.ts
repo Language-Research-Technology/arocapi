@@ -92,7 +92,7 @@ export class OpensearchQueryBuilder {
     };
   }
 
-  buildAggregations(geohashPrecision: number, boundingBox?: BoundingBox) {
+  buildAggregations(geohashPrecision?: number, boundingBox?: BoundingBox) {
     const aggs = { ...this.aggregations };
 
     // Add geohash aggregation if precision is specified
