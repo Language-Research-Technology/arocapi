@@ -1,9 +1,10 @@
 import { createReadStream } from 'node:fs';
-import type { FastifyPluginAsync, FastifyReply } from 'fastify';
+import type { FastifyPluginAsync } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod/v4';
 import type { FileHandler, FileMetadata } from '../types/fileHandlers.js';
 import { createInternalError, createNotFoundError } from '../utils/errors.js';
+import { setFileHeaders } from '../utils/headers.js';
 
 const paramsSchema = z.object({
   id: z.url(),
@@ -17,21 +18,6 @@ const querySchema = z.object({
 
 type FileRouteOptions = {
   fileHandler: FileHandler;
-};
-
-const setFileHeaders = (
-  reply: FastifyReply,
-  metadata: { contentType: string; contentLength: number; etag?: string; lastModified?: Date },
-) => {
-  reply.header('Content-Type', metadata.contentType);
-  reply.header('Content-Length', metadata.contentLength.toString());
-
-  if (metadata.etag) {
-    reply.header('ETag', metadata.etag);
-  }
-  if (metadata.lastModified) {
-    reply.header('Last-Modified', metadata.lastModified.toUTCString());
-  }
 };
 
 const file: FastifyPluginAsync<FileRouteOptions> = async (fastify, opts) => {
