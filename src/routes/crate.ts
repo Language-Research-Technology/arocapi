@@ -28,10 +28,8 @@ const crate: FastifyPluginAsync<CrateRouteOptions> = async (fastify, opts) => {
       const { id } = request.params;
 
       try {
-        const entity = await fastify.prisma.entity.findFirst({
-          where: {
-            rocrateId: id,
-          },
+        const entity = await fastify.prisma.entity.findUnique({
+          where: { id },
         });
 
         if (!entity) {
@@ -70,10 +68,8 @@ const crate: FastifyPluginAsync<CrateRouteOptions> = async (fastify, opts) => {
       const { id } = request.params;
 
       try {
-        const entity = await fastify.prisma.entity.findFirst({
-          where: {
-            rocrateId: id,
-          },
+        const entity = await fastify.prisma.entity.findUnique({
+          where: { id },
         });
 
         if (!entity) {

@@ -80,32 +80,31 @@ const search: FastifyPluginAsync<SearchRouteOptions> = async (fastify, opts) => 
           throw new Error('Invalid search response: missing hits data');
         }
 
-        const rocrateIds = response.body.hits.hits
-          .map((hit) => hit._source?.rocrateId as string | undefined)
-          .filter(Boolean);
+        const entityIds = response.body.hits.hits.map((hit) => hit._source?.id as string | undefined).filter(Boolean);
 
         const dbEntities = await fastify.prisma.entity.findMany({
           where: {
-            rocrateId: {
-              in: rocrateIds,
+            id: {
+              in: entityIds,
             },
           },
+          include: { file: { select: { id: true } } },
         });
 
-        const entityMap = new Map(dbEntities.map((entity) => [entity.rocrateId, entity]));
+        const entityMap = new Map(dbEntities.map((entity) => [entity.id, entity]));
 
         // Resolve memberOf and rootCollection references
         const refMap = await resolveEntityReferences(dbEntities, fastify.prisma);
 
         const entities = await Promise.all(
           response.body.hits.hits.map(async (hit) => {
-            if (!hit._source?.rocrateId) {
-              throw new Error('Missing rocrateId in search hit');
+            if (!hit._source?.id) {
+              throw new Error('Missing id in search hit');
             }
 
-            const dbEntity = entityMap.get(hit._source.rocrateId);
+            const dbEntity = entityMap.get(hit._source.id);
             if (!dbEntity) {
-              fastify.log.warn(`Entity ${hit._source.rocrateId} found in OpenSearch but not in database`);
+              fastify.log.warn(`Entity ${hit._source.id} found in OpenSearch but not in database`);
 
               return null;
             }

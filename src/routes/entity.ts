@@ -27,10 +27,9 @@ const entity: FastifyPluginAsync<EntityRouteOptions> = async (fastify, opts) => 
       const { id } = request.params;
 
       try {
-        const entity = await fastify.prisma.entity.findFirst({
-          where: {
-            rocrateId: id,
-          },
+        const entity = await fastify.prisma.entity.findUnique({
+          where: { id },
+          include: { file: { select: { id: true } } },
         });
 
         if (!entity) {

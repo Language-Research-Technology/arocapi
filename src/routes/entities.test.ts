@@ -18,12 +18,11 @@ describe('Entities Route', () => {
     it('should return entities with default pagination', async () => {
       const mockEntities = [
         {
-          id: 1,
-          rocrateId: 'http://example.com/entity/1',
+          id: 'http://example.com/entity/1',
           name: 'Test Entity 1',
           description: 'First test entity',
           entityType: 'http://pcdm.org/models#Collection',
-          fileId: null,
+
           memberOf: null,
           rootCollection: null,
           metadataLicenseId: 'https://creativecommons.org/licenses/by/4.0/',
@@ -33,12 +32,11 @@ describe('Entities Route', () => {
           meta: {},
         },
         {
-          id: 2,
-          rocrateId: 'http://example.com/entity/2',
+          id: 'http://example.com/entity/2',
           name: 'Test Entity 2',
           description: 'Second test entity',
           entityType: 'http://pcdm.org/models#Object',
-          fileId: null,
+
           memberOf: 'http://example.com/entity/1',
           rootCollection: 'http://example.com/entity/1',
           metadataLicenseId: 'https://creativecommons.org/licenses/by/4.0/',
@@ -62,7 +60,8 @@ describe('Entities Route', () => {
       expect(body).toMatchSnapshot();
       expect(prisma.entity.findMany).toHaveBeenCalledWith({
         where: {},
-        orderBy: { rocrateId: 'asc' },
+        include: { file: { select: { id: true } } },
+        orderBy: { id: 'asc' },
         skip: 0,
         take: 100,
       });
@@ -83,7 +82,8 @@ describe('Entities Route', () => {
       expect(response.statusCode).toBe(200);
       expect(prisma.entity.findMany).toHaveBeenCalledWith({
         where: { memberOf: 'http://example.com/collection/1' },
-        orderBy: { rocrateId: 'asc' },
+        include: { file: { select: { id: true } } },
+        orderBy: { id: 'asc' },
         skip: 0,
         take: 100,
       });
@@ -104,7 +104,8 @@ describe('Entities Route', () => {
       expect(response.statusCode).toBe(200);
       expect(prisma.entity.findMany).toHaveBeenCalledWith({
         where: { entityType: { in: ['http://pcdm.org/models#Collection'] } },
-        orderBy: { rocrateId: 'asc' },
+        include: { file: { select: { id: true } } },
+        orderBy: { id: 'asc' },
         skip: 0,
         take: 100,
       });
@@ -129,7 +130,8 @@ describe('Entities Route', () => {
             in: ['http://pcdm.org/models#Collection', 'http://pcdm.org/models#Object'],
           },
         },
-        orderBy: { rocrateId: 'asc' },
+        include: { file: { select: { id: true } } },
+        orderBy: { id: 'asc' },
         skip: 0,
         take: 100,
       });
@@ -151,7 +153,8 @@ describe('Entities Route', () => {
       expect(response.statusCode).toBe(200);
       expect(prisma.entity.findMany).toHaveBeenCalledWith({
         where: {},
-        orderBy: { rocrateId: 'asc' },
+        include: { file: { select: { id: true } } },
+        orderBy: { id: 'asc' },
         skip: 10,
         take: 50,
       });
@@ -173,13 +176,14 @@ describe('Entities Route', () => {
       expect(response.statusCode).toBe(200);
       expect(prisma.entity.findMany).toHaveBeenCalledWith({
         where: {},
+        include: { file: { select: { id: true } } },
         orderBy: { name: 'desc' },
         skip: 0,
         take: 100,
       });
     });
 
-    it('should map id sort to rocrateId field', async () => {
+    it('should sort by id field directly', async () => {
       prisma.entity.findMany.mockResolvedValue([]);
       prisma.entity.count.mockResolvedValue(0);
 
@@ -194,7 +198,8 @@ describe('Entities Route', () => {
       expect(response.statusCode).toBe(200);
       expect(prisma.entity.findMany).toHaveBeenCalledWith({
         where: {},
-        orderBy: { rocrateId: 'asc' },
+        include: { file: { select: { id: true } } },
+        orderBy: { id: 'asc' },
         skip: 0,
         take: 100,
       });
@@ -252,8 +257,7 @@ describe('Entities Route', () => {
 
       const mockEntities = [
         {
-          id: 1,
-          rocrateId: 'http://example.com/entity/1',
+          id: 'http://example.com/entity/1',
           name: 'Test Entity 1',
           description: 'First test entity',
           entityType: 'http://pcdm.org/models#Collection',
@@ -282,12 +286,11 @@ describe('Entities Route', () => {
     it('should return null for memberOf/rootCollection when parent entity not found', async () => {
       const mockEntities = [
         {
-          id: 1,
-          rocrateId: 'http://example.com/entity/1',
+          id: 'http://example.com/entity/1',
           name: 'Test Entity 1',
           description: 'Entity with missing parent',
           entityType: 'http://pcdm.org/models#Object',
-          fileId: null,
+
           memberOf: 'http://example.com/entity/deleted',
           rootCollection: 'http://example.com/entity/deleted',
           metadataLicenseId: 'https://creativecommons.org/licenses/by/4.0/',

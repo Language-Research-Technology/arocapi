@@ -19,7 +19,7 @@ describe('Search Route', () => {
     it('should perform basic search successfully', async () => {
       const mockEntities = [
         {
-          rocrateId: 'http://example.com/entity/1',
+          id: 'http://example.com/entity/1',
           name: 'Test Entity 1',
           description: 'A test entity',
           entityType: 'http://pcdm.org/models#Collection',
@@ -31,7 +31,7 @@ describe('Search Route', () => {
           updatedAt: new Date('2024-01-01'),
         },
         {
-          rocrateId: 'http://example.com/entity/2',
+          id: 'http://example.com/entity/2',
           name: 'Test Entity 2',
           description: 'Another test entity',
           entityType: 'http://pcdm.org/models#Object',
@@ -53,7 +53,7 @@ describe('Search Route', () => {
               {
                 _score: 1.5,
                 _source: {
-                  rocrateId: 'http://example.com/entity/1',
+                  id: 'http://example.com/entity/1',
                 },
                 highlight: {
                   name: ['<em>Test</em> Entity 1'],
@@ -62,7 +62,7 @@ describe('Search Route', () => {
               {
                 _score: 1.2,
                 _source: {
-                  rocrateId: 'http://example.com/entity/2',
+                  id: 'http://example.com/entity/2',
                 },
                 highlight: {
                   description: ['Another <em>test</em> entity'],
@@ -99,13 +99,14 @@ describe('Search Route', () => {
       const body = JSON.parse(response.body);
       expect(body).toMatchSnapshot();
 
-      // Verify database was queried with correct rocrateIds
+      // Verify database was queried with correct ids
       expect(prisma.entity.findMany).toHaveBeenCalledWith({
         where: {
-          rocrateId: {
+          id: {
             in: ['http://example.com/entity/1', 'http://example.com/entity/2'],
           },
         },
+        include: { file: { select: { id: true } } },
       });
 
       expect(opensearch.search).toHaveBeenCalledWith({
@@ -414,6 +415,25 @@ describe('Search Route', () => {
       expect(body).toMatchSnapshot();
     });
 
+    it('should return 422 for malformed opensearch query', async () => {
+      const error = new Error('parsing_exception') as Error & { statusCode: number };
+      error.statusCode = 400;
+      opensearch.search.mockRejectedValue(error);
+
+      const response = await fastify.inject({
+        method: 'POST',
+        url: '/search',
+        payload: {
+          query: 'test',
+        },
+      });
+
+      expect(response.statusCode).toBe(422);
+      const body = JSON.parse(response.body) as StandardErrorResponse;
+      expect(body.error.code).toBe('INVALID_REQUEST');
+      expect(body.error.message).toBe('parsing_exception');
+    });
+
     it('should validate required query parameter', async () => {
       const response = await fastify.inject({
         method: 'POST',
@@ -427,7 +447,7 @@ describe('Search Route', () => {
     it('should skip entities not found in database and log warning', async () => {
       const mockEntities = [
         {
-          rocrateId: 'http://example.com/entity/1',
+          id: 'http://example.com/entity/1',
           name: 'Test Entity 1',
           description: 'A test entity',
           entityType: 'http://pcdm.org/models#Collection',
@@ -450,14 +470,14 @@ describe('Search Route', () => {
               {
                 _score: 1.5,
                 _source: {
-                  rocrateId: 'http://example.com/entity/1',
+                  id: 'http://example.com/entity/1',
                 },
                 highlight: {},
               },
               {
                 _score: 1.2,
                 _source: {
-                  rocrateId: 'http://example.com/entity/2',
+                  id: 'http://example.com/entity/2',
                 },
                 highlight: {},
               },
@@ -486,7 +506,7 @@ describe('Search Route', () => {
       expect(body).toMatchSnapshot();
     });
 
-    it('should handle missing rocrateId in search hit', async () => {
+    it('should handle missing id in search hit', async () => {
       const mockSearchResponse = {
         body: {
           took: 5,
@@ -496,7 +516,7 @@ describe('Search Route', () => {
               {
                 _score: 1.5,
                 _source: {
-                  // Missing rocrateId
+                  // Missing id
                 },
               },
             ],
@@ -521,7 +541,7 @@ describe('Search Route', () => {
       console.log(response.body);
     });
 
-    it('should handle rocrateId explicitly set to undefined', async () => {
+    it('should handle id explicitly set to undefined', async () => {
       const mockSearchResponse = {
         body: {
           took: 5,
@@ -531,7 +551,7 @@ describe('Search Route', () => {
               {
                 _score: 1.5,
                 _source: {
-                  rocrateId: undefined,
+                  id: undefined,
                   name: 'Test Entity',
                 },
               },
@@ -597,7 +617,7 @@ describe('Search Route', () => {
 
       const mockEntities = [
         {
-          rocrateId: 'http://example.com/entity/1',
+          id: 'http://example.com/entity/1',
           name: 'Test Entity 1',
           description: 'A test entity',
           entityType: 'http://pcdm.org/models#Collection',
@@ -619,7 +639,7 @@ describe('Search Route', () => {
               {
                 _score: 1.5,
                 _source: {
-                  rocrateId: 'http://example.com/entity/1',
+                  id: 'http://example.com/entity/1',
                 },
                 highlight: {},
               },
@@ -651,7 +671,7 @@ describe('Search Route', () => {
     it('should handle search response with no aggregations field', async () => {
       const mockEntities = [
         {
-          rocrateId: 'http://example.com/entity/1',
+          id: 'http://example.com/entity/1',
           name: 'Test Entity 1',
           description: 'A test entity',
           entityType: 'http://pcdm.org/models#Collection',
@@ -673,7 +693,7 @@ describe('Search Route', () => {
               {
                 _score: 1.5,
                 _source: {
-                  rocrateId: 'http://example.com/entity/1',
+                  id: 'http://example.com/entity/1',
                 },
                 highlight: {},
               },
@@ -706,7 +726,7 @@ describe('Search Route', () => {
     it('should handle search response with malformed aggregation buckets', async () => {
       const mockEntities = [
         {
-          rocrateId: 'http://example.com/entity/1',
+          id: 'http://example.com/entity/1',
           name: 'Test Entity 1',
           description: 'A test entity',
           entityType: 'http://pcdm.org/models#Collection',
@@ -728,7 +748,7 @@ describe('Search Route', () => {
               {
                 _score: 1.5,
                 _source: {
-                  rocrateId: 'http://example.com/entity/1',
+                  id: 'http://example.com/entity/1',
                 },
                 highlight: {},
               },
@@ -768,7 +788,7 @@ describe('Search Route', () => {
     it('should handle search response with malformed geohash aggregation buckets', async () => {
       const mockEntities = [
         {
-          rocrateId: 'http://example.com/entity/1',
+          id: 'http://example.com/entity/1',
           name: 'Test Entity 1',
           description: 'A test entity',
           entityType: 'http://pcdm.org/models#Collection',
@@ -790,7 +810,7 @@ describe('Search Route', () => {
               {
                 _score: 1.5,
                 _source: {
-                  rocrateId: 'http://example.com/entity/1',
+                  id: 'http://example.com/entity/1',
                 },
                 highlight: {},
               },
@@ -827,10 +847,8 @@ describe('Search Route', () => {
     it('should return null for memberOf/rootCollection when parent entity not found', async () => {
       const mockEntities = [
         {
-          id: 1,
-          fileId: null,
           meta: {},
-          rocrateId: 'http://example.com/entity/1',
+          id: 'http://example.com/entity/1',
           name: 'Test Entity 1',
           description: 'Entity with missing parent',
           entityType: 'http://pcdm.org/models#Object',
@@ -852,7 +870,7 @@ describe('Search Route', () => {
               {
                 _score: 1.5,
                 _source: {
-                  rocrateId: 'http://example.com/entity/1',
+                  id: 'http://example.com/entity/1',
                 },
               },
             ],

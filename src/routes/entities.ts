@@ -52,18 +52,18 @@ const entities: FastifyPluginAsync<EntitiesRouteOptions> = async (fastify, opts)
           };
         }
 
-        const sortField = sort === 'id' ? 'rocrateId' : sort;
-
-        const dbEntities = await fastify.prisma.entity.findMany({
-          where,
-          orderBy: {
-            [sortField]: order,
-          },
-          skip: offset,
-          take: limit,
-        });
-
-        const total = await fastify.prisma.entity.count({ where });
+        const [dbEntities, total] = await Promise.all([
+          fastify.prisma.entity.findMany({
+            where,
+            include: { file: { select: { id: true } } },
+            orderBy: {
+              [sort]: order,
+            },
+            skip: offset,
+            take: limit,
+          }),
+          fastify.prisma.entity.count({ where }),
+        ]);
 
         // Resolve memberOf and rootCollection references
         const refMap = await resolveEntityReferences(dbEntities, fastify.prisma);
