@@ -1,21 +1,18 @@
 model File {
-  id                Int      @id @default(autoincrement())
+  id        String   @id @db.VarChar(768)
+  entityId  String   @db.VarChar(768)
 
-  fileId            String   @db.VarChar(2048)
+  filename  String   @db.VarChar(255)
+  mediaType String   @db.VarChar(127)
+  size      BigInt
 
-  filename          String   @db.VarChar(255)
-  mediaType         String   @db.VarChar(127)
-  size              BigInt
+  meta      Json?
 
-  memberOf          String   @db.VarChar(2048)
-  rootCollection    String   @db.VarChar(2048)
-  contentLicenseId  String   @db.VarChar(2048)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  meta              Json?
+  entity    Entity   @relation(fields: [entityId], references: [id])
 
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-
-  @@unique([fileId])
+  @@unique([entityId])
   @@map("file")
 }

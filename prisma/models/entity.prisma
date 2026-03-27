@@ -1,22 +1,24 @@
 model Entity {
-  id                  Int        @id @default(autoincrement())
+  id                String   @id @db.VarChar(768)
 
-  rocrateId           String     @db.VarChar(2048)
+  name              String   @db.VarChar(512)
+  description       String   @db.Text
 
-  name                String     @db.VarChar(1024)
-  description         String     @db.Text
+  entityType        String   @db.VarChar(255)
+  memberOf          String?  @db.VarChar(768)
+  rootCollection    String?  @db.VarChar(768)
+  metadataLicenseId String   @db.VarChar(255)
+  contentLicenseId  String   @db.VarChar(255)
 
-  entityType          String     @db.VarChar(1024)
-  memberOf            String?    @db.VarChar(2048)
-  rootCollection      String?    @db.VarChar(2048)
-  metadataLicenseId   String     @db.VarChar(2048)
-  contentLicenseId    String     @db.VarChar(2048)
-  fileId              String?    @db.VarChar(2048)
+  meta              Json?
 
-  meta                Json?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  file              File?
 
+  @@index([memberOf])
+  @@index([rootCollection])
+  @@index([entityType])
   @@map("entity")
 }

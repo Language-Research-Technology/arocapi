@@ -35,21 +35,20 @@ const files: FastifyPluginAsync<FilesRouteOptions> = async (fastify, opts) => {
         const where: NonNullable<Parameters<typeof fastify.prisma.file.findMany>[0]>['where'] = {};
 
         if (memberOf) {
-          where.memberOf = memberOf;
+          where.entity = { id: memberOf };
         }
 
-        const sortField = sort === 'id' ? 'fileId' : sort;
-
-        const dbFiles = await fastify.prisma.file.findMany({
-          where,
-          orderBy: {
-            [sortField]: order,
-          },
-          skip: offset,
-          take: limit,
-        });
-
-        const total = await fastify.prisma.file.count({ where });
+        const [dbFiles, total] = await Promise.all([
+          fastify.prisma.file.findMany({
+            where,
+            orderBy: {
+              [sort]: order,
+            },
+            skip: offset,
+            take: limit,
+          }),
+          fastify.prisma.file.count({ where }),
+        ]);
 
         // Apply transformers to each entity: base -> access -> additional
         const filesWithAccess = await Promise.all(

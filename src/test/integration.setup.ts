@@ -70,6 +70,7 @@ export async function teardownIntegrationTests() {
 }
 
 export async function cleanupTestData() {
+  await prisma.file.deleteMany({});
   await prisma.entity.deleteMany({});
 
   await opensearch.indices.delete({
@@ -83,8 +84,7 @@ export async function seedTestData() {
 
   const testEntities = [
     {
-      id: 1,
-      rocrateId: 'http://example.com/entity/1',
+      id: 'http://example.com/entity/1',
       name: 'Test Collection',
       description: 'First test entity',
       entityType: 'http://pcdm.org/models#Collection',
@@ -96,8 +96,7 @@ export async function seedTestData() {
       updatedAt: new Date(),
     },
     {
-      id: 2,
-      rocrateId: 'http://example.com/entity/2',
+      id: 'http://example.com/entity/2',
       name: 'Test Object',
       description: 'Second test entity',
       entityType: 'http://pcdm.org/models#Object',
@@ -109,8 +108,7 @@ export async function seedTestData() {
       updatedAt: new Date(),
     },
     {
-      id: 3,
-      rocrateId: 'http://example.com/entity/3',
+      id: 'http://example.com/entity/3',
       name: 'Test Person',
       description: 'Third test entity',
       entityType: 'http://schema.org/Person',
@@ -122,8 +120,7 @@ export async function seedTestData() {
       updatedAt: new Date(),
     },
     {
-      id: 4,
-      rocrateId: 'http://example.com/entity/4',
+      id: 'http://example.com/entity/4',
       name: 'test-audio.wav',
       description: 'Test audio file',
       entityType: 'http://schema.org/MediaObject',
@@ -135,8 +132,7 @@ export async function seedTestData() {
       updatedAt: new Date(),
     },
     {
-      id: 5,
-      rocrateId: 'http://example.com/entity/5',
+      id: 'http://example.com/entity/5',
       name: 'collection-metadata.csv',
       description: 'Collection metadata file',
       entityType: 'http://schema.org/MediaObject',
@@ -158,7 +154,7 @@ export async function seedTestData() {
     body: {
       mappings: {
         properties: {
-          rocrateId: { type: 'keyword' },
+          id: { type: 'keyword' },
           name: {
             type: 'text',
             fields: {
@@ -178,10 +174,7 @@ export async function seedTestData() {
     },
   });
 
-  const testDocs = testEntities.flatMap((entity, index) => [
-    { index: { _index: 'entities', _id: `${index + 1}` } },
-    entity,
-  ]);
+  const testDocs = testEntities.flatMap((entity) => [{ index: { _index: 'entities', _id: entity.id } }, entity]);
 
   await opensearch.bulk({
     body: testDocs,

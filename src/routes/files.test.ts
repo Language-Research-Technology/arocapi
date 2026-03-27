@@ -16,28 +16,22 @@ describe('Files Route', () => {
   });
 
   const mockFile1 = {
-    id: 1,
-    fileId: 'http://example.com/file1.wav',
+    id: 'http://example.com/file1.wav',
+    entityId: 'http://example.com/entity/4',
     filename: 'file1.wav',
     mediaType: 'audio/wav',
     size: BigInt(1024),
-    memberOf: 'http://example.com/collection/1',
-    rootCollection: 'http://example.com/collection/1',
-    contentLicenseId: 'https://creativecommons.org/licenses/by/4.0/',
     meta: {},
     createdAt: new Date('2025-01-01'),
     updatedAt: new Date('2025-01-01'),
   };
 
   const mockFile2 = {
-    id: 2,
-    fileId: 'http://example.com/file2.txt',
+    id: 'http://example.com/file2.txt',
+    entityId: 'http://example.com/entity/5',
     filename: 'file2.txt',
     mediaType: 'text/plain',
     size: BigInt(512),
-    memberOf: 'http://example.com/collection/1',
-    rootCollection: 'http://example.com/collection/1',
-    contentLicenseId: 'https://creativecommons.org/licenses/by/4.0/',
     meta: {},
     createdAt: new Date('2025-01-02'),
     updatedAt: new Date('2025-01-02'),
@@ -62,13 +56,11 @@ describe('Files Route', () => {
         filename: 'file1.wav',
         mediaType: 'audio/wav',
         size: 1024,
-        memberOf: 'http://example.com/collection/1',
-        rootCollection: 'http://example.com/collection/1',
-        contentLicenseId: 'https://creativecommons.org/licenses/by/4.0/',
         access: {
           content: true,
         },
       });
+      expect(body.files[0]).not.toHaveProperty('entityId');
       expect(body.files[0]).not.toHaveProperty('metadataLicenseId');
     });
 
@@ -86,7 +78,7 @@ describe('Files Route', () => {
       expect(body.total).toBe(1);
       expect(prisma.file.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: { memberOf: 'http://example.com/collection/1' },
+          where: { entity: { id: 'http://example.com/collection/1' } },
         }),
       );
     });
@@ -129,7 +121,7 @@ describe('Files Route', () => {
       );
     });
 
-    it('should support sorting by id (maps to fileId)', async () => {
+    it('should support sorting by id directly', async () => {
       prisma.file.findMany.mockResolvedValue([mockFile1, mockFile2]);
       prisma.file.count.mockResolvedValue(2);
 
@@ -141,7 +133,7 @@ describe('Files Route', () => {
       expect(response.statusCode).toBe(200);
       expect(prisma.file.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          orderBy: { fileId: 'desc' },
+          orderBy: { id: 'desc' },
         }),
       );
     });
@@ -171,13 +163,12 @@ describe('Files Route', () => {
       });
 
       expect(response.statusCode).toBe(200);
-      const body = JSON.parse(response.body) as { files: Array<{ memberOf: string }> };
+      const body = JSON.parse(response.body) as { files: Array<{ id: string }> };
       expect(body.files[0]).toMatchObject({
         id: 'http://example.com/file1.wav',
         filename: 'file1.wav',
-        memberOf: 'http://example.com/collection/1',
-        contentLicenseId: 'https://creativecommons.org/licenses/by/4.0/',
       });
+      expect(body.files[0]).not.toHaveProperty('entityId');
       expect(body.files[0]).not.toHaveProperty('metadataLicenseId');
     });
 

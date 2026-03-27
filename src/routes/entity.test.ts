@@ -18,12 +18,11 @@ describe('Entity Route', () => {
   describe('GET /entity/:id', () => {
     it('should return entity when found', async () => {
       const mockEntity = {
-        id: 1,
-        rocrateId: 'http://example.com/entity/123',
+        id: 'http://example.com/entity/123',
         name: 'Test Entity',
         description: 'A test entity',
         entityType: 'http://schema.org/Person',
-        fileId: null,
+
         memberOf: null,
         rootCollection: null,
         metadataLicenseId: 'https://creativecommons.org/licenses/by/4.0/',
@@ -33,7 +32,7 @@ describe('Entity Route', () => {
         meta: {},
       };
 
-      prisma.entity.findFirst.mockResolvedValue(mockEntity);
+      prisma.entity.findUnique.mockResolvedValue(mockEntity);
 
       const response = await fastify.inject({
         method: 'GET',
@@ -43,15 +42,16 @@ describe('Entity Route', () => {
 
       expect(response.statusCode).toBe(200);
       expect(body).toMatchSnapshot();
-      expect(prisma.entity.findFirst).toHaveBeenCalledWith({
+      expect(prisma.entity.findUnique).toHaveBeenCalledWith({
         where: {
-          rocrateId: 'http://example.com/entity/123',
+          id: 'http://example.com/entity/123',
         },
+        include: { file: { select: { id: true } } },
       });
     });
 
     it('should return 404 when entity not found', async () => {
-      prisma.entity.findFirst.mockResolvedValue(null);
+      prisma.entity.findUnique.mockResolvedValue(null);
 
       const response = await fastify.inject({
         method: 'GET',
@@ -64,7 +64,7 @@ describe('Entity Route', () => {
     });
 
     it('should return 500 when database error occurs', async () => {
-      prisma.entity.findFirst.mockRejectedValue(new Error('Database connection failed'));
+      prisma.entity.findUnique.mockRejectedValue(new Error('Database connection failed'));
 
       const response = await fastify.inject({
         method: 'GET',
@@ -101,8 +101,7 @@ describe('Entity Route', () => {
       });
 
       const mockEntity = {
-        id: 1,
-        rocrateId: 'http://example.com/entity/123',
+        id: 'http://example.com/entity/123',
         name: 'Test Entity',
         description: 'A test entity',
         entityType: 'http://pcdm.org/models#Collection',
@@ -115,7 +114,7 @@ describe('Entity Route', () => {
       };
 
       // @ts-expect-error TS is looking at the wronf function signature
-      prisma.entity.findFirst.mockResolvedValue(mockEntity);
+      prisma.entity.findUnique.mockResolvedValue(mockEntity);
 
       const response = await fastify.inject({
         method: 'GET',
@@ -129,12 +128,11 @@ describe('Entity Route', () => {
 
     it('should return null for memberOf/rootCollection when parent entity not found', async () => {
       const mockEntity = {
-        id: 1,
-        rocrateId: 'http://example.com/entity/123',
+        id: 'http://example.com/entity/123',
         name: 'Test Entity',
         description: 'A test entity',
         entityType: 'http://pcdm.org/models#Object',
-        fileId: null,
+
         memberOf: 'http://example.com/entity/deleted',
         rootCollection: 'http://example.com/entity/deleted',
         metadataLicenseId: 'https://creativecommons.org/licenses/by/4.0/',
@@ -145,7 +143,7 @@ describe('Entity Route', () => {
       };
 
       // First call returns the entity, second call (for reference resolution) returns empty
-      prisma.entity.findFirst.mockResolvedValue(mockEntity);
+      prisma.entity.findUnique.mockResolvedValue(mockEntity);
       prisma.entity.findMany.mockResolvedValue([]);
 
       const response = await fastify.inject({
