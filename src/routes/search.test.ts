@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { fastify, fastifyAfter, fastifyBefore, opensearch, prisma } from '../test/helpers/fastify.js';
 import { AllPublicAccessTransformer } from '../transformers/default.js';
+import type { StandardErrorResponse } from '../utils/errors.js';
 import searchRoute from './search.js';
 
 describe('Search Route', () => {
@@ -377,6 +378,24 @@ describe('Search Route', () => {
           }),
         }),
       );
+    });
+
+    it('should return 422 for malformed opensearch query', async () => {
+      const opensearchError = Object.assign(new Error('parsing_exception'), { statusCode: 400 });
+      opensearch.search.mockRejectedValue(opensearchError);
+
+      const response = await fastify.inject({
+        method: 'POST',
+        url: '/search',
+        payload: {
+          query: 'test',
+          searchType: 'advanced',
+        },
+      });
+
+      expect(response.statusCode).toBe(422);
+      const body = JSON.parse(response.body) as StandardErrorResponse;
+      expect(body.error.code).toBe('INVALID_REQUEST');
     });
 
     it('should handle opensearch errors', async () => {

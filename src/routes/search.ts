@@ -5,7 +5,7 @@ import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod/v4';
 import { baseEntityTransformer, resolveEntityReferences } from '../transformers/default.js';
 import type { AccessTransformer, EntityTransformer } from '../types/transformers.js';
-import { createInternalError } from '../utils/errors.js';
+import { createInternalError, createInvalidRequestError } from '../utils/errors.js';
 import { OpensearchQueryBuilder, type QueryBuilderOptions } from '../utils/queryBuilder.js';
 
 const boundingBoxSchema = z.object({
@@ -183,6 +183,14 @@ const search: FastifyPluginAsync<SearchRouteOptions> = async (fastify, opts) => 
         return result;
       } catch (error) {
         const err = error as Error;
+
+        // OpenSearch returns 400 for malformed queries (e.g. invalid query_string syntax)
+        if ('statusCode' in err && (err as { statusCode: number }).statusCode === 400) {
+          fastify.log.warn(`Invalid search query: ${err.message}`);
+
+          return reply.code(422).send(createInvalidRequestError(err.message));
+        }
+
         fastify.log.error(`Search error: ${err.message}`);
 
         return reply.code(500).send(createInternalError('Search failed'));
