@@ -1,5 +1,7 @@
 import type { Entity, File, PrismaClient } from '../generated/prisma/client.js';
 
+type EntityWithFile = Entity & { file?: { id: string } | null };
+
 /**
  * Entity reference - used for memberOf and rootCollection
  */
@@ -14,13 +16,14 @@ type EntityReference = {
  */
 export type BaseEntity = {
   id: string;
+  entityType: string;
   name: string;
   description: string;
   memberOf: string | null;
   rootCollection: string | null;
   metadataLicenseId: string;
   contentLicenseId: string;
-} & ({ entityType: string; fileId?: never } | { entityType: 'http://schema.org/MediaObject'; fileId: string });
+};
 
 /**
  * Standard entity shape - with resolved references
@@ -28,13 +31,14 @@ export type BaseEntity = {
  */
 export type StandardEntity = {
   id: string;
+  entityType: string;
   name: string;
   description: string;
   memberOf: EntityReference | null;
   rootCollection: EntityReference | null;
   metadataLicenseId: string;
   contentLicenseId: string;
-} & ({ entityType: string; fileId?: never } | { entityType: 'http://schema.org/MediaObject'; fileId: string });
+};
 
 /**
  * Access information for an entity
@@ -42,6 +46,7 @@ export type StandardEntity = {
 type AccessInfo = {
   metadata: boolean;
   content: boolean;
+  metadataAuthorizationUrl?: string;
   contentAuthorizationUrl?: string;
 };
 
@@ -65,16 +70,12 @@ type FileAccessInfo = {
 /**
  * Standard file shape - output of base file transformation
  * Does not include access information
- * Files only have contentLicenseId (no metadataLicenseId)
  */
 export type StandardFile = {
   id: string;
   filename: string;
   mediaType: string;
   size: number;
-  memberOf: string;
-  rootCollection: string;
-  contentLicenseId: string;
 };
 
 /**
@@ -89,10 +90,11 @@ export type AuthorisedFile = StandardFile & {
 /**
  * Base entity transformer - always applied first
  * Transforms raw database entity to base entity shape with unresolved references
+ * Accepts Entity with optional file relation included
  */
-export const baseEntityTransformer = (entity: Entity): BaseEntity => {
+export const baseEntityTransformer = (entity: EntityWithFile): BaseEntity => {
   const base: BaseEntity = {
-    id: entity.rocrateId,
+    id: entity.id,
     name: entity.name,
     description: entity.description,
     entityType: entity.entityType,
@@ -101,18 +103,6 @@ export const baseEntityTransformer = (entity: Entity): BaseEntity => {
     metadataLicenseId: entity.metadataLicenseId,
     contentLicenseId: entity.contentLicenseId,
   };
-
-  if (base.entityType === ('http://schema.org/MediaObject' as const)) {
-    if (!entity.fileId) {
-      return base;
-    }
-
-    return {
-      ...base,
-      entityType: base.entityType,
-      fileId: entity.fileId,
-    };
-  }
 
   return base;
 };
@@ -148,13 +138,10 @@ export const AllPublicAccessTransformer = (entity: StandardEntity): AuthorisedEn
  * Transforms raw database file to standard file shape (without access)
  */
 export const baseFileTransformer = (file: File): StandardFile => ({
-  id: file.fileId,
+  id: file.id,
   filename: file.filename,
   mediaType: file.mediaType,
   size: Number(file.size),
-  memberOf: file.memberOf,
-  rootCollection: file.rootCollection,
-  contentLicenseId: file.contentLicenseId,
 });
 
 /**
@@ -215,9 +202,9 @@ export const resolveEntityReferences = async (
   }
 
   const refs = await prisma.entity.findMany({
-    where: { rocrateId: { in: [...refIds] } },
-    select: { rocrateId: true, name: true },
+    where: { id: { in: [...refIds] } },
+    select: { id: true, name: true },
   });
 
-  return new Map(refs.map((r) => [r.rocrateId, { id: r.rocrateId, name: r.name }]));
+  return new Map(refs.map((r) => [r.id, { id: r.id, name: r.name }]));
 };

@@ -37,12 +37,11 @@ describe('Entity Transformers', () => {
   describe('baseEntityTransformer', () => {
     it('should transform raw entity to base shape with unresolved references', () => {
       const rawEntity = {
-        id: 1,
-        rocrateId: 'http://example.com/entity/123',
+        id: 'http://example.com/entity/123',
         name: 'Test Entity',
         description: 'A test entity',
         entityType: 'http://schema.org/Person',
-        fileId: null,
+
         memberOf: 'http://example.com/collection',
         rootCollection: 'http://example.com/root',
         metadataLicenseId: 'https://creativecommons.org/licenses/by/4.0/',
@@ -195,12 +194,11 @@ describe('Entity Transformers', () => {
 
     it('should demonstrate full pipeline: base -> resolve -> access -> custom', async () => {
       const rawEntity = {
-        id: 1,
-        rocrateId: 'http://example.com/entity/123',
+        id: 'http://example.com/entity/123',
         name: 'Test Entity',
         description: 'A test entity',
         entityType: 'http://schema.org/Person',
-        fileId: null,
+
         memberOf: 'http://example.com/collection',
         rootCollection: 'http://example.com/root',
         metadataLicenseId: 'https://creativecommons.org/licenses/by/4.0/',

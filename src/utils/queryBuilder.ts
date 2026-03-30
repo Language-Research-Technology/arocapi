@@ -123,12 +123,10 @@ export class OpensearchQueryBuilder {
       return;
     }
 
-    const sortField = sort === 'id' ? 'rocrateId' : sort;
-
-    if (sortField === 'name') {
+    if (sort === 'name') {
       return [{ 'name.keyword': order }];
     }
 
-    return [{ [sortField]: order }];
+    return [{ [sort]: order }];
   }
 }

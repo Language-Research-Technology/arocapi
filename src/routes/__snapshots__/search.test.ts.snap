@@ -28,7 +28,7 @@ exports[`Search Route > POST /search > should apply custom entity transformers 1
 }
 `;
 
-exports[`Search Route > POST /search > should handle opensearch errors 1`] = `
+exports[`Search Route > POST /search > should handle id explicitly set to undefined 1`] = `
 {
   "error": {
     "code": "INTERNAL_ERROR",
@@ -37,7 +37,7 @@ exports[`Search Route > POST /search > should handle opensearch errors 1`] = `
 }
 `;
 
-exports[`Search Route > POST /search > should handle rocrateId explicitly set to undefined 1`] = `
+exports[`Search Route > POST /search > should handle opensearch errors 1`] = `
 {
   "error": {
     "code": "INTERNAL_ERROR",

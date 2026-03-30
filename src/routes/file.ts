@@ -34,10 +34,8 @@ const file: FastifyPluginAsync<FileRouteOptions> = async (fastify, opts) => {
       const { id } = request.params;
 
       try {
-        const file = await fastify.prisma.file.findFirst({
-          where: {
-            fileId: id,
-          },
+        const file = await fastify.prisma.file.findUnique({
+          where: { id },
         });
 
         if (!file) {
@@ -77,10 +75,8 @@ const file: FastifyPluginAsync<FileRouteOptions> = async (fastify, opts) => {
       const { id } = request.params;
 
       try {
-        const file = await fastify.prisma.file.findFirst({
-          where: {
-            fileId: id,
-          },
+        const file = await fastify.prisma.file.findUnique({
+          where: { id },
         });
 
         if (!file) {

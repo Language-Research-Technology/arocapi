@@ -60,7 +60,7 @@ const processCollection = async (
   }
 
   const collectionEntity = {
-    rocrateId: collectionRocrateId,
+    id: collectionRocrateId,
     name: collectionRoot.name || 'Untitled Collection',
     description: collectionRoot.description || '',
     entityType: extractEntityType(collectionRoot['@type']),
@@ -104,7 +104,7 @@ const processItem = async (
   }
 
   const itemEntity = {
-    rocrateId: itemRocrateId,
+    id: itemRocrateId,
     name: itemRoot.name || 'Untitled Item',
     description: itemRoot.description || '',
     entityType: extractEntityType(itemRoot['@type']),
@@ -148,11 +148,10 @@ const processItem = async (
         const stats = statSync(filePath);
 
         const fileEntity = {
-          rocrateId: fileRocrateId,
+          id: fileRocrateId,
           name: fileNode.name || filename,
           description: fileNode.description || '',
           entityType: 'http://schema.org/MediaObject',
-          fileId: fileRocrateId,
           memberOf: itemRocrateId,
           rootCollection: collectionRocrateId,
           metadataLicenseId:
@@ -176,17 +175,10 @@ const processItem = async (
         });
 
         const fileRecord = {
-          fileId: fileRocrateId,
+          id: fileRocrateId,
           filename: filename,
           mediaType: (fileNode.encodingFormat as string) || 'application/octet-stream',
           size: BigInt(stats.size),
-          memberOf: itemRocrateId,
-          rootCollection: collectionRocrateId,
-          contentLicenseId:
-            fileNode.license?.['@id'] ||
-            itemRoot.contentLicense?.['@id'] ||
-            itemRoot.license?.['@id'] ||
-            'https://creativecommons.org/licenses/by/4.0/',
           meta: {
             storagePath: filePath,
           },
@@ -217,7 +209,7 @@ const createOpenSearchIndex = async (): Promise<void> => {
     body: {
       mappings: {
         properties: {
-          rocrateId: { type: 'keyword' },
+          id: { type: 'keyword' },
           name: {
             type: 'text',
             fields: {
@@ -249,7 +241,7 @@ const indexEntities = async (): Promise<void> => {
   const operations = entities.flatMap((entity) => [
     { index: { _index: 'entities', _id: `${entity.id}` } },
     {
-      rocrateId: entity.rocrateId,
+      id: entity.id,
       name: entity.name,
       description: entity.description,
       entityType: entity.entityType,
@@ -273,8 +265,8 @@ const seed = async (): Promise<void> => {
 
   try {
     console.log('Clearing existing data...');
-    await prisma.entity.deleteMany({});
     await prisma.file.deleteMany({});
+    await prisma.entity.deleteMany({});
     console.log('  ✓ Database cleared');
 
     await processCollection('collection-01-nyeleni', 'http://example.com/collection/nyeleni-001', [

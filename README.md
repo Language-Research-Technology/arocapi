@@ -326,7 +326,7 @@ await server.register(arocapi, {
     async (entity, { fastify }) => {
       const objectCount = entity.memberOf
         ? await fastify.prisma.entity.count({
-            where: { memberOf: entity.rocrateId },
+            where: { memberOf: entity.id },
           })
         : 0;
 
@@ -701,10 +701,10 @@ metadata for your file handler:
 ```typescript
 await prisma.entity.create({
   data: {
-    rocrateId: 'http://example.com/file/123',
+    id: 'http://example.com/file/123',
     name: 'audio.wav',
     entityType: 'http://schema.org/MediaObject',
-    // ... other required fields
+    // ... other required fields (memberOf, rootCollection, metadataLicenseId, contentLicenseId)
     meta: {
       bucket: 's3://my-bucket',
       storagePath: 'collections/col-01',

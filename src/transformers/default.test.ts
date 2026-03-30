@@ -4,13 +4,11 @@ import { AllPublicAccessTransformer, baseEntityTransformer } from './default.js'
 
 describe('baseEntityTransformer', () => {
   it('should transform entity to standard entity shape', () => {
-    const entity: Entity = {
-      id: 1,
-      rocrateId: 'http://example.com/entity/123',
+    const entity: Entity & { file?: { id: string } | null } = {
+      id: 'http://example.com/entity/123',
       name: 'Test Entity',
       description: 'A test entity description',
       entityType: 'http://pcdm.org/models#Collection',
-      fileId: null,
       memberOf: 'http://example.com/parent',
       rootCollection: 'http://example.com/root',
       metadataLicenseId: 'https://creativecommons.org/licenses/by/4.0/',
@@ -35,13 +33,11 @@ describe('baseEntityTransformer', () => {
   });
 
   it('should handle null memberOf and rootCollection', () => {
-    const entity: Entity = {
-      id: 1,
-      rocrateId: 'http://example.com/collection',
+    const entity: Entity & { file?: { id: string } | null } = {
+      id: 'http://example.com/collection',
       name: 'Top Collection',
       description: 'A top-level collection',
       entityType: 'http://pcdm.org/models#Collection',
-      fileId: null,
       memberOf: null,
       rootCollection: null,
       metadataLicenseId: 'https://creativecommons.org/licenses/by/4.0/',
@@ -58,13 +54,11 @@ describe('baseEntityTransformer', () => {
   });
 
   it('should exclude database-specific fields', () => {
-    const entity: Entity = {
-      id: 1,
-      rocrateId: 'http://example.com/entity/456',
+    const entity: Entity & { file?: { id: string } | null } = {
+      id: 'http://example.com/entity/456',
       name: 'Test',
       description: 'Test',
       entityType: 'http://pcdm.org/models#Object',
-      fileId: null,
       memberOf: null,
       rootCollection: null,
       metadataLicenseId: 'https://creativecommons.org/licenses/by/4.0/',
@@ -76,7 +70,6 @@ describe('baseEntityTransformer', () => {
 
     const result = baseEntityTransformer(entity);
 
-    // Result should have 'id' (mapped from rocrateId), but not the numeric database id
     expect(result.id).toBe('http://example.com/entity/456');
     expect(result).not.toHaveProperty('createdAt');
     expect(result).not.toHaveProperty('updatedAt');
@@ -93,14 +86,12 @@ describe('baseEntityTransformer', () => {
     ]);
   });
 
-  it('should handle File entity (MediaObject) with fileId', () => {
-    const entity: Entity = {
-      id: 1,
-      rocrateId: 'http://example.com/file/audio.wav',
+  it('should handle File entity (MediaObject) with file relation', () => {
+    const entity: Entity & { file?: { id: string } | null } = {
+      id: 'http://example.com/file/audio.wav',
       name: 'Audio File',
       description: 'An audio recording',
       entityType: 'http://schema.org/MediaObject',
-      fileId: 'http://example.com/files/audio.wav',
       memberOf: 'http://example.com/collection',
       rootCollection: 'http://example.com/collection',
       metadataLicenseId: 'https://creativecommons.org/licenses/by/4.0/',
@@ -108,6 +99,7 @@ describe('baseEntityTransformer', () => {
       createdAt: new Date(),
       updatedAt: new Date(),
       meta: null,
+      file: { id: 'http://example.com/files/audio.wav' },
     };
 
     const result = baseEntityTransformer(entity);
@@ -117,13 +109,11 @@ describe('baseEntityTransformer', () => {
       name: 'Audio File',
       description: 'An audio recording',
       entityType: 'http://schema.org/MediaObject',
-      fileId: 'http://example.com/files/audio.wav',
       memberOf: 'http://example.com/collection',
       rootCollection: 'http://example.com/collection',
       metadataLicenseId: 'https://creativecommons.org/licenses/by/4.0/',
       contentLicenseId: 'https://creativecommons.org/licenses/by/4.0/',
     });
-    expect(result.fileId).toBe('http://example.com/files/audio.wav');
   });
 });
 
