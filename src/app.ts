@@ -61,7 +61,12 @@ const setupValidation = (fastify: FastifyInstance) => {
 
   fastify.setErrorHandler((error, _req, reply) => {
     if (hasZodFastifySchemaValidationErrors(error)) {
-      return reply.code(400).send(createValidationError('The request parameters are invalid', error.validation));
+      const violations = error.validation.map((v) => ({
+        field: v.instancePath,
+        message: v.message,
+      }));
+
+      return reply.code(400).send(createValidationError('The request parameters are invalid', violations));
     }
 
     // NOTE: We are exposing the error message here for development purposes.

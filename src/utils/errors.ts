@@ -29,16 +29,17 @@ const createErrorResponse = (code: ErrorCode, message: string, details?: ErrorDe
   },
 });
 
-export const createValidationError = (message: string, issues: string[]): StandardErrorResponse =>
-  createErrorResponse(ERROR_CODES.VALIDATION_ERROR, message, { issues });
+type ValidationViolation = {
+  field: string;
+  message: string;
+  value?: unknown;
+};
+
+export const createValidationError = (message: string, violations: ValidationViolation[]): StandardErrorResponse =>
+  createErrorResponse(ERROR_CODES.VALIDATION_ERROR, message, { violations });
 
 export const createNotFoundError = (message: string, entityId?: string): StandardErrorResponse =>
   createErrorResponse(ERROR_CODES.NOT_FOUND, message, entityId ? { entityId } : undefined);
-
-// export const createRateLimitError = (retryAfter: number): StandardErrorResponse =>
-//   createErrorResponse(ERROR_CODES.RATE_LIMIT_EXCEEDED, 'Rate limit exceeded. Please retry after the specified time.', {
-//     retryAfter,
-//   });
 
 export const createInternalError = (message = 'Internal server error'): StandardErrorResponse => {
   return createErrorResponse(ERROR_CODES.INTERNAL_ERROR, message);
