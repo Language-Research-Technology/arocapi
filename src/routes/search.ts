@@ -24,7 +24,7 @@ const searchParamsSchema = z.object({
   query: z.string(),
   filters: z.record(z.string(), z.array(z.string())).optional(),
   boundingBox: boundingBoxSchema.optional(),
-  geohashPrecision: z.number().int().min(0).max(12).default(5),
+  geohashPrecision: z.number().int().min(1).max(12).optional(),
   limit: z.number().int().min(1).max(1000).default(100),
   offset: z.number().int().min(0).default(0),
   sort: z.enum(['id', 'name', 'createdAt', 'updatedAt', 'relevance']).default('relevance'),
