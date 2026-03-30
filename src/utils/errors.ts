@@ -41,6 +41,9 @@ export const createValidationError = (message: string, violations: ValidationVio
 export const createNotFoundError = (message: string, entityId?: string): StandardErrorResponse =>
   createErrorResponse(ERROR_CODES.NOT_FOUND, message, entityId ? { entityId } : undefined);
 
+export const createInvalidRequestError = (message: string): StandardErrorResponse =>
+  createErrorResponse(ERROR_CODES.INVALID_REQUEST, message);
+
 export const createInternalError = (message = 'Internal server error'): StandardErrorResponse => {
   return createErrorResponse(ERROR_CODES.INTERNAL_ERROR, message);
 };
