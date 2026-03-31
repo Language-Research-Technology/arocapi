@@ -1,3 +1,33 @@
+## [3.0.0](https://github.com/Language-Research-Technology/arocapi/compare/v2.1.0...v3.0.0) (2026-03-31)
+
+### ⚠ BREAKING CHANGES
+
+* Entity and File primary keys change from auto-increment
+integers to string-based IDs. Entity.rocrateId is renamed to Entity.id,
+File.fileId is renamed to File.id. File now has an entityId foreign key
+to Entity instead of Entity having a fileId. Redundant fields removed
+from File (memberOf, rootCollection, contentLicenseId).
+
+Also includes:
+- findFirst replaced with findUnique for primary key lookups
+- Promise.all for parallel count+findMany queries
+- Simplified transformer types (removed discriminated unions)
+* Existing databases must run the migration to rename
+tables from Entity/File to entity/file.
+* update to prisma 7.x
+
+### Features
+
+* make geohashPrecision optional in search aggregations ([#14](https://github.com/Language-Research-Technology/arocapi/issues/14)) ([9e4a546](https://github.com/Language-Research-Technology/arocapi/commit/9e4a546b50b0681ebcd0aba3ec3a053806a46e16))
+* return 422 for malformed OpenSearch query syntax ([#15](https://github.com/Language-Research-Technology/arocapi/issues/15)) ([38280cb](https://github.com/Language-Research-Technology/arocapi/commit/38280cbd1c5e26fe47fd330d5bc30bab5bbb3903))
+* update to prisma 7.x ([117efa0](https://github.com/Language-Research-Technology/arocapi/commit/117efa0286278ab587ffd3d318e09cde6691018f))
+* use string primary keys and normalise Entity/File schema ([#19](https://github.com/Language-Research-Technology/arocapi/issues/19)) ([a864503](https://github.com/Language-Research-Technology/arocapi/commit/a864503c61665f82bc3912beeb91794320ee1482))
+
+### Bug Fixes
+
+* rename database tables to lowercase ([#18](https://github.com/Language-Research-Technology/arocapi/issues/18)) ([921fe65](https://github.com/Language-Research-Technology/arocapi/commit/921fe65c0f72bb088102b3fd0e401de8175b85c9))
+* typescript error ([d078263](https://github.com/Language-Research-Technology/arocapi/commit/d078263bb2bec19fb12b7ed670b2542740ddf323))
+
 ## [2.1.0](https://github.com/Language-Research-Technology/arocapi/compare/v2.0.4...v2.1.0) (2026-03-18)
 
 ### Features
