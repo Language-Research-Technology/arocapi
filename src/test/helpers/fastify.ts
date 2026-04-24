@@ -10,23 +10,11 @@ export let fastify: FastifyInstance;
 export const prisma = mockDeep<PrismaClient>();
 export const opensearch = mockDeep<Client>();
 
-// @ts-expect-error Mock sets these and fastify decorate breaks as it looks for them
-prisma.getter = undefined;
-// @ts-expect-error Mock sets these and fastify decorate breaks as it looks for them
-prisma.setter = undefined;
-
-// @ts-expect-error Mock sets these and fastify decorate breaks as it looks for them
-opensearch.getter = undefined;
-// @ts-expect-error Mock sets these and fastify decorate breaks as it looks for them
-opensearch.setter = undefined;
-
 export const fastifyBefore = async () => {
   mockReset(prisma);
   mockReset(opensearch);
 
   fastify = Fastify({ logger: false });
-  fastify.decorate('prisma', prisma);
-  fastify.decorate('opensearch', opensearch);
 
   fastify.setValidatorCompiler(validatorCompiler);
   fastify.setSerializerCompiler(serializerCompiler);

@@ -18,7 +18,7 @@ describe('File Route', () => {
 
   beforeEach(async () => {
     await fastifyBefore();
-    await fastify.register(fileRoute, { fileHandler: mockFileHandler });
+    await fastify.register(fileRoute, { prisma, fileHandler: mockFileHandler });
     vi.clearAllMocks();
   });
 
@@ -69,7 +69,6 @@ describe('File Route', () => {
         mockFile,
         expect.objectContaining({
           request: expect.any(Object),
-          fastify: expect.any(Object),
         }),
       );
     });
@@ -322,7 +321,6 @@ describe('File Route', () => {
         mockFile,
         expect.objectContaining({
           request: expect.any(Object),
-          fastify: expect.any(Object),
         }),
       );
     });

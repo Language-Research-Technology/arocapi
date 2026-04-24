@@ -18,7 +18,7 @@ describe('Crate Route', () => {
 
   beforeEach(async () => {
     await fastifyBefore();
-    await fastify.register(crateRoute, { roCrateHandler: mockRoCrateHandler });
+    await fastify.register(crateRoute, { prisma, roCrateHandler: mockRoCrateHandler });
     vi.clearAllMocks();
   });
 
@@ -90,7 +90,6 @@ describe('Crate Route', () => {
         mockFileEntity,
         expect.objectContaining({
           request: expect.any(Object),
-          fastify: expect.any(Object),
         }),
       );
     });
@@ -310,7 +309,6 @@ describe('Crate Route', () => {
         mockFileEntity,
         expect.objectContaining({
           request: expect.any(Object),
-          fastify: expect.any(Object),
         }),
       );
     });

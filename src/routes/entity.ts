@@ -1,6 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod/v4';
+import type { PrismaClient } from '../generated/prisma/client.js';
 import { baseEntityTransformer, resolveEntityReferences } from '../transformers/default.js';
 import type { AccessTransformer, EntityTransformer } from '../types/transformers.js';
 import { createInternalError, createNotFoundError } from '../utils/errors.js';
@@ -10,12 +11,13 @@ const paramsSchema = z.object({
 });
 
 type EntityRouteOptions = {
+  prisma: PrismaClient;
   accessTransformer: AccessTransformer;
   entityTransformers?: EntityTransformer[];
 };
 
 const entity: FastifyPluginAsync<EntityRouteOptions> = async (fastify, opts) => {
-  const { accessTransformer, entityTransformers = [] } = opts;
+  const { prisma, accessTransformer, entityTransformers = [] } = opts;
   fastify.withTypeProvider<ZodTypeProvider>().get(
     '/entity/:id',
     {
@@ -27,7 +29,7 @@ const entity: FastifyPluginAsync<EntityRouteOptions> = async (fastify, opts) => 
       const { id } = request.params;
 
       try {
-        const entity = await fastify.prisma.entity.findUnique({
+        const entity = await prisma.entity.findUnique({
           where: { id },
           include: { file: { select: { id: true } } },
         });
@@ -37,7 +39,7 @@ const entity: FastifyPluginAsync<EntityRouteOptions> = async (fastify, opts) => 
         }
 
         // Resolve memberOf and rootCollection references
-        const refMap = await resolveEntityReferences([entity], fastify.prisma);
+        const refMap = await resolveEntityReferences([entity], prisma);
 
         const base = baseEntityTransformer(entity);
         const standardEntity = {
@@ -45,17 +47,11 @@ const entity: FastifyPluginAsync<EntityRouteOptions> = async (fastify, opts) => 
           memberOf: base.memberOf ? (refMap.get(base.memberOf) ?? null) : null,
           rootCollection: base.rootCollection ? (refMap.get(base.rootCollection) ?? null) : null,
         };
-        const authorisedEntity = await accessTransformer(standardEntity, {
-          request,
-          fastify,
-        });
+        const authorisedEntity = await accessTransformer(standardEntity, { request });
 
         let result = authorisedEntity;
         for (const transformer of entityTransformers) {
-          result = await transformer(result, {
-            request,
-            fastify,
-          });
+          result = await transformer(result, { request });
         }
 
         return result;

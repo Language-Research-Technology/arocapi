@@ -2,6 +2,7 @@ import { createReadStream } from 'node:fs';
 import type { FastifyPluginAsync } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod/v4';
+import type { PrismaClient } from '../generated/prisma/client.js';
 import type { FileHandler, FileMetadata } from '../types/fileHandlers.js';
 import { createInternalError, createNotFoundError } from '../utils/errors.js';
 import { setFileHeaders } from '../utils/headers.js';
@@ -17,11 +18,12 @@ const querySchema = z.object({
 });
 
 type FileRouteOptions = {
+  prisma: PrismaClient;
   fileHandler: FileHandler;
 };
 
 const file: FastifyPluginAsync<FileRouteOptions> = async (fastify, opts) => {
-  const { fileHandler } = opts;
+  const { prisma, fileHandler } = opts;
 
   fastify.withTypeProvider<ZodTypeProvider>().head(
     '/file/:id',
@@ -34,7 +36,7 @@ const file: FastifyPluginAsync<FileRouteOptions> = async (fastify, opts) => {
       const { id } = request.params;
 
       try {
-        const file = await fastify.prisma.file.findUnique({
+        const file = await prisma.file.findUnique({
           where: { id },
         });
 
@@ -42,10 +44,7 @@ const file: FastifyPluginAsync<FileRouteOptions> = async (fastify, opts) => {
           return reply.code(404).send(createNotFoundError('The requested file was not found', id));
         }
 
-        const metadata: FileMetadata | false = await fileHandler.head(file, {
-          request,
-          fastify,
-        });
+        const metadata: FileMetadata | false = await fileHandler.head(file, { request });
 
         if (!metadata) {
           return reply.code(404).send(createNotFoundError('The requested file metadata was not found', id));
@@ -75,7 +74,7 @@ const file: FastifyPluginAsync<FileRouteOptions> = async (fastify, opts) => {
       const { id } = request.params;
 
       try {
-        const file = await fastify.prisma.file.findUnique({
+        const file = await prisma.file.findUnique({
           where: { id },
         });
 
@@ -83,10 +82,7 @@ const file: FastifyPluginAsync<FileRouteOptions> = async (fastify, opts) => {
           return reply.code(404).send(createNotFoundError('The requested file was not found', id));
         }
 
-        const result = await fileHandler.get(file, {
-          request,
-          fastify,
-        });
+        const result = await fileHandler.get(file, { request });
 
         if (!result) {
           return reply.code(404).send(createNotFoundError('The requested file could not be retrieved', id));

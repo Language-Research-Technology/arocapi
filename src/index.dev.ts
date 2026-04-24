@@ -14,13 +14,6 @@ import arocapi, {
 import type { Entity, File } from './generated/prisma/client.js';
 import { PrismaClient } from './generated/prisma/client.js';
 
-declare module 'fastify' {
-  interface FastifyInstance {
-    prisma: PrismaClient;
-    opensearch: Client;
-  }
-}
-
 const adapter = new PrismaMariaDb({
   host: 'localhost',
   user: 'root',
@@ -171,7 +164,7 @@ const roCrateHandler: RoCrateHandler = {
   },
 };
 
-const oniTransformer: EntityTransformer = (entity, { request: _r, fastify: _f }) => {
+const oniTransformer: EntityTransformer = (entity) => {
   return {
     ...entity,
     accessControl: 'Public',

@@ -1,10 +1,9 @@
 import type { Readable } from 'node:stream';
-import type { FastifyInstance, FastifyRequest } from 'fastify';
+import type { FastifyRequest } from 'fastify';
 import type { Entity, File } from '../generated/prisma/client.js';
 
 export type FileHandlerContext = {
   request: FastifyRequest;
-  fastify: FastifyInstance;
 };
 
 export type FileMetadata = {
