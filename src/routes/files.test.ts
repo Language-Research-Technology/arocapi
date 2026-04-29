@@ -70,11 +70,16 @@ describe('Files Route', () => {
       });
 
       expect(response.statusCode).toBe(200);
-      const body = JSON.parse(response.body) as { total: number };
+      const body = JSON.parse(response.body) as { total: number; files: unknown[] };
       expect(body.total).toBe(1);
+      expect(body.files).toHaveLength(1);
+      expect(body.files[0]).toMatchObject({
+        id: 'http://example.com/file1.wav',
+        filename: 'file1.wav',
+      });
       expect(prisma.file.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: { entity: { id: 'http://example.com/collection/1' } },
+          where: { entity: { memberOf: 'http://example.com/collection/1' } },
         }),
       );
     });
