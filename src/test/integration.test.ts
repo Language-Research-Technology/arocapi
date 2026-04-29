@@ -1,5 +1,5 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import type { AuthorisedEntity } from '../transformers/default.js';
+import type { AuthorisedEntity, AuthorisedFile } from '../transformers/default.js';
 import type { StandardErrorResponse } from '../utils/errors.js';
 import {
   cleanupTestData,
@@ -232,6 +232,77 @@ describe('Integration Tests', () => {
       expect(body.entities[0].name).toBe('test-audio.wav');
       expect(body.entities[1].name).toBe('Test Person');
       expect(body.entities[2].name).toBe('Test Object');
+    });
+  });
+
+  describe('GET /files', () => {
+    it('should return all files', async () => {
+      const app = getTestApp();
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/files',
+      });
+      const body = JSON.parse(response.body) as { total: number; files: AuthorisedFile[] };
+
+      expect(response.statusCode).toBe(200);
+      expect(body.total).toBe(2);
+      expect(body.files).toHaveLength(2);
+    });
+
+    it('should filter files by memberOf (Object parent)', async () => {
+      const app = getTestApp();
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/files',
+        query: {
+          memberOf: 'http://example.com/entity/2',
+        },
+      });
+      const body = JSON.parse(response.body) as { total: number; files: AuthorisedFile[] };
+
+      expect(response.statusCode).toBe(200);
+      expect(body.total).toBe(1);
+      expect(body.files).toHaveLength(1);
+      expect(body.files[0].id).toBe('http://example.com/entity/4');
+      expect(body.files[0].filename).toBe('test-audio.wav');
+    });
+
+    it('should filter files by memberOf (Collection parent)', async () => {
+      const app = getTestApp();
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/files',
+        query: {
+          memberOf: 'http://example.com/entity/1',
+        },
+      });
+      const body = JSON.parse(response.body) as { total: number; files: AuthorisedFile[] };
+
+      expect(response.statusCode).toBe(200);
+      expect(body.total).toBe(1);
+      expect(body.files).toHaveLength(1);
+      expect(body.files[0].id).toBe('http://example.com/entity/5');
+      expect(body.files[0].filename).toBe('collection-metadata.csv');
+    });
+
+    it('should return empty list when memberOf matches no entity', async () => {
+      const app = getTestApp();
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/files',
+        query: {
+          memberOf: 'http://example.com/entity/does-not-exist',
+        },
+      });
+      const body = JSON.parse(response.body) as { total: number; files: AuthorisedFile[] };
+
+      expect(response.statusCode).toBe(200);
+      expect(body.total).toBe(0);
+      expect(body.files).toHaveLength(0);
     });
   });
 

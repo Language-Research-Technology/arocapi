@@ -149,6 +149,31 @@ export async function seedTestData() {
     data: testEntities,
   });
 
+  const testFiles = [
+    {
+      id: 'http://example.com/entity/4',
+      filename: 'test-audio.wav',
+      mediaType: 'audio/wav',
+      size: BigInt(2048),
+      meta: {},
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    },
+    {
+      id: 'http://example.com/entity/5',
+      filename: 'collection-metadata.csv',
+      mediaType: 'text/csv',
+      size: BigInt(512),
+      meta: {},
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    },
+  ];
+
+  await prisma.file.createMany({
+    data: testFiles,
+  });
+
   await opensearch.indices.create({
     index: 'entities',
     body: {

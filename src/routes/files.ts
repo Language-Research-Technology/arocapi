@@ -37,7 +37,7 @@ const files: FastifyPluginAsync<FilesRouteOptions> = async (fastify, opts) => {
         const where: NonNullable<Parameters<typeof prisma.file.findMany>[0]>['where'] = {};
 
         if (memberOf) {
-          where.entity = { id: memberOf };
+          where.entity = { memberOf };
         }
 
         const [dbFiles, total] = await Promise.all([
