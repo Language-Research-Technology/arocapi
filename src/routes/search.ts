@@ -1,8 +1,10 @@
+import type { Client } from '@opensearch-project/opensearch';
 import type { MultiBucketAggregateBaseFiltersBucket } from '@opensearch-project/opensearch/api/_types/_common.aggregations.js';
 import type { Search_Request } from '@opensearch-project/opensearch/api/index.js';
 import type { FastifyPluginAsync } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod/v4';
+import type { PrismaClient } from '../generated/prisma/client.js';
 import { baseEntityTransformer, resolveEntityReferences } from '../transformers/default.js';
 import type { AccessTransformer, EntityTransformer } from '../types/transformers.js';
 import { createInternalError, createInvalidRequestError } from '../utils/errors.js';
@@ -32,6 +34,8 @@ const searchParamsSchema = z.object({
 });
 
 type SearchRouteOptions = {
+  prisma: PrismaClient;
+  opensearch: Client;
   accessTransformer: AccessTransformer;
   entityTransformers?: EntityTransformer[];
   queryBuilderClass?: typeof OpensearchQueryBuilder;
@@ -40,6 +44,8 @@ type SearchRouteOptions = {
 
 const search: FastifyPluginAsync<SearchRouteOptions> = async (fastify, opts) => {
   const {
+    prisma,
+    opensearch,
     accessTransformer,
     entityTransformers = [],
     queryBuilderClass = OpensearchQueryBuilder,
@@ -74,7 +80,7 @@ const search: FastifyPluginAsync<SearchRouteOptions> = async (fastify, opts) => 
           },
         };
         fastify.log.debug(opensearchQuery);
-        const response = await fastify.opensearch.search(opensearchQuery);
+        const response = await opensearch.search(opensearchQuery);
 
         if (!response.body?.hits?.hits) {
           throw new Error('Invalid search response: missing hits data');
@@ -82,7 +88,7 @@ const search: FastifyPluginAsync<SearchRouteOptions> = async (fastify, opts) => 
 
         const entityIds = response.body.hits.hits.map((hit) => hit._source?.id as string | undefined).filter(Boolean);
 
-        const dbEntities = await fastify.prisma.entity.findMany({
+        const dbEntities = await prisma.entity.findMany({
           where: {
             id: {
               in: entityIds,
@@ -94,7 +100,7 @@ const search: FastifyPluginAsync<SearchRouteOptions> = async (fastify, opts) => 
         const entityMap = new Map(dbEntities.map((entity) => [entity.id, entity]));
 
         // Resolve memberOf and rootCollection references
-        const refMap = await resolveEntityReferences(dbEntities, fastify.prisma);
+        const refMap = await resolveEntityReferences(dbEntities, prisma);
 
         const entities = await Promise.all(
           response.body.hits.hits.map(async (hit) => {
@@ -115,17 +121,11 @@ const search: FastifyPluginAsync<SearchRouteOptions> = async (fastify, opts) => 
               memberOf: base.memberOf ? (refMap.get(base.memberOf) ?? null) : null,
               rootCollection: base.rootCollection ? (refMap.get(base.rootCollection) ?? null) : null,
             };
-            const authorisedEntity = await accessTransformer(standardEntity, {
-              request,
-              fastify,
-            });
+            const authorisedEntity = await accessTransformer(standardEntity, { request, fastify });
 
             let result = authorisedEntity;
             for (const transformer of entityTransformers) {
-              result = await transformer(result, {
-                request,
-                fastify,
-              });
+              result = await transformer(result, { request, fastify });
             }
 
             // Add search-specific metadata

@@ -8,7 +8,7 @@ import entityRoute from './entity.js';
 describe('Entity Route', () => {
   beforeEach(async () => {
     await fastifyBefore();
-    await fastify.register(entityRoute, { accessTransformer: AllPublicAccessTransformer });
+    await fastify.register(entityRoute, { prisma, accessTransformer: AllPublicAccessTransformer });
   });
 
   afterEach(async () => {
@@ -96,6 +96,7 @@ describe('Entity Route', () => {
 
       await fastifyBefore();
       await fastify.register(entityRoute, {
+        prisma,
         accessTransformer: AllPublicAccessTransformer,
         entityTransformers: [customTransformer],
       });

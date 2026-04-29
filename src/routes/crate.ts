@@ -2,6 +2,7 @@ import { createReadStream } from 'node:fs';
 import type { FastifyPluginAsync } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod/v4';
+import type { PrismaClient } from '../generated/prisma/client.js';
 import type { FileMetadata, RoCrateHandler } from '../types/fileHandlers.js';
 import { createInternalError, createNotFoundError } from '../utils/errors.js';
 import { setFileHeaders } from '../utils/headers.js';
@@ -11,11 +12,12 @@ const paramsSchema = z.object({
 });
 
 type CrateRouteOptions = {
+  prisma: PrismaClient;
   roCrateHandler: RoCrateHandler;
 };
 
 const crate: FastifyPluginAsync<CrateRouteOptions> = async (fastify, opts) => {
-  const { roCrateHandler } = opts;
+  const { prisma, roCrateHandler } = opts;
 
   fastify.withTypeProvider<ZodTypeProvider>().head(
     '/entity/:id/rocrate',
@@ -28,7 +30,7 @@ const crate: FastifyPluginAsync<CrateRouteOptions> = async (fastify, opts) => {
       const { id } = request.params;
 
       try {
-        const entity = await fastify.prisma.entity.findUnique({
+        const entity = await prisma.entity.findUnique({
           where: { id },
         });
 
@@ -36,10 +38,7 @@ const crate: FastifyPluginAsync<CrateRouteOptions> = async (fastify, opts) => {
           return reply.code(404).send(createNotFoundError('The requested entity was not found', id));
         }
 
-        const metadata: FileMetadata | false = await roCrateHandler.head(entity, {
-          request,
-          fastify,
-        });
+        const metadata: FileMetadata | false = await roCrateHandler.head(entity, { request, fastify });
 
         if (!metadata) {
           return reply.code(404).send(createNotFoundError('The requested RO-Crate metadata was not found', id));
@@ -68,7 +67,7 @@ const crate: FastifyPluginAsync<CrateRouteOptions> = async (fastify, opts) => {
       const { id } = request.params;
 
       try {
-        const entity = await fastify.prisma.entity.findUnique({
+        const entity = await prisma.entity.findUnique({
           where: { id },
         });
 
@@ -76,10 +75,7 @@ const crate: FastifyPluginAsync<CrateRouteOptions> = async (fastify, opts) => {
           return reply.code(404).send(createNotFoundError('The requested entity was not found', id));
         }
 
-        const result = await roCrateHandler.get(entity, {
-          request,
-          fastify,
-        });
+        const result = await roCrateHandler.get(entity, { request, fastify });
 
         if (!result) {
           return reply.code(404).send(createNotFoundError('The requested RO-Crate could not be retrieved', id));

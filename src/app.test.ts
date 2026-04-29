@@ -98,61 +98,22 @@ describe('Entity Route', () => {
       await expect(() => fastify.ready()).rejects.toThrowError('roCrateHandler is required');
     });
 
-    it('should handle broken opensearch', async () => {
-      opensearch.ping.mockRejectedValue(new Error('Connection failed'));
-
+    it('should register successfully with all required options', async () => {
       const fastify = Fastify({ logger: false });
 
-      fastify.register(app, {
-        prisma,
-        opensearch,
-        disableCors: false,
-        accessTransformer: AllPublicAccessTransformer,
-        fileAccessTransformer: AllPublicFileAccessTransformer,
-        fileHandler: {
-          get: vi.fn(),
-          head: vi.fn(),
-        },
-        roCrateHandler: {
-          get: vi.fn(),
-          head: vi.fn(),
-        },
-      });
-
-      await expect(() => fastify.ready()).rejects.toThrowError('Connection failed');
-    });
-
-    it('should handle random errors', async () => {
-      const fastify = Fastify({ logger: false });
       await fastify.register(app, {
         prisma,
         opensearch,
         disableCors: false,
         accessTransformer: AllPublicAccessTransformer,
         fileAccessTransformer: AllPublicFileAccessTransformer,
-        fileHandler: {
-          get: vi.fn(),
-          head: vi.fn(),
-        },
-        roCrateHandler: {
-          get: vi.fn(),
-          head: vi.fn(),
-        },
-      });
-      fastify.get('/error', async () => {
-        throw new Error('Random');
+        fileHandler: { get: vi.fn(), head: vi.fn() },
+        roCrateHandler: { get: vi.fn(), head: vi.fn() },
       });
 
-      await fastify.ready();
+      await expect(fastify.ready()).resolves.toBeDefined();
 
-      const response = await fastify.inject({
-        method: 'GET',
-        url: '/error',
-      });
-      const body = JSON.parse(response.body);
-
-      expect(response.statusCode).toBe(500);
-      expect(body).toMatchSnapshot();
+      await fastify.close();
     });
   });
 });

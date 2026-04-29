@@ -8,7 +8,7 @@ import searchRoute from './search.js';
 describe('Search Route', () => {
   beforeEach(async () => {
     await fastifyBefore();
-    await fastify.register(searchRoute, { accessTransformer: AllPublicAccessTransformer });
+    await fastify.register(searchRoute, { prisma, opensearch, accessTransformer: AllPublicAccessTransformer });
   });
 
   afterEach(async () => {
@@ -611,6 +611,8 @@ describe('Search Route', () => {
 
       await fastifyBefore();
       await fastify.register(searchRoute, {
+        prisma,
+        opensearch,
         accessTransformer: AllPublicAccessTransformer,
         entityTransformers: [customTransformer],
       });

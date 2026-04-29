@@ -18,7 +18,7 @@ describe('Crate Route', () => {
 
   beforeEach(async () => {
     await fastifyBefore();
-    await fastify.register(crateRoute, { roCrateHandler: mockRoCrateHandler });
+    await fastify.register(crateRoute, { prisma, roCrateHandler: mockRoCrateHandler });
     vi.clearAllMocks();
   });
 

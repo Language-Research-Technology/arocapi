@@ -79,14 +79,6 @@ import Fastify from 'fastify';
 import { PrismaClient } from './generated/prisma/client.js';
 import { Readable } from 'stream';
 
-// NOTE: Only needed if you are going to use these yourself
-declare module 'fastify' {
-  interface FastifyInstance {
-    prisma: PrismaClient;
-    opensearch: Client;
-  }
-}
-
 const prisma = new PrismaClient();
 
 if (!process.env.OPENSEARCH_URL) {
@@ -283,7 +275,7 @@ await server.register(arocapi, {
 **For restricted content**, implement a custom access transformer:
 
 ```typescript
-const accessTransformer = async (entity, { request, fastify }) => {
+const accessTransformer = async (entity, { request }) => {
   // Custom logic to determine access
   const user = await authenticateUser(request);
   const canAccessContent = await checkLicense(entity.contentLicenseId, user);
@@ -323,9 +315,9 @@ await server.register(arocapi, {
       displayName: `${entity.name} [${entity.entityType.split('/').pop()}]`,
     }),
     // Add counts
-    async (entity, { fastify }) => {
+    async (entity) => {
       const objectCount = entity.memberOf
-        ? await fastify.prisma.entity.count({
+        ? await prisma.entity.count({
             where: { memberOf: entity.id },
           })
         : 0;
@@ -349,12 +341,16 @@ Every entity response flows through this three-stage pipeline:
 2. **Access transformer** - Adds access control information
 3. **Entity transformers** - Optional additional transformations
 
+### Transformer Context
+
+Access and entity transformers receive a `TransformerContext` as their second argument with the shape `{ request, fastify }`. The `request` is the Fastify request for per-call data (headers, auth, query). The `fastify` instance is provided as an extension point — arocapi does not decorate it with anything itself, but consumers who decorate `fastify` with their own helpers (e.g. via `fastify.decorate('userService', ...)`) can read those decorations through `context.fastify` from inside their transformers. For database access, prefer closing over your own client reference as shown in the examples below.
+
 ### Common Use Cases
 
 **Access control for restricted content:**
 
 ```typescript
-accessTransformer: async (entity, { request, fastify }) => {
+accessTransformer: async (entity, { request }) => {
   const hasAccess = await checkUserPermissions(request, entity.contentLicenseId);
   return {
     ...entity,
@@ -382,9 +378,9 @@ entityTransformers: [
 
 ```typescript
 entityTransformers: [
-  async (entity, { fastify }) => ({
+  async (entity) => ({
     ...entity,
-    stats: await fetchEntityStats(entity.id, fastify.prisma),
+    stats: await fetchEntityStats(entity.id, prisma),
   }),
 ]
 ```
@@ -415,7 +411,7 @@ await server.register(arocapi, {
 **For restricted content**, implement a custom file access transformer:
 
 ```typescript
-const fileAccessTransformer = async (file, { request, fastify }) => {
+const fileAccessTransformer = async (file, { request }) => {
   // Custom logic to determine file content access
   const user = await authenticateUser(request);
   const canAccessContent = await checkLicense(file.contentLicenseId, user);
@@ -464,8 +460,8 @@ await server.register(arocapi, {
       extension: file.filename.split('.').pop(),
     }),
     // Fetch parent entity information
-    async (file, { fastify }) => {
-      const parent = await fastify.prisma.entity.findFirst({
+    async (file) => {
+      const parent = await prisma.entity.findFirst({
         where: { rocrateId: file.memberOf },
       });
 

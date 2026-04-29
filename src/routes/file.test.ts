@@ -18,7 +18,7 @@ describe('File Route', () => {
 
   beforeEach(async () => {
     await fastifyBefore();
-    await fastify.register(fileRoute, { fileHandler: mockFileHandler });
+    await fastify.register(fileRoute, { prisma, fileHandler: mockFileHandler });
     vi.clearAllMocks();
   });
 

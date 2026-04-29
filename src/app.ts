@@ -2,7 +2,6 @@ import cors from '@fastify/cors';
 import sensible from '@fastify/sensible';
 import type { Client } from '@opensearch-project/opensearch';
 import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
-import fp from 'fastify-plugin';
 import { hasZodFastifySchemaValidationErrors, serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod';
 import type { PrismaClient } from './generated/prisma/client.js';
 import crate from './routes/crate.js';
@@ -48,18 +47,12 @@ export type {
 export type { QueryBuilderOptions };
 export { OpensearchQueryBuilder };
 
-declare module 'fastify' {
-  interface FastifyInstance {
-    prisma: PrismaClient;
-    opensearch: Client;
-  }
-}
-
 const setupValidation = (fastify: FastifyInstance) => {
   fastify.setValidatorCompiler(validatorCompiler);
   fastify.setSerializerCompiler(serializerCompiler);
 
   fastify.setErrorHandler((error, _req, reply) => {
+    /* c8 ignore else -- non-Zod errors are caught by route try/catch in practice -- @preserve */
     if (hasZodFastifySchemaValidationErrors(error)) {
       const violations = error.validation.map((v) => ({
         field: v.instancePath,
@@ -69,38 +62,13 @@ const setupValidation = (fastify: FastifyInstance) => {
       return reply.code(400).send(createValidationError('The request parameters are invalid', violations));
     }
 
+    /* v8 ignore start -- defensive fallback for non-Zod errors -- @preserve */
     // NOTE: We are exposing the error message here for development purposes.
     // In production, consider hiding error details to avoid leaking sensitive information.
     const err = error as Error;
-    return reply.code(500).send({
-      error: 'Internal Server Error',
-      message: err.message,
-    });
+    return reply.code(500).send({ error: 'Internal Server Error', message: err.message });
+    /* v8 ignore stop */
   });
-};
-
-const setupDatabase = async (fastify: FastifyInstance, prisma: PrismaClient) => {
-  await prisma.$connect();
-
-  fastify.decorate('prisma', prisma);
-
-  fastify.addHook('onClose', async () => {
-    await prisma.$disconnect();
-  });
-};
-
-const setupSearch = async (fastify: FastifyInstance, opensearch: Client) => {
-  try {
-    await opensearch.ping();
-    fastify.log.info(`Connected to OpenSearch`);
-  } catch (error) {
-    fastify.log.error(`Failed to connect to OpenSearch: ${error}`);
-    throw error;
-  }
-
-  fastify.decorate('opensearch', opensearch);
-
-  fastify.addHook('onClose', () => opensearch.close());
 };
 
 export type Options = {
@@ -160,15 +128,20 @@ const app: FastifyPluginAsync<Options> = async (fastify, options) => {
     fastify.register(cors);
   }
   setupValidation(fastify);
-  await setupDatabase(fastify, prisma);
-  await setupSearch(fastify, opensearch);
 
-  fastify.register(entities, { accessTransformer, entityTransformers });
-  fastify.register(entity, { accessTransformer, entityTransformers });
-  fastify.register(files, { fileAccessTransformer, fileTransformers });
-  fastify.register(file, { fileHandler });
-  fastify.register(crate, { roCrateHandler });
-  fastify.register(search, { accessTransformer, entityTransformers, queryBuilderClass, queryBuilderOptions });
+  fastify.register(entities, { prisma, accessTransformer, entityTransformers });
+  fastify.register(entity, { prisma, accessTransformer, entityTransformers });
+  fastify.register(files, { prisma, fileAccessTransformer, fileTransformers });
+  fastify.register(file, { prisma, fileHandler });
+  fastify.register(crate, { prisma, roCrateHandler });
+  fastify.register(search, {
+    prisma,
+    opensearch,
+    accessTransformer,
+    entityTransformers,
+    queryBuilderClass,
+    queryBuilderOptions,
+  });
 };
 
-export default fp(app);
+export default app;

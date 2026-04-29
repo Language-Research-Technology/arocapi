@@ -8,7 +8,7 @@ import filesRoute from './files.js';
 describe('Files Route', () => {
   beforeEach(async () => {
     await fastifyBefore();
-    await fastify.register(filesRoute, { fileAccessTransformer: AllPublicFileAccessTransformer });
+    await fastify.register(filesRoute, { prisma, fileAccessTransformer: AllPublicFileAccessTransformer });
   });
 
   afterEach(async () => {
@@ -208,6 +208,7 @@ describe('Files Route', () => {
       });
 
       await fastify.register(filesRoute, {
+        prisma,
         fileAccessTransformer: AllPublicFileAccessTransformer,
         fileTransformers: [customTransformer],
       });
@@ -245,6 +246,7 @@ describe('Files Route', () => {
       });
 
       await fastify.register(filesRoute, {
+        prisma,
         fileAccessTransformer: customFileAccessTransformer,
       });
 
