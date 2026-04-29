@@ -1,4 +1,4 @@
-import type { FastifyRequest } from 'fastify';
+import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { describe, expect, it } from 'vitest';
 import type { AccessTransformer, EntityTransformer, TransformerContext } from '../types/transformers.js';
 import {
@@ -12,6 +12,7 @@ import {
 describe('Entity Transformers', () => {
   const mockContext: TransformerContext = {
     request: {} as FastifyRequest,
+    fastify: {} as FastifyInstance,
   };
 
   const mockStandardEntity: StandardEntity = {
@@ -149,6 +150,7 @@ describe('Entity Transformers', () => {
 
       const contextWithUrl: TransformerContext = {
         request: { url: '/test-url' } as FastifyRequest,
+        fastify: {} as FastifyInstance,
       };
 
       const result = await contextAwareTransformer(mockAuthorisedEntity, contextWithUrl);

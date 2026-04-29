@@ -1,4 +1,4 @@
-import type { FastifyRequest } from 'fastify';
+import type { FastifyInstance, FastifyRequest } from 'fastify';
 import type { AuthorisedEntity, AuthorisedFile, StandardEntity, StandardFile } from '../transformers/default.js';
 
 /**
@@ -6,6 +6,7 @@ import type { AuthorisedEntity, AuthorisedFile, StandardEntity, StandardFile } f
  */
 export type TransformerContext = {
   request: FastifyRequest;
+  fastify: FastifyInstance;
 };
 
 /**

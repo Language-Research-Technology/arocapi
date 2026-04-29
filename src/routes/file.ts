@@ -44,7 +44,7 @@ const file: FastifyPluginAsync<FileRouteOptions> = async (fastify, opts) => {
           return reply.code(404).send(createNotFoundError('The requested file was not found', id));
         }
 
-        const metadata: FileMetadata | false = await fileHandler.head(file, { request });
+        const metadata: FileMetadata | false = await fileHandler.head(file, { request, fastify });
 
         if (!metadata) {
           return reply.code(404).send(createNotFoundError('The requested file metadata was not found', id));
@@ -82,7 +82,7 @@ const file: FastifyPluginAsync<FileRouteOptions> = async (fastify, opts) => {
           return reply.code(404).send(createNotFoundError('The requested file was not found', id));
         }
 
-        const result = await fileHandler.get(file, { request });
+        const result = await fileHandler.get(file, { request, fastify });
 
         if (!result) {
           return reply.code(404).send(createNotFoundError('The requested file could not be retrieved', id));

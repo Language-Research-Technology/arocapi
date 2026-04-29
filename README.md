@@ -341,6 +341,10 @@ Every entity response flows through this three-stage pipeline:
 2. **Access transformer** - Adds access control information
 3. **Entity transformers** - Optional additional transformations
 
+### Transformer Context
+
+Access and entity transformers receive a `TransformerContext` as their second argument with the shape `{ request, fastify }`. The `request` is the Fastify request for per-call data (headers, auth, query). The `fastify` instance is provided as an extension point — arocapi does not decorate it with anything itself, but consumers who decorate `fastify` with their own helpers (e.g. via `fastify.decorate('userService', ...)`) can read those decorations through `context.fastify` from inside their transformers. For database access, prefer closing over your own client reference as shown in the examples below.
+
 ### Common Use Cases
 
 **Access control for restricted content:**

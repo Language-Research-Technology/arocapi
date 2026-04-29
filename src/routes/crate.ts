@@ -38,7 +38,7 @@ const crate: FastifyPluginAsync<CrateRouteOptions> = async (fastify, opts) => {
           return reply.code(404).send(createNotFoundError('The requested entity was not found', id));
         }
 
-        const metadata: FileMetadata | false = await roCrateHandler.head(entity, { request });
+        const metadata: FileMetadata | false = await roCrateHandler.head(entity, { request, fastify });
 
         if (!metadata) {
           return reply.code(404).send(createNotFoundError('The requested RO-Crate metadata was not found', id));
@@ -75,7 +75,7 @@ const crate: FastifyPluginAsync<CrateRouteOptions> = async (fastify, opts) => {
           return reply.code(404).send(createNotFoundError('The requested entity was not found', id));
         }
 
-        const result = await roCrateHandler.get(entity, { request });
+        const result = await roCrateHandler.get(entity, { request, fastify });
 
         if (!result) {
           return reply.code(404).send(createNotFoundError('The requested RO-Crate could not be retrieved', id));

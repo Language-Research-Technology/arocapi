@@ -56,11 +56,11 @@ const files: FastifyPluginAsync<FilesRouteOptions> = async (fastify, opts) => {
         const filesWithAccess = await Promise.all(
           dbFiles.map(async (dbFile) => {
             const standardFile = baseFileTransformer(dbFile);
-            const authorisedFile = await fileAccessTransformer(standardFile, { request });
+            const authorisedFile = await fileAccessTransformer(standardFile, { request, fastify });
 
             let result = authorisedFile;
             for (const transformer of fileTransformers) {
-              result = await transformer(result, { request });
+              result = await transformer(result, { request, fastify });
             }
 
             return result;

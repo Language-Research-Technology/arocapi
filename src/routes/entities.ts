@@ -79,11 +79,11 @@ const entities: FastifyPluginAsync<EntitiesRouteOptions> = async (fastify, opts)
               memberOf: base.memberOf ? (refMap.get(base.memberOf) ?? null) : null,
               rootCollection: base.rootCollection ? (refMap.get(base.rootCollection) ?? null) : null,
             };
-            const authorisedEntity = await accessTransformer(standardEntity, { request });
+            const authorisedEntity = await accessTransformer(standardEntity, { request, fastify });
 
             let result = authorisedEntity;
             for (const transformer of entityTransformers) {
-              result = await transformer(result, { request });
+              result = await transformer(result, { request, fastify });
             }
 
             return result;

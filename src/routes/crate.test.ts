@@ -90,6 +90,7 @@ describe('Crate Route', () => {
         mockFileEntity,
         expect.objectContaining({
           request: expect.any(Object),
+          fastify: expect.any(Object),
         }),
       );
     });
@@ -309,6 +310,7 @@ describe('Crate Route', () => {
         mockFileEntity,
         expect.objectContaining({
           request: expect.any(Object),
+          fastify: expect.any(Object),
         }),
       );
     });

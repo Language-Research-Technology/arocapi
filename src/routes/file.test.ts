@@ -69,6 +69,7 @@ describe('File Route', () => {
         mockFile,
         expect.objectContaining({
           request: expect.any(Object),
+          fastify: expect.any(Object),
         }),
       );
     });
@@ -321,6 +322,7 @@ describe('File Route', () => {
         mockFile,
         expect.objectContaining({
           request: expect.any(Object),
+          fastify: expect.any(Object),
         }),
       );
     });
