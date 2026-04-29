@@ -1,3 +1,22 @@
+## [4.0.0](https://github.com/Language-Research-Technology/arocapi/compare/v3.0.0...v4.0.0) (2026-04-29)
+
+### ⚠ BREAKING CHANGES
+
+* arocapi no longer decorates fastify.prisma or
+fastify.opensearch; consumers must close over their own client
+references.  Arocapi no longer calls
+prisma.$connect()/$disconnect() or opensearch.ping()/close() —
+consumers now own connecting before registration and closing on
+shutdown.
+
+### Features
+
+* replace decoration with options-based dependency injection ([#20](https://github.com/Language-Research-Technology/arocapi/issues/20)) ([aa5c6b7](https://github.com/Language-Research-Technology/arocapi/commit/aa5c6b706f039db49e882ce5b0d1ff952dfc6678))
+
+### Bug Fixes
+
+* **files:** filter by entity.memberOf instead of entity.id ([#21](https://github.com/Language-Research-Technology/arocapi/issues/21)) ([a6f27bd](https://github.com/Language-Research-Technology/arocapi/commit/a6f27bd37357fbe0e77ace102c4059ade02e6e0a))
+
 ## [3.0.0](https://github.com/Language-Research-Technology/arocapi/compare/v2.1.0...v3.0.0) (2026-03-31)
 
 ### ⚠ BREAKING CHANGES
