@@ -21,7 +21,7 @@ export type FileRedirectResult = {
 
 export type FileStreamResult = {
   type: 'stream';
-  stream: Readable;
+  stream: Readable | ReadableStream;
   metadata: FileMetadata;
 };
 
