@@ -1,3 +1,9 @@
+## [4.0.1](https://github.com/Language-Research-Technology/arocapi/compare/v4.0.0...v4.0.1) (2026-05-10)
+
+### Bug Fixes
+
+* add type ReadableStream to supported file stream ([#22](https://github.com/Language-Research-Technology/arocapi/issues/22)) ([3178ac7](https://github.com/Language-Research-Technology/arocapi/commit/3178ac737694ad9cab25baea75dfba644f189f75))
+
 ## [4.0.0](https://github.com/Language-Research-Technology/arocapi/compare/v3.0.0...v4.0.0) (2026-04-29)
 
 ### ⚠ BREAKING CHANGES
