@@ -2,7 +2,7 @@ import type { FastifyPluginAsync } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod/v4';
 import type { PrismaClient } from '../generated/prisma/client.js';
-import { baseFileTransformer } from '../transformers/default.js';
+import { baseFileTransformer, resolveEntityReferences } from '../transformers/default.js';
 import type { FileAccessTransformer, FileTransformer } from '../types/transformers.js';
 import { createInternalError } from '../utils/errors.js';
 
@@ -48,15 +48,25 @@ const files: FastifyPluginAsync<FilesRouteOptions> = async (fastify, opts) => {
             },
             skip: offset,
             take: limit,
+            include: { entity: true },
           }),
           prisma.file.count({ where }),
         ]);
 
+        const refMap = await resolveEntityReferences(
+          dbFiles.map((f) => f.entity),
+          prisma,
+        );
         // Apply transformers to each entity: base -> access -> additional
         const filesWithAccess = await Promise.all(
           dbFiles.map(async (dbFile) => {
-            const standardFile = baseFileTransformer(dbFile);
-            const authorisedFile = await fileAccessTransformer(standardFile, { request, fastify });
+            const entity = {
+              ...dbFile.entity,
+              ...baseFileTransformer(dbFile),
+              memberOf: dbFile.entity.memberOf ? (refMap.get(dbFile.entity.memberOf) ?? null) : null,
+              rootCollection: dbFile.entity.rootCollection ? (refMap.get(dbFile.entity.rootCollection) ?? null) : null,
+            };
+            const authorisedFile = await fileAccessTransformer(entity, { request, fastify });
 
             let result = authorisedFile;
             for (const transformer of fileTransformers) {

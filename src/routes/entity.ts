@@ -49,6 +49,7 @@ const entity: FastifyPluginAsync<EntityRouteOptions> = async (fastify, opts) => 
         };
         const authorisedEntity = await accessTransformer(standardEntity, { request, fastify });
 
+        if (!authorisedEntity.access.metadata) return reply.forbidden('Access to this resource is restricted');
         let result = authorisedEntity;
         for (const transformer of entityTransformers) {
           result = await transformer(result, { request, fastify });

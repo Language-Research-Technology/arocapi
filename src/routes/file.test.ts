@@ -2,6 +2,7 @@ import { createReadStream } from 'node:fs';
 import { Readable } from 'node:stream';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fastify, fastifyAfter, fastifyBefore, prisma } from '../test/helpers/fastify.js';
+import { AllPublicFileAccessTransformer } from '../transformers/default.js';
 import type { FileHandler, FileResult } from '../types/fileHandlers.js';
 import type { StandardErrorResponse } from '../utils/errors.js';
 import fileRoute from './file.js';
@@ -18,7 +19,11 @@ describe('File Route', () => {
 
   beforeEach(async () => {
     await fastifyBefore();
-    await fastify.register(fileRoute, { prisma, fileHandler: mockFileHandler });
+    await fastify.register(fileRoute, {
+      prisma,
+      fileAccessTransformer: AllPublicFileAccessTransformer,
+      fileHandler: mockFileHandler,
+    });
     vi.clearAllMocks();
   });
 

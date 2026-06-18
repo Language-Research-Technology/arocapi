@@ -2,6 +2,7 @@ import { createReadStream } from 'node:fs';
 import { Readable } from 'node:stream';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fastify, fastifyAfter, fastifyBefore, prisma } from '../test/helpers/fastify.js';
+import { AllPublicAccessTransformer } from '../transformers/default.js';
 import type { FileResult, RoCrateHandler } from '../types/fileHandlers.js';
 import type { StandardErrorResponse } from '../utils/errors.js';
 import crateRoute from './crate.js';
@@ -18,7 +19,11 @@ describe('Crate Route', () => {
 
   beforeEach(async () => {
     await fastifyBefore();
-    await fastify.register(crateRoute, { prisma, roCrateHandler: mockRoCrateHandler });
+    await fastify.register(crateRoute, {
+      prisma,
+      accessTransformer: AllPublicAccessTransformer,
+      roCrateHandler: mockRoCrateHandler,
+    });
     vi.clearAllMocks();
   });
 

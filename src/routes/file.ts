@@ -3,7 +3,9 @@ import type { FastifyPluginAsync } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod/v4';
 import type { PrismaClient } from '../generated/prisma/client.js';
+import { baseFileTransformer, resolveEntityReferences } from '../transformers/default.js';
 import type { FileHandler, FileMetadata } from '../types/fileHandlers.js';
+import type { FileAccessTransformer } from '../types/transformers.js';
 import { createInternalError, createNotFoundError } from '../utils/errors.js';
 import { setFileHeaders } from '../utils/headers.js';
 
@@ -19,11 +21,12 @@ const querySchema = z.object({
 
 type FileRouteOptions = {
   prisma: PrismaClient;
+  fileAccessTransformer: FileAccessTransformer;
   fileHandler: FileHandler;
 };
 
 const file: FastifyPluginAsync<FileRouteOptions> = async (fastify, opts) => {
-  const { prisma, fileHandler } = opts;
+  const { prisma, fileAccessTransformer, fileHandler } = opts;
 
   fastify.withTypeProvider<ZodTypeProvider>().head(
     '/file/:id',
@@ -38,11 +41,22 @@ const file: FastifyPluginAsync<FileRouteOptions> = async (fastify, opts) => {
       try {
         const file = await prisma.file.findUnique({
           where: { id },
+          include: { entity: true },
         });
 
         if (!file) {
           return reply.code(404).send(createNotFoundError('The requested file was not found', id));
         }
+
+        const refMap = await resolveEntityReferences([{ ...file.entity }], prisma);
+        const entity = {
+          ...file.entity,
+          ...baseFileTransformer(file),
+          memberOf: file.entity.memberOf ? (refMap.get(file.entity.memberOf) ?? null) : null,
+          rootCollection: file.entity.rootCollection ? (refMap.get(file.entity.rootCollection) ?? null) : null,
+        };
+        const authorisedFile = await fileAccessTransformer(entity, { request, fastify });
+        if (!authorisedFile.access.content) return reply.forbidden('Access to this resource is restricted');
 
         const metadata: FileMetadata | false = await fileHandler.head(file, { request, fastify });
 
@@ -76,11 +90,22 @@ const file: FastifyPluginAsync<FileRouteOptions> = async (fastify, opts) => {
       try {
         const file = await prisma.file.findUnique({
           where: { id },
+          include: { entity: true },
         });
 
         if (!file) {
           return reply.code(404).send(createNotFoundError('The requested file was not found', id));
         }
+
+        const refMap = await resolveEntityReferences([{ ...file.entity }], prisma);
+        const entity = {
+          ...file.entity,
+          ...baseFileTransformer(file),
+          memberOf: file.entity.memberOf ? (refMap.get(file.entity.memberOf) ?? null) : null,
+          rootCollection: file.entity.rootCollection ? (refMap.get(file.entity.rootCollection) ?? null) : null,
+        };
+        const authorisedFile = await fileAccessTransformer(entity, { request, fastify });
+        if (!authorisedFile.access.content) return reply.forbidden('Access to this resource is restricted');
 
         const result = await fileHandler.get(file, { request, fastify });
 
