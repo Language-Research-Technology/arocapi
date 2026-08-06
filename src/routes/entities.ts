@@ -3,7 +3,7 @@ import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod/v4';
 import type { PrismaClient } from '../generated/prisma/client.js';
 import { baseEntityTransformer, resolveEntityReferences } from '../transformers/default.js';
-import type { AccessTransformer, EntityTransformer } from '../types/transformers.js';
+import type { AccessTransformer, EntityTransformer, TransformerContext } from '../types/transformers.js';
 import { createInternalError } from '../utils/errors.js';
 
 const querySchema = z.object({
@@ -27,10 +27,11 @@ type EntitiesRouteOptions = {
   prisma: PrismaClient;
   accessTransformer: AccessTransformer;
   entityTransformers?: EntityTransformer[];
+  resolveValidLicenses?: (opt: TransformerContext) => Promise<string[]>;
 };
 
 const entities: FastifyPluginAsync<EntitiesRouteOptions> = async (fastify, opts) => {
-  const { prisma, accessTransformer, entityTransformers = [] } = opts;
+  const { prisma, accessTransformer, entityTransformers = [], resolveValidLicenses } = opts;
   fastify.withTypeProvider<ZodTypeProvider>().get(
     '/entities',
     {
@@ -52,6 +53,15 @@ const entities: FastifyPluginAsync<EntitiesRouteOptions> = async (fastify, opts)
           where.entityType = {
             in: entityType,
           };
+        }
+
+        if (resolveValidLicenses) {
+          const validLicenses = await resolveValidLicenses({ request, fastify });
+          if (validLicenses?.length) {
+            where.metadataLicenseId = {
+              in: validLicenses,
+            };
+          }
         }
 
         const [dbEntities, total] = await Promise.all([

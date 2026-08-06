@@ -6,7 +6,7 @@ import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod/v4';
 import type { PrismaClient } from '../generated/prisma/client.js';
 import { baseEntityTransformer, resolveEntityReferences } from '../transformers/default.js';
-import type { AccessTransformer, EntityTransformer } from '../types/transformers.js';
+import type { AccessTransformer, EntityTransformer, TransformerContext } from '../types/transformers.js';
 import { createInternalError, createInvalidRequestError } from '../utils/errors.js';
 import { OpensearchQueryBuilder, type QueryBuilderOptions } from '../utils/queryBuilder.js';
 
@@ -38,6 +38,7 @@ type SearchRouteOptions = {
   opensearch: Client;
   accessTransformer: AccessTransformer;
   entityTransformers?: EntityTransformer[];
+  resolveValidLicenses?: (opt: TransformerContext) => Promise<string[]>;
   queryBuilderClass?: typeof OpensearchQueryBuilder;
   queryBuilderOptions?: QueryBuilderOptions;
 };
@@ -48,6 +49,7 @@ const search: FastifyPluginAsync<SearchRouteOptions> = async (fastify, opts) => 
     opensearch,
     accessTransformer,
     entityTransformers = [],
+    resolveValidLicenses,
     queryBuilderClass = OpensearchQueryBuilder,
     queryBuilderOptions,
   } = opts;
@@ -60,8 +62,15 @@ const search: FastifyPluginAsync<SearchRouteOptions> = async (fastify, opts) => 
       },
     },
     async (request, reply) => {
-      const { searchType, query, filters, boundingBox, geohashPrecision, limit, offset, sort, order } = request.body;
-
+      const { searchType, query, boundingBox, geohashPrecision, limit, offset, sort, order } = request.body;
+      let filters = request.body.filters;
+      if (resolveValidLicenses) {
+        const validLicenses = await resolveValidLicenses({ request, fastify });
+        if (validLicenses?.length) {
+          filters = filters || {};
+          filters.metadataLicenseId = validLicenses;
+        }
+      }
       try {
         const opensearchQuery: Search_Request = {
           index: 'entities',

@@ -16,6 +16,7 @@ import type {
   EntityTransformer,
   FileAccessTransformer,
   FileTransformer,
+  TransformerContext,
 } from './types/transformers.js';
 import { createValidationError } from './utils/errors.js';
 import type { QueryBuilderOptions } from './utils/queryBuilder.js';
@@ -83,6 +84,7 @@ export type Options = {
   fileTransformers?: FileTransformer[];
   fileHandler: FileHandler;
   roCrateHandler: RoCrateHandler;
+  resolveValidLicenses?: (opt: TransformerContext) => Promise<string[]>;
 };
 const app: FastifyPluginAsync<Options> = async (fastify, options) => {
   const {
@@ -97,6 +99,7 @@ const app: FastifyPluginAsync<Options> = async (fastify, options) => {
     fileTransformers,
     fileHandler,
     roCrateHandler,
+    resolveValidLicenses,
   } = options;
 
   if (!prisma) {
@@ -129,7 +132,7 @@ const app: FastifyPluginAsync<Options> = async (fastify, options) => {
   }
   setupValidation(fastify);
 
-  fastify.register(entities, { prisma, accessTransformer, entityTransformers });
+  fastify.register(entities, { prisma, accessTransformer, entityTransformers, resolveValidLicenses });
   fastify.register(entity, { prisma, accessTransformer, entityTransformers });
   fastify.register(files, { prisma, fileAccessTransformer, fileTransformers });
   fastify.register(file, { prisma, fileAccessTransformer, fileHandler });
@@ -138,6 +141,7 @@ const app: FastifyPluginAsync<Options> = async (fastify, options) => {
     prisma,
     opensearch,
     accessTransformer,
+    resolveValidLicenses,
     entityTransformers,
     queryBuilderClass,
     queryBuilderOptions,
