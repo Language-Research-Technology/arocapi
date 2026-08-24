@@ -1,7 +1,13 @@
 import { createReadStream } from 'node:fs';
 import { Readable } from 'node:stream';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { fastify, fastifyAfter, fastifyBefore, prisma } from '../test/helpers/fastify.js';
+import {
+  fastify,
+  fastifyAfter,
+  fastifyBefore,
+  prisma,
+  RestrictedFileAccessTransformer,
+} from '../test/helpers/fastify.js';
 import { AllPublicFileAccessTransformer } from '../transformers/default.js';
 import type { FileHandler, FileResult } from '../types/fileHandlers.js';
 import type { StandardErrorResponse } from '../utils/errors.js';
@@ -39,6 +45,9 @@ describe('File Route', () => {
     meta: { storagePath: '/data/files/test.wav' },
     createdAt: new Date(),
     updatedAt: new Date(),
+    entity: {
+      memberOf: null,
+    },
   };
 
   describe('GET /file/:id', () => {
@@ -395,6 +404,79 @@ describe('File Route', () => {
 
       expect(response.statusCode).toBe(500);
       expect(body.error.code).toBe('INTERNAL_ERROR');
+    });
+  });
+});
+
+describe('File Route Restricted', () => {
+  const mockFileHandler: FileHandler = {
+    get: vi.fn(),
+    head: vi.fn(),
+  };
+
+  beforeEach(async () => {
+    await fastifyBefore();
+    await fastify.register(fileRoute, {
+      prisma,
+      fileAccessTransformer: RestrictedFileAccessTransformer,
+      fileHandler: mockFileHandler,
+    });
+    vi.clearAllMocks();
+  });
+
+  afterEach(async () => {
+    await fastifyAfter();
+  });
+
+  const mockFile = {
+    id: 'http://example.com/file/test.wav',
+    filename: 'test.wav',
+    mediaType: 'audio/wav',
+    size: BigInt(1024),
+    meta: { storagePath: '/data/files/test.wav' },
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    entity: {
+      memberOf: null,
+    },
+  };
+
+  describe('HEAD /file/:id', () => {
+    it('should return 403', async () => {
+      prisma.file.findUnique.mockResolvedValue(mockFile);
+      vi.mocked(mockFileHandler.get).mockResolvedValue({
+        type: 'redirect',
+        url: 'https://storage.example.com/files/test.wav',
+      });
+
+      const response = await fastify.inject({
+        method: 'HEAD',
+        url: `/file/${encodeURIComponent('http://example.com/file/test.wav')}`,
+      });
+      const body = (await response.json()) as { error: { code: string; message: string } };
+
+      expect(response.statusCode).toBe(403);
+      expect(body.error.code).toBe('FORBIDDEN');
+      expect(mockFileHandler.get).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('GET /file/:id', () => {
+    it('should return 403', async () => {
+      prisma.file.findUnique.mockResolvedValue(mockFile);
+      vi.mocked(mockFileHandler.get).mockResolvedValue({
+        type: 'redirect',
+        url: 'https://storage.example.com/files/test.wav',
+      });
+
+      const response = await fastify.inject({
+        method: 'GET',
+        url: `/file/${encodeURIComponent('http://example.com/file/test.wav')}`,
+      });
+      const body = (await response.json()) as { error: { code: string; message: string } };
+
+      expect(response.statusCode).toBe(403);
+      expect(body.error.code).toBe('FORBIDDEN');
     });
   });
 });

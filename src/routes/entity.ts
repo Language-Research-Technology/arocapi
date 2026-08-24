@@ -4,7 +4,7 @@ import { z } from 'zod/v4';
 import type { PrismaClient } from '../generated/prisma/client.js';
 import { baseEntityTransformer, resolveEntityReferences } from '../transformers/default.js';
 import type { AccessTransformer, EntityTransformer } from '../types/transformers.js';
-import { createInternalError, createNotFoundError } from '../utils/errors.js';
+import { createForbiddenError, createInternalError, createNotFoundError } from '../utils/errors.js';
 
 const paramsSchema = z.object({
   id: z.url(),
@@ -49,7 +49,8 @@ const entity: FastifyPluginAsync<EntityRouteOptions> = async (fastify, opts) => 
         };
         const authorisedEntity = await accessTransformer(standardEntity, { request, fastify });
 
-        if (!authorisedEntity.access.metadata) return reply.forbidden('Access to this resource is restricted');
+        if (!authorisedEntity.access.metadata)
+          return reply.code(403).send(createForbiddenError('Access to this resource is restricted', id));
         let result = authorisedEntity;
         for (const transformer of entityTransformers) {
           result = await transformer(result, { request, fastify });

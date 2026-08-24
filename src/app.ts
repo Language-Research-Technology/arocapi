@@ -134,7 +134,7 @@ const app: FastifyPluginAsync<Options> = async (fastify, options) => {
 
   fastify.register(entities, { prisma, accessTransformer, entityTransformers, resolveValidLicenses });
   fastify.register(entity, { prisma, accessTransformer, entityTransformers });
-  fastify.register(files, { prisma, fileAccessTransformer, fileTransformers });
+  fastify.register(files, { prisma, fileAccessTransformer, fileTransformers, resolveValidLicenses });
   fastify.register(file, { prisma, fileAccessTransformer, fileHandler });
   fastify.register(crate, { prisma, accessTransformer, roCrateHandler });
   fastify.register(search, {

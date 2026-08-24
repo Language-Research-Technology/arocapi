@@ -6,7 +6,7 @@ import type { PrismaClient } from '../generated/prisma/client.js';
 import { baseFileTransformer, resolveEntityReferences } from '../transformers/default.js';
 import type { FileHandler, FileMetadata } from '../types/fileHandlers.js';
 import type { FileAccessTransformer } from '../types/transformers.js';
-import { createInternalError, createNotFoundError } from '../utils/errors.js';
+import { createForbiddenError, createInternalError, createNotFoundError } from '../utils/errors.js';
 import { setFileHeaders } from '../utils/headers.js';
 
 const paramsSchema = z.object({
@@ -56,7 +56,9 @@ const file: FastifyPluginAsync<FileRouteOptions> = async (fastify, opts) => {
           rootCollection: file.entity.rootCollection ? (refMap.get(file.entity.rootCollection) ?? null) : null,
         };
         const authorisedFile = await fileAccessTransformer(entity, { request, fastify });
-        if (!authorisedFile.access.content) return reply.forbidden('Access to this resource is restricted');
+        if (!authorisedFile.access.content) {
+          return reply.code(403).send(createForbiddenError('Access to this resource is restricted', id));
+        }
 
         const metadata: FileMetadata | false = await fileHandler.head(file, { request, fastify });
 
@@ -105,7 +107,9 @@ const file: FastifyPluginAsync<FileRouteOptions> = async (fastify, opts) => {
           rootCollection: file.entity.rootCollection ? (refMap.get(file.entity.rootCollection) ?? null) : null,
         };
         const authorisedFile = await fileAccessTransformer(entity, { request, fastify });
-        if (!authorisedFile.access.content) return reply.forbidden('Access to this resource is restricted');
+        if (!authorisedFile.access.content) {
+          return reply.code(403).send(createForbiddenError('Access to this resource is restricted', id));
+        }
 
         const result = await fileHandler.get(file, { request, fastify });
 

@@ -3,7 +3,7 @@ import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod/v4';
 import type { PrismaClient } from '../generated/prisma/client.js';
 import { baseFileTransformer, resolveEntityReferences } from '../transformers/default.js';
-import type { FileAccessTransformer, FileTransformer } from '../types/transformers.js';
+import type { FileAccessTransformer, FileTransformer, TransformerContext } from '../types/transformers.js';
 import { createInternalError } from '../utils/errors.js';
 
 const querySchema = z.object({
@@ -18,10 +18,11 @@ type FilesRouteOptions = {
   prisma: PrismaClient;
   fileAccessTransformer: FileAccessTransformer;
   fileTransformers?: FileTransformer[];
+  resolveValidLicenses?: (opt: TransformerContext) => Promise<string[]>;
 };
 
 const files: FastifyPluginAsync<FilesRouteOptions> = async (fastify, opts) => {
-  const { prisma, fileAccessTransformer, fileTransformers = [] } = opts;
+  const { prisma, fileAccessTransformer, fileTransformers, resolveValidLicenses } = opts;
 
   fastify.withTypeProvider<ZodTypeProvider>().get(
     '/files',
@@ -38,6 +39,16 @@ const files: FastifyPluginAsync<FilesRouteOptions> = async (fastify, opts) => {
 
         if (memberOf) {
           where.entity = { memberOf };
+        }
+
+        if (resolveValidLicenses) {
+          const validLicenses = await resolveValidLicenses({ request, fastify });
+          if (validLicenses?.length) {
+            where.entity = where.entity || {};
+            where.entity.metadataLicenseId = {
+              in: validLicenses,
+            };
+          }
         }
 
         const [dbFiles, total] = await Promise.all([
@@ -69,7 +80,7 @@ const files: FastifyPluginAsync<FilesRouteOptions> = async (fastify, opts) => {
             const authorisedFile = await fileAccessTransformer(entity, { request, fastify });
 
             let result = authorisedFile;
-            for (const transformer of fileTransformers) {
+            for (const transformer of fileTransformers || []) {
               result = await transformer(result, { request, fastify });
             }
 

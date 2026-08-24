@@ -23,6 +23,9 @@ describe('Files Route', () => {
     meta: {},
     createdAt: new Date('2025-01-01'),
     updatedAt: new Date('2025-01-01'),
+    entity: {
+      memberOf: null,
+    },
   };
 
   const mockFile2 = {
@@ -33,6 +36,9 @@ describe('Files Route', () => {
     meta: {},
     createdAt: new Date('2025-01-02'),
     updatedAt: new Date('2025-01-02'),
+    entity: {
+      memberOf: null,
+    },
   };
 
   describe('GET /files', () => {
@@ -273,6 +279,42 @@ describe('Files Route', () => {
       });
 
       await fastifyAfter();
+    });
+  });
+});
+
+describe('Files Route with License Filtering', () => {
+  async function resolveValidLicenses() {
+    return ['https://creativecommons.org/licenses/by/4.0/'];
+  }
+  beforeEach(async () => {
+    await fastifyBefore();
+    await fastify.register(filesRoute, {
+      prisma,
+      fileAccessTransformer: AllPublicFileAccessTransformer,
+      resolveValidLicenses,
+    });
+  });
+
+  afterEach(async () => {
+    await fastifyAfter();
+  });
+
+  describe('GET /files', () => {
+    it('should filter by metadataLicenseId', async () => {
+      prisma.file.findMany.mockResolvedValue([]);
+      prisma.file.count.mockResolvedValue(0);
+
+      const response = await fastify.inject({
+        method: 'GET',
+        url: '/files',
+      });
+      expect(response.statusCode).toBe(200);
+      expect(prisma.file.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { entity: { metadataLicenseId: { in: await resolveValidLicenses() } } },
+        }),
+      );
     });
   });
 });
