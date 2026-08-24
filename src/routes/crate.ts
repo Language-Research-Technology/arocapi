@@ -5,7 +5,7 @@ import { z } from 'zod/v4';
 import type { PrismaClient } from '../generated/prisma/client.js';
 import type { FileMetadata, RoCrateHandler } from '../types/fileHandlers.js';
 import type { AccessTransformer } from '../types/transformers.js';
-import { createInternalError, createNotFoundError } from '../utils/errors.js';
+import { createForbiddenError, createInternalError, createNotFoundError } from '../utils/errors.js';
 import { setFileHeaders } from '../utils/headers.js';
 
 const paramsSchema = z.object({
@@ -45,7 +45,7 @@ const crate: FastifyPluginAsync<CrateRouteOptions> = async (fastify, opts) => {
           rootCollection: { id: entity.rootCollection || '', name: '' },
         };
         const authorisedEntity = await accessTransformer(standardEntity, { request, fastify });
-        if (!authorisedEntity.access.metadata) return reply.forbidden('Access to this resource is restricted');
+        if (!authorisedEntity.access.metadata) return createForbiddenError('Access to this resource is restricted');
 
         const metadata: FileMetadata | false = await roCrateHandler.head(entity, { request, fastify });
 
@@ -90,7 +90,7 @@ const crate: FastifyPluginAsync<CrateRouteOptions> = async (fastify, opts) => {
           rootCollection: { id: entity.rootCollection || '', name: '' },
         };
         const authorisedEntity = await accessTransformer(standardEntity, { request, fastify });
-        if (!authorisedEntity.access.metadata) return reply.forbidden('Access to this resource is restricted');
+        if (!authorisedEntity.access.metadata) return createForbiddenError('Access to this resource is restricted');
 
         const result = await roCrateHandler.get(entity, { request, fastify });
 
