@@ -1,3 +1,5 @@
+import Fastify from 'fastify';
+import { serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { fastify, fastifyAfter, fastifyBefore, prisma } from '../test/helpers/fastify.js';
@@ -130,6 +132,40 @@ describe('Entities Route', () => {
             in: ['http://pcdm.org/models#Collection', 'http://pcdm.org/models#Object'],
           },
         },
+        include: { file: { select: { id: true } } },
+        orderBy: { id: 'asc' },
+        skip: 0,
+        take: 100,
+      });
+    });
+
+    it('should skip metadata license filter when resolveValidLicenses returns no licenses', async () => {
+      const localFastify = Fastify({ logger: false });
+      localFastify.setValidatorCompiler(validatorCompiler);
+      localFastify.setSerializerCompiler(serializerCompiler);
+
+      prisma.entity.findMany.mockResolvedValue([]);
+      prisma.entity.count.mockResolvedValue(0);
+
+      await localFastify.register(entitiesRoute, {
+        prisma,
+        accessTransformer: AllPublicAccessTransformer,
+        resolveValidLicenses: async () => [],
+      });
+
+      const response = await localFastify.inject({
+        method: 'GET',
+        url: '/entities',
+        query: {
+          memberOf: 'http://example.com/collection/1',
+        },
+      });
+
+      await localFastify.close();
+
+      expect(response.statusCode).toBe(200);
+      expect(prisma.entity.findMany).toHaveBeenCalledWith({
+        where: { memberOf: 'http://example.com/collection/1' },
         include: { file: { select: { id: true } } },
         orderBy: { id: 'asc' },
         skip: 0,

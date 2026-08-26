@@ -1,3 +1,5 @@
+import Fastify from 'fastify';
+import { serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { fastify, fastifyAfter, fastifyBefore, opensearch, prisma } from '../test/helpers/fastify.js';
@@ -257,6 +259,170 @@ describe('Search Route', () => {
             query: expect.objectContaining({
               bool: expect.objectContaining({
                 filter: expectedFilters,
+              }),
+            }),
+          }),
+        }),
+      );
+    });
+
+    it('should append valid license filters when resolveValidLicenses returns results', async () => {
+      const mockSearchResponse = {
+        body: {
+          took: 9,
+          hits: {
+            total: { value: 0 },
+            hits: [],
+          },
+          aggregations: {},
+        },
+      };
+
+      const validLicenses = ['https://creativecommons.org/licenses/by/4.0/'];
+      const resolveValidLicenses = async () => validLicenses;
+      const localFastify = Fastify({ logger: false });
+      localFastify.setValidatorCompiler(validatorCompiler);
+      localFastify.setSerializerCompiler(serializerCompiler);
+
+      // @ts-expect-error TS is looking at the wrong function signature
+      opensearch.search.mockResolvedValue(mockSearchResponse);
+      prisma.entity.findMany.mockResolvedValue([]);
+
+      await localFastify.register(searchRoute, {
+        prisma,
+        opensearch,
+        accessTransformer: AllPublicAccessTransformer,
+        resolveValidLicenses,
+      });
+
+      const response = await localFastify.inject({
+        method: 'POST',
+        url: '/search',
+        payload: {
+          query: 'test',
+          filters: {
+            entityType: ['http://pcdm.org/models#Collection'],
+          },
+        },
+      });
+
+      await localFastify.close();
+
+      expect(response.statusCode).toBe(200);
+      expect(opensearch.search).toHaveBeenCalledWith(
+        expect.objectContaining({
+          body: expect.objectContaining({
+            query: expect.objectContaining({
+              bool: expect.objectContaining({
+                filter: [
+                  { terms: { entityType: ['http://pcdm.org/models#Collection'] } },
+                  { terms: { metadataLicenseId: validLicenses } },
+                ],
+              }),
+            }),
+          }),
+        }),
+      );
+    });
+
+    it('should initialize filter object when no filters exist and a license list is present', async () => {
+      const mockSearchResponse = {
+        body: {
+          took: 9,
+          hits: {
+            total: { value: 0 },
+            hits: [],
+          },
+          aggregations: {},
+        },
+      };
+
+      const localFastify = Fastify({ logger: false });
+      localFastify.setValidatorCompiler(validatorCompiler);
+      localFastify.setSerializerCompiler(serializerCompiler);
+
+      // @ts-expect-error TS is looking at the wrong function signature
+      opensearch.search.mockResolvedValue(mockSearchResponse);
+      prisma.entity.findMany.mockResolvedValue([]);
+
+      await localFastify.register(searchRoute, {
+        prisma,
+        opensearch,
+        accessTransformer: AllPublicAccessTransformer,
+        resolveValidLicenses: async () => ['https://creativecommons.org/licenses/by/4.0/'],
+      });
+
+      const response = await localFastify.inject({
+        method: 'POST',
+        url: '/search',
+        payload: {
+          query: 'test',
+        },
+      });
+
+      await localFastify.close();
+
+      expect(response.statusCode).toBe(200);
+      expect(opensearch.search).toHaveBeenCalledWith(
+        expect.objectContaining({
+          body: expect.objectContaining({
+            query: expect.objectContaining({
+              bool: expect.objectContaining({
+                filter: [{ terms: { metadataLicenseId: ['https://creativecommons.org/licenses/by/4.0/'] } }],
+              }),
+            }),
+          }),
+        }),
+      );
+    });
+
+    it('should not append metadata license filters when resolveValidLicenses returns an empty list', async () => {
+      const mockSearchResponse = {
+        body: {
+          took: 9,
+          hits: {
+            total: { value: 0 },
+            hits: [],
+          },
+          aggregations: {},
+        },
+      };
+
+      const localFastify = Fastify({ logger: false });
+      localFastify.setValidatorCompiler(validatorCompiler);
+      localFastify.setSerializerCompiler(serializerCompiler);
+
+      // @ts-expect-error TS is looking at the wrong function signature
+      opensearch.search.mockResolvedValue(mockSearchResponse);
+      prisma.entity.findMany.mockResolvedValue([]);
+
+      await localFastify.register(searchRoute, {
+        prisma,
+        opensearch,
+        accessTransformer: AllPublicAccessTransformer,
+        resolveValidLicenses: async () => [],
+      });
+
+      const response = await localFastify.inject({
+        method: 'POST',
+        url: '/search',
+        payload: {
+          query: 'test',
+          filters: {
+            entityType: ['http://pcdm.org/models#Collection'],
+          },
+        },
+      });
+
+      await localFastify.close();
+
+      expect(response.statusCode).toBe(200);
+      expect(opensearch.search).toHaveBeenCalledWith(
+        expect.objectContaining({
+          body: expect.objectContaining({
+            query: expect.objectContaining({
+              bool: expect.objectContaining({
+                filter: [{ terms: { entityType: ['http://pcdm.org/models#Collection'] } }],
               }),
             }),
           }),

@@ -1,3 +1,5 @@
+import Fastify from 'fastify';
+import { serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { FileAccessTransformer, FileTransformer } from '../app.js';
 import { fastify, fastifyAfter, fastifyBefore, prisma } from '../test/helpers/fastify.js';
@@ -64,6 +66,108 @@ describe('Files Route', () => {
           content: true,
         },
       });
+    });
+
+    it('should skip memberOf filter when the query parameter is not provided', async () => {
+      prisma.file.findMany.mockResolvedValue([]);
+      prisma.file.count.mockResolvedValue(0);
+
+      const localFastify = Fastify({ logger: false });
+      localFastify.setValidatorCompiler(validatorCompiler);
+      localFastify.setSerializerCompiler(serializerCompiler);
+
+      await localFastify.register(filesRoute, {
+        prisma,
+        fileAccessTransformer: AllPublicFileAccessTransformer,
+      });
+
+      const response = await localFastify.inject({
+        method: 'GET',
+        url: '/files',
+      });
+
+      await localFastify.close();
+
+      expect(response.statusCode).toBe(200);
+      expect(prisma.file.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {},
+        }),
+      );
+    });
+
+    it('should keep where empty when resolveValidLicenses returns an empty list', async () => {
+      prisma.file.findMany.mockResolvedValue([]);
+      prisma.file.count.mockResolvedValue(0);
+
+      const localFastify = Fastify({ logger: false });
+      localFastify.setValidatorCompiler(validatorCompiler);
+      localFastify.setSerializerCompiler(serializerCompiler);
+
+      await localFastify.register(filesRoute, {
+        prisma,
+        fileAccessTransformer: AllPublicFileAccessTransformer,
+        resolveValidLicenses: async () => [],
+      });
+
+      const response = await localFastify.inject({
+        method: 'GET',
+        url: '/files',
+      });
+
+      await localFastify.close();
+
+      expect(response.statusCode).toBe(200);
+      expect(prisma.file.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {},
+        }),
+      );
+    });
+
+    it('should resolve null memberOf and rootCollection values without error', async () => {
+      prisma.file.findMany.mockResolvedValue([
+        {
+          ...mockFile1,
+          entity: { memberOf: null, rootCollection: null },
+        },
+      ]);
+      prisma.file.count.mockResolvedValue(1);
+
+      const response = await fastify.inject({
+        method: 'GET',
+        url: '/files',
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(JSON.parse(response.body).files).toHaveLength(1);
+    });
+
+    it('should resolve referenced memberOf and rootCollection values for files', async () => {
+      prisma.entity.findMany.mockResolvedValue([]);
+      prisma.file.findMany.mockResolvedValue([
+        {
+          ...mockFile1,
+          entity: {
+            memberOf: 'http://example.com/collection/1',
+            rootCollection: 'http://example.com/collection/1',
+          },
+        },
+      ]);
+      prisma.file.count.mockResolvedValue(1);
+
+      const response = await fastify.inject({
+        method: 'GET',
+        url: '/files',
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(prisma.entity.findMany).toHaveBeenCalledWith({
+        where: { id: { in: ['http://example.com/collection/1'] } },
+        select: { id: true, name: true },
+      });
+      expect(JSON.parse(response.body).files[0].memberOf).toBeNull();
+      expect(JSON.parse(response.body).files[0].rootCollection).toBeNull();
     });
 
     it('should filter files by memberOf', async () => {

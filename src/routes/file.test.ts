@@ -227,6 +227,110 @@ describe('File Route', () => {
       expect(response.body).toBe(''); // Empty body when using X-Accel-Redirect
     });
 
+    it('should handle file entity with null memberOf and rootCollection references', async () => {
+      prisma.file.findUnique.mockResolvedValue({
+        ...mockFile,
+        entity: {
+          memberOf: null,
+          rootCollection: null,
+        },
+      });
+
+      const mockStream = Readable.from(['file content']);
+      vi.mocked(createReadStream).mockReturnValue(mockStream as never);
+      vi.mocked(mockFileHandler.get).mockResolvedValue({
+        type: 'file',
+        path: '/data/files/test.wav',
+        metadata: { contentType: 'audio/wav', contentLength: 12 },
+      });
+
+      const response = await fastify.inject({
+        method: 'GET',
+        url: `/file/${encodeURIComponent('http://example.com/file/test.wav')}`,
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(response.headers['content-disposition']).toBe('inline; filename="test.wav"');
+    });
+
+    it('should handle HEAD with null memberOf and rootCollection references', async () => {
+      prisma.file.findUnique.mockResolvedValue({
+        ...mockFile,
+        entity: {
+          memberOf: null,
+          rootCollection: null,
+        },
+      });
+
+      vi.mocked(mockFileHandler.head).mockResolvedValue({
+        contentType: 'audio/wav',
+        contentLength: 12,
+      });
+
+      const response = await fastify.inject({
+        method: 'HEAD',
+        url: `/file/${encodeURIComponent('http://example.com/file/test.wav')}`,
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(response.headers['content-type']).toBe('audio/wav');
+    });
+
+    it('should resolve missing rootCollection references to null without failing the request', async () => {
+      prisma.entity.findMany.mockResolvedValue([]);
+      prisma.file.findUnique.mockResolvedValue({
+        ...mockFile,
+        entity: {
+          memberOf: 'http://example.com/collection',
+          rootCollection: 'http://example.com/missing-root',
+        },
+      });
+
+      vi.mocked(mockFileHandler.get).mockResolvedValue({
+        type: 'redirect',
+        url: 'https://storage.example.com/files/test.wav',
+      });
+
+      const response = await fastify.inject({
+        method: 'GET',
+        url: `/file/${encodeURIComponent('http://example.com/file/test.wav')}`,
+      });
+
+      expect(response.statusCode).toBe(302);
+      expect(response.headers.location).toBe('https://storage.example.com/files/test.wav');
+      expect(prisma.entity.findMany).toHaveBeenCalledWith({
+        where: { id: { in: ['http://example.com/collection', 'http://example.com/missing-root'] } },
+        select: { id: true, name: true },
+      });
+    });
+
+    it('should resolve memberOf and rootCollection references for HEAD requests', async () => {
+      prisma.entity.findMany.mockResolvedValue([]);
+      prisma.file.findUnique.mockResolvedValue({
+        ...mockFile,
+        entity: {
+          memberOf: 'http://example.com/collection',
+          rootCollection: 'http://example.com/other-collection',
+        },
+      });
+
+      vi.mocked(mockFileHandler.head).mockResolvedValue({
+        contentType: 'audio/wav',
+        contentLength: 12,
+      });
+
+      const response = await fastify.inject({
+        method: 'HEAD',
+        url: `/file/${encodeURIComponent('http://example.com/file/test.wav')}`,
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(prisma.entity.findMany).toHaveBeenCalledWith({
+        where: { id: { in: ['http://example.com/collection', 'http://example.com/other-collection'] } },
+        select: { id: true, name: true },
+      });
+    });
+
     it('should return 404 when entity not found', async () => {
       prisma.file.findUnique.mockResolvedValue(null);
 

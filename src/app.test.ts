@@ -115,5 +115,33 @@ describe('Entity Route', () => {
 
       await fastify.close();
     });
+
+    it('should return a generic 500 for non-Zod errors', async () => {
+      const fastify = Fastify({ logger: false });
+
+      await fastify.register(app, {
+        prisma,
+        opensearch,
+        disableCors: false,
+        accessTransformer: AllPublicAccessTransformer,
+        fileAccessTransformer: AllPublicFileAccessTransformer,
+        fileHandler: { get: vi.fn(), head: vi.fn() },
+        roCrateHandler: { get: vi.fn(), head: vi.fn() },
+      });
+
+      fastify.get('/boom', async () => {
+        throw new Error('forced fallback error');
+      });
+
+      const response = await fastify.inject({ method: 'GET', url: '/boom' });
+
+      expect(response.statusCode).toBe(500);
+      expect(JSON.parse(response.body)).toMatchObject({
+        error: 'Internal Server Error',
+        message: 'forced fallback error',
+      });
+
+      await fastify.close();
+    });
   });
 });

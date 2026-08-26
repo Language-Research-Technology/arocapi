@@ -1,6 +1,12 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { Entity } from '../generated/prisma/client.js';
-import { AllPublicAccessTransformer, baseEntityTransformer } from './default.js';
+import {
+  AllPublicAccessTransformer,
+  AllPublicFileAccessTransformer,
+  baseEntityTransformer,
+  baseFileTransformer,
+  resolveEntityReferences,
+} from './default.js';
 
 describe('baseEntityTransformer', () => {
   it('should transform entity to standard entity shape', () => {
@@ -180,5 +186,93 @@ describe('AllPublicAccessTransformer', () => {
     const result = AllPublicAccessTransformer(standardEntity);
 
     expect(result.access.contentAuthorizationUrl).toBeUndefined();
+  });
+});
+
+describe('baseFileTransformer', () => {
+  it('should transform a raw file to a standard file shape', () => {
+    const file = {
+      id: 'http://example.com/file/123',
+      filename: 'example.txt',
+      mediaType: 'text/plain',
+      size: 1024n,
+    };
+
+    expect(baseFileTransformer(file as any)).toEqual({
+      id: 'http://example.com/file/123',
+      filename: 'example.txt',
+      mediaType: 'text/plain',
+      size: 1024,
+    });
+  });
+});
+
+describe('AllPublicFileAccessTransformer', () => {
+  it('should grant public content access for a file entity', () => {
+    const file = {
+      id: 'http://example.com/file/123',
+      filename: 'example.txt',
+      mediaType: 'text/plain',
+      size: 1024,
+      entityType: 'http://schema.org/MediaObject',
+      name: 'Example file',
+      description: 'A sample file',
+      memberOf: null,
+      rootCollection: null,
+      metadataLicenseId: 'https://creativecommons.org/licenses/by/4.0/',
+      contentLicenseId: 'https://creativecommons.org/licenses/by/4.0/',
+    };
+
+    expect(AllPublicFileAccessTransformer(file as any)).toEqual({
+      ...file,
+      access: {
+        content: true,
+      },
+    });
+  });
+});
+
+describe('resolveEntityReferences', () => {
+  it('should return an empty map when there are no referenced entities', async () => {
+    const prisma = {
+      entity: {
+        findMany: vi.fn(),
+      },
+    } as any;
+
+    const result = await resolveEntityReferences([{ memberOf: null, rootCollection: null }], prisma);
+
+    expect(result).toEqual(new Map());
+    expect(prisma.entity.findMany).not.toHaveBeenCalled();
+  });
+
+  it('should resolve referenced parent and root collection names in one query', async () => {
+    const prisma = {
+      entity: {
+        findMany: vi.fn().mockResolvedValue([
+          { id: 'http://example.com/parent', name: 'Parent Entity' },
+          { id: 'http://example.com/root', name: 'Root Collection' },
+        ]),
+      },
+    } as any;
+
+    const result = await resolveEntityReferences(
+      [
+        { memberOf: 'http://example.com/parent', rootCollection: null },
+        { memberOf: null, rootCollection: 'http://example.com/root' },
+      ],
+      prisma,
+    );
+
+    expect(prisma.entity.findMany).toHaveBeenCalledWith({
+      where: { id: { in: ['http://example.com/parent', 'http://example.com/root'] } },
+      select: { id: true, name: true },
+    });
+    expect(result).toEqual(
+      new Map([
+        ['http://example.com/parent', { id: 'http://example.com/parent', name: 'Parent Entity' }],
+        ['http://example.com/root', { id: 'http://example.com/root', name: 'Root Collection' }],
+      ]),
+    );
   });
 });

@@ -45,7 +45,9 @@ const crate: FastifyPluginAsync<CrateRouteOptions> = async (fastify, opts) => {
           rootCollection: { id: entity.rootCollection || '', name: '' },
         };
         const authorisedEntity = await accessTransformer(standardEntity, { request, fastify });
-        if (!authorisedEntity.access.metadata) return createForbiddenError('Access to this resource is restricted');
+        if (!authorisedEntity.access.metadata) {
+          return reply.code(403).send(createForbiddenError('Access to this resource is restricted', id));
+        }
 
         const metadata: FileMetadata | false = await roCrateHandler.head(entity, { request, fastify });
 
@@ -90,7 +92,9 @@ const crate: FastifyPluginAsync<CrateRouteOptions> = async (fastify, opts) => {
           rootCollection: { id: entity.rootCollection || '', name: '' },
         };
         const authorisedEntity = await accessTransformer(standardEntity, { request, fastify });
-        if (!authorisedEntity.access.metadata) return createForbiddenError('Access to this resource is restricted');
+        if (!authorisedEntity.access.metadata) {
+          return reply.code(403).send(createForbiddenError('Access to this resource is restricted', id));
+        }
 
         const result = await roCrateHandler.get(entity, { request, fastify });
 

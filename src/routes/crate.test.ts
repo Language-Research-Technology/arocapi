@@ -1,7 +1,9 @@
 import { createReadStream } from 'node:fs';
 import { Readable } from 'node:stream';
+import Fastify from 'fastify';
+import { serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { fastify, fastifyAfter, fastifyBefore, prisma } from '../test/helpers/fastify.js';
+import { fastify, fastifyAfter, fastifyBefore, prisma, RestrictedAccessTransformer } from '../test/helpers/fastify.js';
 import { AllPublicAccessTransformer } from '../transformers/default.js';
 import type { FileResult, RoCrateHandler } from '../types/fileHandlers.js';
 import type { StandardErrorResponse } from '../utils/errors.js';
@@ -217,6 +219,56 @@ describe('Crate Route', () => {
       expect(response.headers['content-type']).toBe('application/ld+json');
       expect(response.headers['x-accel-redirect']).toBe('/internal/rocrate/ro-crate-metadata.json');
       expect(response.body).toBe('');
+    });
+
+    it('should deny access when metadata access is restricted', async () => {
+      const localFastify = Fastify({ logger: false });
+      localFastify.setValidatorCompiler(validatorCompiler);
+      localFastify.setSerializerCompiler(serializerCompiler);
+
+      prisma.entity.findUnique.mockResolvedValue(mockFileEntity);
+
+      await localFastify.register(crateRoute, {
+        prisma,
+        accessTransformer: RestrictedAccessTransformer,
+        roCrateHandler: mockRoCrateHandler,
+      });
+
+      const response = await localFastify.inject({
+        method: 'GET',
+        url: `/entity/${encodeURIComponent('http://example.com/entity/file.wav')}/rocrate`,
+      });
+
+      await localFastify.close();
+
+      expect(response.statusCode).toBe(403);
+      const body = JSON.parse(response.body) as { error: { code: string } };
+      expect(body.error.code).toBe('FORBIDDEN');
+    });
+
+    it('should deny access for HEAD requests when metadata access is restricted', async () => {
+      const localFastify = Fastify({ logger: false });
+      localFastify.setValidatorCompiler(validatorCompiler);
+      localFastify.setSerializerCompiler(serializerCompiler);
+
+      prisma.entity.findUnique.mockResolvedValue(mockFileEntity);
+
+      await localFastify.register(crateRoute, {
+        prisma,
+        accessTransformer: RestrictedAccessTransformer,
+        roCrateHandler: mockRoCrateHandler,
+      });
+
+      const response = await localFastify.inject({
+        method: 'HEAD',
+        url: `/entity/${encodeURIComponent('http://example.com/entity/file.wav')}/rocrate`,
+      });
+
+      await localFastify.close();
+
+      expect(response.statusCode).toBe(403);
+      const body = JSON.parse(response.body) as { error: { code: string } };
+      expect(body.error.code).toBe('FORBIDDEN');
     });
 
     it('should return 404 when entity not found', async () => {
