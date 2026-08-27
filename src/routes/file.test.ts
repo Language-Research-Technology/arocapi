@@ -234,7 +234,7 @@ describe('File Route', () => {
           memberOf: null,
           rootCollection: null,
         },
-      });
+      } as any);
 
       const mockStream = Readable.from(['file content']);
       vi.mocked(createReadStream).mockReturnValue(mockStream as never);
@@ -260,7 +260,7 @@ describe('File Route', () => {
           memberOf: null,
           rootCollection: null,
         },
-      });
+      } as any);
 
       vi.mocked(mockFileHandler.head).mockResolvedValue({
         contentType: 'audio/wav',
@@ -284,7 +284,7 @@ describe('File Route', () => {
           memberOf: 'http://example.com/collection',
           rootCollection: 'http://example.com/missing-root',
         },
-      });
+      } as any);
 
       vi.mocked(mockFileHandler.get).mockResolvedValue({
         type: 'redirect',
@@ -312,7 +312,7 @@ describe('File Route', () => {
           memberOf: 'http://example.com/collection',
           rootCollection: 'http://example.com/other-collection',
         },
-      });
+      } as any);
 
       vi.mocked(mockFileHandler.head).mockResolvedValue({
         contentType: 'audio/wav',

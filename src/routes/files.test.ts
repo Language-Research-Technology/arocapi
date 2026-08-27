@@ -27,6 +27,7 @@ describe('Files Route', () => {
     updatedAt: new Date('2025-01-01'),
     entity: {
       memberOf: null,
+      rootCollection: null,
     },
   };
 
@@ -40,6 +41,7 @@ describe('Files Route', () => {
     updatedAt: new Date('2025-01-02'),
     entity: {
       memberOf: null,
+      rootCollection: null,
     },
   };
 
@@ -130,7 +132,7 @@ describe('Files Route', () => {
         {
           ...mockFile1,
           entity: { memberOf: null, rootCollection: null },
-        },
+        } as any,
       ]);
       prisma.file.count.mockResolvedValue(1);
 
@@ -140,7 +142,8 @@ describe('Files Route', () => {
       });
 
       expect(response.statusCode).toBe(200);
-      expect(JSON.parse(response.body).files).toHaveLength(1);
+      const body = JSON.parse(response.body as string) as { files: Array<Record<string, unknown>> };
+      expect(body.files).toHaveLength(1);
     });
 
     it('should resolve referenced memberOf and rootCollection values for files', async () => {
@@ -152,7 +155,7 @@ describe('Files Route', () => {
             memberOf: 'http://example.com/collection/1',
             rootCollection: 'http://example.com/collection/1',
           },
-        },
+        } as any,
       ]);
       prisma.file.count.mockResolvedValue(1);
 
@@ -166,8 +169,11 @@ describe('Files Route', () => {
         where: { id: { in: ['http://example.com/collection/1'] } },
         select: { id: true, name: true },
       });
-      expect(JSON.parse(response.body).files[0].memberOf).toBeNull();
-      expect(JSON.parse(response.body).files[0].rootCollection).toBeNull();
+      const body = JSON.parse(response.body as string) as {
+        files: Array<{ memberOf: unknown; rootCollection: unknown }>;
+      };
+      expect(body.files[0].memberOf).toBeNull();
+      expect(body.files[0].rootCollection).toBeNull();
     });
 
     it('should filter files by memberOf', async () => {
