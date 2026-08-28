@@ -460,6 +460,22 @@ describe('Crate Route Restricted', () => {
     meta: {},
   };
 
+  describe('HEAD /entity/:id', () => {
+    it('should return 403', async () => {
+      prisma.entity.findUnique.mockResolvedValue(mockFileEntity);
+
+      const response = await fastify.inject({
+        method: 'HEAD',
+        url: `/entity/${encodeURIComponent('http://example.com/entity/file.wav')}/rocrate`,
+      });
+      const body = JSON.parse(response.body) as { error: { code: string; message: string } };
+
+      expect(response.statusCode).toBe(403);
+      expect(body.error.code).toBe('FORBIDDEN');
+      expect(mockRoCrateHandler.get).not.toHaveBeenCalled();
+    });
+  });
+
   describe('GET /entity/:id', () => {
     it('should return 403', async () => {
       prisma.entity.findUnique.mockResolvedValue(mockFileEntity);

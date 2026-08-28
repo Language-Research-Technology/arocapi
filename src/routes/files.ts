@@ -42,13 +42,10 @@ const files: FastifyPluginAsync<FilesRouteOptions> = async (fastify, opts) => {
         }
 
         if (resolveValidLicenses) {
-          const validLicenses = await resolveValidLicenses({ request, fastify });
-          if (validLicenses?.length) {
-            where.entity = where.entity || {};
-            where.entity.metadataLicenseId = {
-              in: validLicenses,
-            };
-          }
+          where.entity = where.entity || {};
+          where.entity.metadataLicenseId = {
+            in: (await resolveValidLicenses({ request, fastify })) || [],
+          };
         }
 
         const [dbFiles, total] = await Promise.all([

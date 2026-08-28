@@ -284,14 +284,16 @@ describe('Files Route', () => {
 });
 
 describe('Files Route with License Filtering', () => {
+  let hasLicense = true;
   async function resolveValidLicenses() {
-    return ['https://creativecommons.org/licenses/by/4.0/'];
+    if (hasLicense) return ['https://creativecommons.org/licenses/by/4.0/'];
   }
   beforeEach(async () => {
     await fastifyBefore();
     await fastify.register(filesRoute, {
       prisma,
       fileAccessTransformer: AllPublicFileAccessTransformer,
+      // @ts-expect-error
       resolveValidLicenses,
     });
   });
@@ -304,7 +306,7 @@ describe('Files Route with License Filtering', () => {
     it('should filter by metadataLicenseId', async () => {
       prisma.file.findMany.mockResolvedValue([]);
       prisma.file.count.mockResolvedValue(0);
-
+      hasLicense = true;
       const response = await fastify.inject({
         method: 'GET',
         url: '/files',
@@ -313,6 +315,21 @@ describe('Files Route with License Filtering', () => {
       expect(prisma.file.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { entity: { metadataLicenseId: { in: await resolveValidLicenses() } } },
+        }),
+      );
+    });
+    it('should filter by metadataLicenseId, no license', async () => {
+      prisma.file.findMany.mockResolvedValue([]);
+      prisma.file.count.mockResolvedValue(0);
+      hasLicense = false;
+      const response = await fastify.inject({
+        method: 'GET',
+        url: '/files',
+      });
+      expect(response.statusCode).toBe(200);
+      expect(prisma.file.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { entity: { metadataLicenseId: { in: [] } } },
         }),
       );
     });

@@ -56,12 +56,9 @@ const entities: FastifyPluginAsync<EntitiesRouteOptions> = async (fastify, opts)
         }
 
         if (resolveValidLicenses) {
-          const validLicenses = await resolveValidLicenses({ request, fastify });
-          if (validLicenses?.length) {
-            where.metadataLicenseId = {
-              in: validLicenses,
-            };
-          }
+          where.metadataLicenseId = {
+            in: (await resolveValidLicenses({ request, fastify })) || [],
+          };
         }
 
         const [dbEntities, total] = await Promise.all([

@@ -65,11 +65,8 @@ const search: FastifyPluginAsync<SearchRouteOptions> = async (fastify, opts) => 
       const { searchType, query, boundingBox, geohashPrecision, limit, offset, sort, order } = request.body;
       let filters = request.body.filters;
       if (resolveValidLicenses) {
-        const validLicenses = await resolveValidLicenses({ request, fastify });
-        if (validLicenses?.length) {
-          filters = filters || {};
-          filters.metadataLicenseId = validLicenses;
-        }
+        filters = filters || {};
+        filters.metadataLicenseId = (await resolveValidLicenses({ request, fastify })) || [];
       }
       try {
         const opensearchQuery: Search_Request = {

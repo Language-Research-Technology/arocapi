@@ -903,8 +903,9 @@ describe('Search Route', () => {
 });
 
 describe('Search Route with License Filtering', () => {
+  let hasLicense = true;
   async function resolveValidLicenses() {
-    return ['https://creativecommons.org/licenses/by/4.0/'];
+    if (hasLicense) return ['https://creativecommons.org/licenses/by/4.0/'];
   }
   beforeEach(async () => {
     await fastifyBefore();
@@ -912,6 +913,7 @@ describe('Search Route with License Filtering', () => {
       prisma,
       opensearch,
       accessTransformer: AllPublicAccessTransformer,
+      // @ts-expect-error
       resolveValidLicenses,
     });
   });
@@ -921,73 +923,77 @@ describe('Search Route with License Filtering', () => {
   });
 
   describe('POST /search', () => {
-    it('should filter by metadataLicenseId', async () => {
-      const mockSearchResponse = {
-        body: {
-          took: 5,
-          hits: {
-            total: { value: 0 },
-            hits: [],
+    function testMockLicense(hasLicense_: boolean) {
+      hasLicense = hasLicense_;
+      return async () => {
+        const mockSearchResponse = {
+          body: {
+            took: 5,
+            hits: {
+              total: { value: 0 },
+              hits: [],
+            },
+            aggregations: {},
           },
-          aggregations: {},
-        },
+        };
+
+        // @ts-expect-error TS is looking at the wrong function signature
+        opensearch.search.mockResolvedValue(mockSearchResponse);
+        prisma.entity.findMany.mockResolvedValue([]);
+        const response = await fastify.inject({
+          method: 'POST',
+          url: '/search',
+          payload: {
+            query: 'test',
+            searchType: 'basic',
+          },
+        });
+        expect(response.statusCode).toBe(200);
+        expect(opensearch.search).toHaveBeenCalledWith({
+          index: 'entities',
+          body: {
+            query: {
+              bool: {
+                must: [
+                  {
+                    multi_match: {
+                      fields: ['name^2', 'description'],
+                      fuzziness: 'AUTO',
+                      query: 'test',
+                      type: 'best_fields',
+                      zero_terms_query: 'all',
+                    },
+                  },
+                ],
+                filter: [
+                  {
+                    terms: {
+                      metadataLicenseId: hasLicense ? await resolveValidLicenses() : [],
+                    },
+                  },
+                ],
+              },
+            },
+            aggs: {
+              inLanguage: { terms: { field: 'inLanguage.keyword', size: 20 } },
+              mediaType: { terms: { field: 'mediaType.keyword', size: 20 } },
+              communicationMode: { terms: { field: 'communicationMode.keyword', size: 20 } },
+              entityType: { terms: { field: 'entityType.keyword', size: 20 } },
+            },
+            highlight: {
+              fields: {
+                name: {},
+                description: {},
+              },
+            },
+            sort: undefined,
+            from: 0,
+            size: 100,
+          },
+        });
       };
-
-      // @ts-expect-error TS is looking at the wrong function signature
-      opensearch.search.mockResolvedValue(mockSearchResponse);
-      prisma.entity.findMany.mockResolvedValue([]);
-
-      const response = await fastify.inject({
-        method: 'POST',
-        url: '/search',
-        payload: {
-          query: 'test',
-          searchType: 'basic',
-        },
-      });
-      expect(response.statusCode).toBe(200);
-      expect(opensearch.search).toHaveBeenCalledWith({
-        index: 'entities',
-        body: {
-          query: {
-            bool: {
-              must: [
-                {
-                  multi_match: {
-                    fields: ['name^2', 'description'],
-                    fuzziness: 'AUTO',
-                    query: 'test',
-                    type: 'best_fields',
-                    zero_terms_query: 'all',
-                  },
-                },
-              ],
-              filter: [
-                {
-                  terms: {
-                    metadataLicenseId: await resolveValidLicenses(),
-                  },
-                },
-              ],
-            },
-          },
-          aggs: {
-            inLanguage: { terms: { field: 'inLanguage.keyword', size: 20 } },
-            mediaType: { terms: { field: 'mediaType.keyword', size: 20 } },
-            communicationMode: { terms: { field: 'communicationMode.keyword', size: 20 } },
-            entityType: { terms: { field: 'entityType.keyword', size: 20 } },
-          },
-          highlight: {
-            fields: {
-              name: {},
-              description: {},
-            },
-          },
-          sort: undefined,
-          from: 0,
-          size: 100,
-        },
-      });
-    });
+    }
+    it('should filter by metadataLicenseId', testMockLicense(true));
+    it('should return nothing without any valid license', testMockLicense(false));
   });
 });
