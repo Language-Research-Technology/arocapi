@@ -318,3 +318,62 @@ describe('Entities Route', () => {
     });
   });
 });
+
+describe('Entities Route with License Filtering', () => {
+  let hasLicense = true;
+  async function resolveValidLicenses() {
+    if (hasLicense) return ['https://creativecommons.org/licenses/by/4.0/'];
+  }
+  beforeEach(async () => {
+    await fastifyBefore();
+    await fastify.register(entitiesRoute, {
+      prisma,
+      accessTransformer: AllPublicAccessTransformer,
+      // @ts-expect-error
+      resolveValidLicenses,
+    });
+  });
+
+  afterEach(async () => {
+    await fastifyAfter();
+  });
+
+  describe('GET /entities', () => {
+    it('should filter by metadataLicenseId', async () => {
+      prisma.entity.findMany.mockResolvedValue([]);
+      prisma.entity.count.mockResolvedValue(0);
+      hasLicense = true;
+      const response = await fastify.inject({
+        method: 'GET',
+        url: '/entities',
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(prisma.entity.findMany).toHaveBeenCalledWith({
+        where: { metadataLicenseId: { in: await resolveValidLicenses() } },
+        include: { file: { select: { id: true } } },
+        orderBy: { id: 'asc' },
+        skip: 0,
+        take: 100,
+      });
+    });
+    it('should return nothing without any valid license', async () => {
+      prisma.entity.findMany.mockResolvedValue([]);
+      prisma.entity.count.mockResolvedValue(0);
+      hasLicense = false;
+      const response = await fastify.inject({
+        method: 'GET',
+        url: '/entities',
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(prisma.entity.findMany).toHaveBeenCalledWith({
+        where: { metadataLicenseId: { in: [] } },
+        include: { file: { select: { id: true } } },
+        orderBy: { id: 'asc' },
+        skip: 0,
+        take: 100,
+      });
+    });
+  });
+});

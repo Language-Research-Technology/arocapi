@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createInternalError, createNotFoundError } from './errors.js';
+import { createForbiddenError, createInternalError, createNotFoundError } from './errors.js';
 
 describe('Error Utilities', () => {
   describe('createInternalError', () => {
@@ -66,6 +66,21 @@ describe('Error Utilities', () => {
       expect(error).toEqual({
         error: {
           code: 'NOT_FOUND',
+          message,
+          details: undefined,
+        },
+      });
+    });
+  });
+
+  describe('createForbiddenError', () => {
+    it('should create a forbidden error', () => {
+      const message = 'Access to this resource is restricted';
+      const error = createForbiddenError(message);
+
+      expect(error).toEqual({
+        error: {
+          code: 'FORBIDDEN',
           message,
           details: undefined,
         },

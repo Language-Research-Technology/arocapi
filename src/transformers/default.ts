@@ -78,12 +78,14 @@ export type StandardFile = {
   size: number;
 };
 
+export type FileEntity = StandardFile & StandardEntity;
+
 /**
  * Authorised file - includes access information
  * This is the output of the file access transformer
  * File metadata is always accessible - only content access is controlled
  */
-export type AuthorisedFile = StandardFile & {
+export type AuthorisedFile = FileEntity & {
   access: FileAccessInfo;
 };
 
@@ -166,7 +168,7 @@ export const baseFileTransformer = (file: File): StandardFile => ({
  * });
  * ```
  */
-export const AllPublicFileAccessTransformer = (file: StandardFile): AuthorisedFile => ({
+export const AllPublicFileAccessTransformer = (file: FileEntity): AuthorisedFile => ({
   ...file,
   access: {
     content: true,

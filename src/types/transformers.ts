@@ -1,5 +1,5 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify';
-import type { AuthorisedEntity, AuthorisedFile, StandardEntity, StandardFile } from '../transformers/default.js';
+import type { AuthorisedEntity, AuthorisedFile, FileEntity, StandardEntity } from '../transformers/default.js';
 
 /**
  * Context provided to entity transformers
@@ -36,7 +36,7 @@ export type EntityTransformer<TInput = AuthorisedEntity, TOutput = TInput> = (
  * Only content access is controlled (access.content)
  */
 export type FileAccessTransformer = (
-  file: StandardFile,
+  file: FileEntity,
   context: TransformerContext,
 ) => Promise<AuthorisedFile> | AuthorisedFile;
 

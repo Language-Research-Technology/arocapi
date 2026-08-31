@@ -1,7 +1,8 @@
 import { createReadStream } from 'node:fs';
 import { Readable } from 'node:stream';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { fastify, fastifyAfter, fastifyBefore, prisma } from '../test/helpers/fastify.js';
+import { fastify, fastifyAfter, fastifyBefore, prisma, RestrictedAccessTransformer } from '../test/helpers/fastify.js';
+import { AllPublicAccessTransformer } from '../transformers/default.js';
 import type { FileResult, RoCrateHandler } from '../types/fileHandlers.js';
 import type { StandardErrorResponse } from '../utils/errors.js';
 import crateRoute from './crate.js';
@@ -18,7 +19,11 @@ describe('Crate Route', () => {
 
   beforeEach(async () => {
     await fastifyBefore();
-    await fastify.register(crateRoute, { prisma, roCrateHandler: mockRoCrateHandler });
+    await fastify.register(crateRoute, {
+      prisma,
+      accessTransformer: AllPublicAccessTransformer,
+      roCrateHandler: mockRoCrateHandler,
+    });
     vi.clearAllMocks();
   });
 
@@ -418,6 +423,72 @@ describe('Crate Route', () => {
 
       expect(response.statusCode).toBe(500);
       expect(body.error.code).toBe('INTERNAL_ERROR');
+    });
+  });
+});
+
+describe('Crate Route Restricted', () => {
+  const mockRoCrateHandler: RoCrateHandler = {
+    get: vi.fn(),
+    head: vi.fn(),
+  };
+
+  beforeEach(async () => {
+    await fastifyBefore();
+    await fastify.register(crateRoute, {
+      prisma,
+      accessTransformer: RestrictedAccessTransformer,
+      roCrateHandler: mockRoCrateHandler,
+    });
+  });
+
+  afterEach(async () => {
+    await fastifyAfter();
+  });
+
+  const mockFileEntity = {
+    id: 'http://example.com/entity/file.wav',
+    name: 'test.wav',
+    description: 'A test file',
+    entityType: 'http://schema.org/MediaObject',
+    memberOf: 'http://example.com/collection',
+    rootCollection: 'http://example.com/collection',
+    metadataLicenseId: 'https://creativecommons.org/licenses/by/4.0/',
+    contentLicenseId: 'https://creativecommons.org/licenses/by/4.0/',
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    meta: {},
+  };
+
+  describe('HEAD /entity/:id', () => {
+    it('should return 403', async () => {
+      prisma.entity.findUnique.mockResolvedValue(mockFileEntity);
+
+      const response = await fastify.inject({
+        method: 'HEAD',
+        url: `/entity/${encodeURIComponent('http://example.com/entity/file.wav')}/rocrate`,
+      });
+      const body = JSON.parse(response.body) as { error: { code: string; message: string } };
+
+      expect(response.statusCode).toBe(403);
+      expect(body.error.code).toBe('FORBIDDEN');
+      expect(mockRoCrateHandler.get).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('GET /entity/:id', () => {
+    it('should return 403', async () => {
+      prisma.entity.findUnique.mockResolvedValue(mockFileEntity);
+
+      const response = await fastify.inject({
+        method: 'GET',
+        url: `/entity/${encodeURIComponent('http://example.com/entity/file.wav')}/rocrate`,
+      });
+      const body = JSON.parse(response.body) as { error: { code: string; message: string } };
+
+      expect(response.statusCode).toBe(403);
+      expect(body.error.code).toBe('FORBIDDEN');
+      expect(mockRoCrateHandler.get).not.toHaveBeenCalled();
     });
   });
 });
