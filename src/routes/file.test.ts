@@ -50,6 +50,14 @@ describe('File Route', () => {
     },
   };
 
+  const mockFile2 = {
+    ...mockFile,
+    entity: {
+      memberOf: 'http://example.com/collection',
+      rootCollection: 'http://example.com/other-collection',
+    },
+  };
+
   describe('GET /file/:id', () => {
     it('should stream file content successfully', async () => {
       prisma.file.findUnique.mockResolvedValue(mockFile);
@@ -307,6 +315,29 @@ describe('File Route', () => {
       expect(body.error.code).toBe('NOT_FOUND');
       expect(body.error.message).toBe('The requested file could not be retrieved');
     });
+
+    it('should resolve memberOf and rootCollection references', async () => {
+      prisma.entity.findMany.mockResolvedValue([]);
+      prisma.file.findUnique.mockResolvedValue(mockFile2);
+      const mockStream = Readable.from(['file content']);
+      vi.mocked(createReadStream).mockReturnValue(mockStream as never);
+      vi.mocked(mockFileHandler.get).mockResolvedValue({
+        type: 'file',
+        path: '/data/files/test.wav',
+        metadata: { contentType: 'audio/wav', contentLength: 12 },
+      });
+
+      const response = await fastify.inject({
+        method: 'GET',
+        url: `/file/${encodeURIComponent('http://example.com/file/test.wav')}`,
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(prisma.entity.findMany).toHaveBeenCalledWith({
+        where: { id: { in: ['http://example.com/collection', 'http://example.com/other-collection'] } },
+        select: { id: true, name: true },
+      });
+    });
   });
 
   describe('HEAD /file/:id', () => {
@@ -382,6 +413,27 @@ describe('File Route', () => {
       expect(response.statusCode).toBe(404);
       expect(body.error.code).toBe('NOT_FOUND');
       expect(body.error.message).toBe('The requested file metadata was not found');
+    });
+
+    it('should resolve memberOf and rootCollection references', async () => {
+      prisma.entity.findMany.mockResolvedValue([]);
+      prisma.file.findUnique.mockResolvedValue(mockFile2);
+
+      vi.mocked(mockFileHandler.head).mockResolvedValue({
+        contentType: 'audio/wav',
+        contentLength: 12,
+      });
+
+      const response = await fastify.inject({
+        method: 'HEAD',
+        url: `/file/${encodeURIComponent('http://example.com/file/test.wav')}`,
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(prisma.entity.findMany).toHaveBeenCalledWith({
+        where: { id: { in: ['http://example.com/collection', 'http://example.com/other-collection'] } },
+        select: { id: true, name: true },
+      });
     });
   });
 
