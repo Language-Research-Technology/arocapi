@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { fastify, fastifyAfter, fastifyBefore, prisma } from '../test/helpers/fastify.js';
+import { fastify, fastifyAfter, fastifyBefore, prisma, RestrictedAccessTransformer } from '../test/helpers/fastify.js';
 import { AllPublicAccessTransformer } from '../transformers/default.js';
 import type { StandardErrorResponse } from '../utils/errors.js';
 import entityRoute from './entity.js';
@@ -154,6 +154,46 @@ describe('Entity Route', () => {
       const body = JSON.parse(response.body);
 
       expect(response.statusCode).toBe(200);
+      expect(body).toMatchSnapshot();
+    });
+  });
+});
+
+describe('Entity Route Restricted', () => {
+  beforeEach(async () => {
+    await fastifyBefore();
+    await fastify.register(entityRoute, { prisma, accessTransformer: RestrictedAccessTransformer });
+  });
+
+  afterEach(async () => {
+    await fastifyAfter();
+  });
+
+  describe('GET /entity/:id', () => {
+    it('should return 403', async () => {
+      const mockEntity = {
+        id: 'http://example.com/entity/123',
+        name: 'Test Entity',
+        description: 'A test entity',
+        entityType: 'http://schema.org/Person',
+        memberOf: null,
+        rootCollection: null,
+        metadataLicenseId: 'https://choosealicense.com/no-permission/',
+        contentLicenseId: 'https://choosealicense.com/no-permission/',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        meta: {},
+      };
+
+      prisma.entity.findUnique.mockResolvedValue(mockEntity);
+
+      const response = await fastify.inject({
+        method: 'GET',
+        url: `/entity/${encodeURIComponent('http://example.com/entity/123')}`,
+      });
+      const body = JSON.parse(response.body);
+
+      expect(response.statusCode).toBe(403);
       expect(body).toMatchSnapshot();
     });
   });

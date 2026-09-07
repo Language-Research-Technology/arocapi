@@ -5,6 +5,7 @@ const ERROR_CODES = {
   INTERNAL_ERROR: 'INTERNAL_ERROR',
   INVALID_REQUEST: 'INVALID_REQUEST',
   INVALID_ENTITY_TYPE: 'INVALID_ENTITY_TYPE',
+  FORBIDDEN: 'FORBIDDEN',
 } as const;
 
 type ErrorCode = (typeof ERROR_CODES)[keyof typeof ERROR_CODES];
@@ -47,3 +48,6 @@ export const createInvalidRequestError = (message: string): StandardErrorRespons
 export const createInternalError = (message = 'Internal server error'): StandardErrorResponse => {
   return createErrorResponse(ERROR_CODES.INTERNAL_ERROR, message);
 };
+
+export const createForbiddenError = (message: string, entityId?: string): StandardErrorResponse =>
+  createErrorResponse(ERROR_CODES.FORBIDDEN, message, entityId ? { entityId } : undefined);

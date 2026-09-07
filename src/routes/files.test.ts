@@ -23,6 +23,10 @@ describe('Files Route', () => {
     meta: {},
     createdAt: new Date('2025-01-01'),
     updatedAt: new Date('2025-01-01'),
+    entity: {
+      memberOf: null,
+      rootCollection: null,
+    },
   };
 
   const mockFile2 = {
@@ -33,6 +37,10 @@ describe('Files Route', () => {
     meta: {},
     createdAt: new Date('2025-01-02'),
     updatedAt: new Date('2025-01-02'),
+    entity: {
+      memberOf: null,
+      rootCollection: null,
+    },
   };
 
   describe('GET /files', () => {
@@ -137,6 +145,36 @@ describe('Files Route', () => {
           orderBy: { id: 'desc' },
         }),
       );
+    });
+
+    it('should resolve referenced memberOf and rootCollection values for files', async () => {
+      const mockFile3 = {
+        ...mockFile1,
+        entity: {
+          memberOf: 'http://example.com/collection/1',
+          rootCollection: 'http://example.com/collection/1',
+        },
+      };
+      prisma.entity.findMany.mockResolvedValue([]);
+      prisma.file.findMany.mockResolvedValue([mockFile3]);
+      prisma.file.count.mockResolvedValue(1);
+
+      const response = await fastify.inject({
+        method: 'GET',
+        url: '/files',
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(prisma.entity.findMany).toHaveBeenCalledWith({
+        where: { id: { in: ['http://example.com/collection/1'] } },
+        select: { id: true, name: true },
+      });
+      const body = JSON.parse(response.body) as {
+        total: number;
+        files: { memberOf: unknown; rootCollection: unknown }[];
+      };
+      expect(body.files[0].memberOf).toBeNull();
+      expect(body.files[0].rootCollection).toBeNull();
     });
 
     it('should return empty list when no files found', async () => {
@@ -273,6 +311,59 @@ describe('Files Route', () => {
       });
 
       await fastifyAfter();
+    });
+  });
+});
+
+describe('Files Route with License Filtering', () => {
+  let hasLicense = true;
+  async function resolveValidLicenses() {
+    if (hasLicense) return ['https://creativecommons.org/licenses/by/4.0/'];
+  }
+  beforeEach(async () => {
+    await fastifyBefore();
+    await fastify.register(filesRoute, {
+      prisma,
+      fileAccessTransformer: AllPublicFileAccessTransformer,
+      // @ts-expect-error
+      resolveValidLicenses,
+    });
+  });
+
+  afterEach(async () => {
+    await fastifyAfter();
+  });
+
+  describe('GET /files', () => {
+    it('should filter by metadataLicenseId', async () => {
+      prisma.file.findMany.mockResolvedValue([]);
+      prisma.file.count.mockResolvedValue(0);
+      hasLicense = true;
+      const response = await fastify.inject({
+        method: 'GET',
+        url: '/files',
+      });
+      expect(response.statusCode).toBe(200);
+      expect(prisma.file.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { entity: { metadataLicenseId: { in: await resolveValidLicenses() } } },
+        }),
+      );
+    });
+    it('should filter by metadataLicenseId, no license', async () => {
+      prisma.file.findMany.mockResolvedValue([]);
+      prisma.file.count.mockResolvedValue(0);
+      hasLicense = false;
+      const response = await fastify.inject({
+        method: 'GET',
+        url: '/files',
+      });
+      expect(response.statusCode).toBe(200);
+      expect(prisma.file.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { entity: { metadataLicenseId: { in: [] } } },
+        }),
+      );
     });
   });
 });

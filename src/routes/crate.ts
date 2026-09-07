@@ -4,7 +4,8 @@ import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod/v4';
 import type { PrismaClient } from '../generated/prisma/client.js';
 import type { FileMetadata, RoCrateHandler } from '../types/fileHandlers.js';
-import { createInternalError, createNotFoundError } from '../utils/errors.js';
+import type { AccessTransformer } from '../types/transformers.js';
+import { createForbiddenError, createInternalError, createNotFoundError } from '../utils/errors.js';
 import { setFileHeaders } from '../utils/headers.js';
 
 const paramsSchema = z.object({
@@ -13,11 +14,12 @@ const paramsSchema = z.object({
 
 type CrateRouteOptions = {
   prisma: PrismaClient;
+  accessTransformer: AccessTransformer;
   roCrateHandler: RoCrateHandler;
 };
 
 const crate: FastifyPluginAsync<CrateRouteOptions> = async (fastify, opts) => {
-  const { prisma, roCrateHandler } = opts;
+  const { prisma, accessTransformer, roCrateHandler } = opts;
 
   fastify.withTypeProvider<ZodTypeProvider>().head(
     '/entity/:id/rocrate',
@@ -37,9 +39,17 @@ const crate: FastifyPluginAsync<CrateRouteOptions> = async (fastify, opts) => {
         if (!entity) {
           return reply.code(404).send(createNotFoundError('The requested entity was not found', id));
         }
+        const standardEntity = {
+          ...entity,
+          memberOf: { id: entity.memberOf || '', name: '' },
+          rootCollection: { id: entity.rootCollection || '', name: '' },
+        };
+        const authorisedEntity = await accessTransformer(standardEntity, { request, fastify });
+        if (!authorisedEntity.access.metadata) {
+          return reply.code(403).send(createForbiddenError('Access to this resource is restricted'));
+        }
 
         const metadata: FileMetadata | false = await roCrateHandler.head(entity, { request, fastify });
-
         if (!metadata) {
           return reply.code(404).send(createNotFoundError('The requested RO-Crate metadata was not found', id));
         }
@@ -74,6 +84,15 @@ const crate: FastifyPluginAsync<CrateRouteOptions> = async (fastify, opts) => {
         if (!entity) {
           return reply.code(404).send(createNotFoundError('The requested entity was not found', id));
         }
+
+        const standardEntity = {
+          ...entity,
+          memberOf: { id: entity.memberOf || '', name: '' },
+          rootCollection: { id: entity.rootCollection || '', name: '' },
+        };
+        const authorisedEntity = await accessTransformer(standardEntity, { request, fastify });
+        if (!authorisedEntity.access.metadata)
+          return reply.code(403).send(createForbiddenError('Access to this resource is restricted'));
 
         const result = await roCrateHandler.get(entity, { request, fastify });
 

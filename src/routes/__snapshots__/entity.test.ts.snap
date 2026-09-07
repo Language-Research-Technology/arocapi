@@ -72,3 +72,15 @@ exports[`Entity Route > GET /entity/:id > should return null for memberOf/rootCo
   "rootCollection": null,
 }
 `;
+
+exports[`Entity Route Restricted > GET /entity/:id > should return 403 1`] = `
+{
+  "error": {
+    "code": "FORBIDDEN",
+    "details": {
+      "entityId": "http://example.com/entity/123",
+    },
+    "message": "Access to this resource is restricted",
+  },
+}
+`;
