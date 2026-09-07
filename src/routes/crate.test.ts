@@ -472,7 +472,7 @@ describe('Crate Route Restricted', () => {
 
       expect(response.statusCode).toBe(403);
       expect(body.error.code).toBe('FORBIDDEN');
-      expect(mockRoCrateHandler.get).not.toHaveBeenCalled();
+      expect(mockRoCrateHandler.head).not.toHaveBeenCalled();
     });
   });
 

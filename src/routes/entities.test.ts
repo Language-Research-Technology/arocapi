@@ -322,7 +322,9 @@ describe('Entities Route', () => {
 describe('Entities Route with License Filtering', () => {
   let hasLicense = true;
   async function resolveValidLicenses() {
-    if (hasLicense) return ['https://creativecommons.org/licenses/by/4.0/'];
+    if (hasLicense) {
+      return ['https://creativecommons.org/licenses/by/4.0/'];
+    }
   }
   beforeEach(async () => {
     await fastifyBefore();

@@ -72,6 +72,8 @@ const setupValidation = (fastify: FastifyInstance) => {
   });
 };
 
+export type LicenseResolver = (opt: TransformerContext) => Promise<string[]>;
+
 export type Options = {
   prisma: PrismaClient;
   opensearch: Client;
@@ -84,7 +86,7 @@ export type Options = {
   fileTransformers?: FileTransformer[];
   fileHandler: FileHandler;
   roCrateHandler: RoCrateHandler;
-  resolveValidLicenses?: (opt: TransformerContext) => Promise<string[]>;
+  resolveValidLicenses?: LicenseResolver;
 };
 const app: FastifyPluginAsync<Options> = async (fastify, options) => {
   const {

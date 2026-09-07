@@ -32,8 +32,8 @@ export const RestrictedAccessTransformer: AccessTransformer = (entity) => ({
   access: {
     metadata: false,
     content: false,
-    metadataAuthorizationUrl: '',
-    contentAuthorizationUrl: '',
+    metadataAuthorizationUrl: 'https://example.com/metadata-auth',
+    contentAuthorizationUrl: 'https://example.com/content-auth',
   },
 });
 
@@ -42,7 +42,7 @@ export const RestrictedFileAccessTransformer: FileAccessTransformer = (file) => 
   access: {
     metadata: false,
     content: false,
-    metadataAuthorizationUrl: '',
-    contentAuthorizationUrl: '',
+    metadataAuthorizationUrl: 'https://example.com/metadata-auth',
+    contentAuthorizationUrl: 'https://example.com/content-auth',
   },
 });
