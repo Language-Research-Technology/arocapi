@@ -5,7 +5,7 @@ import { fastify, fastifyAfter, fastifyBefore, prisma, RestrictedAccessTransform
 import { AllPublicAccessTransformer } from '../transformers/default.js';
 import type { FileResult, RoCrateHandler } from '../types/fileHandlers.js';
 import type { StandardErrorResponse } from '../utils/errors.js';
-import crateRoute from './crate.js';
+import metadataRoute from './metadata.js';
 
 vi.mock('node:fs', () => ({
   createReadStream: vi.fn(),
@@ -19,7 +19,7 @@ describe('Crate Route', () => {
 
   beforeEach(async () => {
     await fastifyBefore();
-    await fastify.register(crateRoute, {
+    await fastify.register(metadataRoute, {
       prisma,
       accessTransformer: AllPublicAccessTransformer,
       roCrateHandler: mockRoCrateHandler,
@@ -63,7 +63,7 @@ describe('Crate Route', () => {
     rootCollection: 'http://example.com/collection',
   };
 
-  describe('GET /entity/:id/rocrate', () => {
+  describe('GET /entity/:id/metadata', () => {
     it('should stream RO-Crate metadata for File entity', async () => {
       prisma.entity.findUnique.mockResolvedValue(mockFileEntity);
 
@@ -82,7 +82,7 @@ describe('Crate Route', () => {
 
       const response = await fastify.inject({
         method: 'GET',
-        url: `/entity/${encodeURIComponent('http://example.com/entity/file.wav')}/rocrate`,
+        url: `/entity/${encodeURIComponent('http://example.com/entity/file.wav')}/metadata`,
       });
 
       expect(response.statusCode).toBe(200);
@@ -116,7 +116,7 @@ describe('Crate Route', () => {
 
       const response = await fastify.inject({
         method: 'GET',
-        url: `/entity/${encodeURIComponent('http://example.com/collection')}/rocrate`,
+        url: `/entity/${encodeURIComponent('http://example.com/collection')}/metadata`,
       });
 
       expect(response.statusCode).toBe(200);
@@ -140,7 +140,7 @@ describe('Crate Route', () => {
 
       const response = await fastify.inject({
         method: 'GET',
-        url: `/entity/${encodeURIComponent('http://example.com/object')}/rocrate`,
+        url: `/entity/${encodeURIComponent('http://example.com/object')}/metadata`,
       });
 
       expect(response.statusCode).toBe(200);
@@ -159,7 +159,7 @@ describe('Crate Route', () => {
 
       const response = await fastify.inject({
         method: 'GET',
-        url: `/entity/${encodeURIComponent('http://example.com/entity/file.wav')}/rocrate`,
+        url: `/entity/${encodeURIComponent('http://example.com/entity/file.wav')}/metadata`,
       });
 
       expect(response.statusCode).toBe(302);
@@ -184,7 +184,7 @@ describe('Crate Route', () => {
 
       const response = await fastify.inject({
         method: 'GET',
-        url: `/entity/${encodeURIComponent('http://example.com/collection')}/rocrate`,
+        url: `/entity/${encodeURIComponent('http://example.com/collection')}/metadata`,
       });
 
       expect(response.statusCode).toBe(200);
@@ -210,7 +210,7 @@ describe('Crate Route', () => {
 
       const response = await fastify.inject({
         method: 'GET',
-        url: `/entity/${encodeURIComponent('http://example.com/entity/file.wav')}/rocrate`,
+        url: `/entity/${encodeURIComponent('http://example.com/entity/file.wav')}/metadata`,
       });
 
       expect(response.statusCode).toBe(200);
@@ -224,7 +224,7 @@ describe('Crate Route', () => {
 
       const response = await fastify.inject({
         method: 'GET',
-        url: `/entity/${encodeURIComponent('http://example.com/nonexistent')}/rocrate`,
+        url: `/entity/${encodeURIComponent('http://example.com/nonexistent')}/metadata`,
       });
       const body = JSON.parse(response.body) as { error: { code: string; message: string } };
 
@@ -240,7 +240,7 @@ describe('Crate Route', () => {
 
       const response = await fastify.inject({
         method: 'GET',
-        url: `/entity/${encodeURIComponent('http://example.com/entity/file.wav')}/rocrate`,
+        url: `/entity/${encodeURIComponent('http://example.com/entity/file.wav')}/metadata`,
       });
       const body = JSON.parse(response.body) as { error: { code: string; message: string } };
 
@@ -254,7 +254,7 @@ describe('Crate Route', () => {
 
       const response = await fastify.inject({
         method: 'GET',
-        url: `/entity/${encodeURIComponent('http://example.com/entity/file.wav')}/rocrate`,
+        url: `/entity/${encodeURIComponent('http://example.com/entity/file.wav')}/metadata`,
       });
       const body = JSON.parse(response.body) as { error: { code: string } };
 
@@ -268,7 +268,7 @@ describe('Crate Route', () => {
 
       const response = await fastify.inject({
         method: 'GET',
-        url: `/entity/${encodeURIComponent('http://example.com/entity/file.wav')}/rocrate`,
+        url: `/entity/${encodeURIComponent('http://example.com/entity/file.wav')}/metadata`,
       });
       const body = JSON.parse(response.body) as { error: { code: string } };
 
@@ -279,7 +279,7 @@ describe('Crate Route', () => {
     it('should validate ID parameter format', async () => {
       const response = await fastify.inject({
         method: 'GET',
-        url: '/entity/invalid-id/rocrate',
+        url: '/entity/invalid-id/metadata',
       });
       const body = JSON.parse(response.body) as StandardErrorResponse;
 
@@ -288,7 +288,7 @@ describe('Crate Route', () => {
     });
   });
 
-  describe('HEAD /entity/:id/rocrate', () => {
+  describe('HEAD /entity/:id/metadata', () => {
     it('should return RO-Crate metadata headers for File entity', async () => {
       prisma.entity.findUnique.mockResolvedValue(mockFileEntity);
 
@@ -302,7 +302,7 @@ describe('Crate Route', () => {
 
       const response = await fastify.inject({
         method: 'HEAD',
-        url: `/entity/${encodeURIComponent('http://example.com/entity/file.wav')}/rocrate`,
+        url: `/entity/${encodeURIComponent('http://example.com/entity/file.wav')}/metadata`,
       });
 
       expect(response.statusCode).toBe(200);
@@ -331,7 +331,7 @@ describe('Crate Route', () => {
 
       const response = await fastify.inject({
         method: 'HEAD',
-        url: `/entity/${encodeURIComponent('http://example.com/collection')}/rocrate`,
+        url: `/entity/${encodeURIComponent('http://example.com/collection')}/metadata`,
       });
 
       expect(response.statusCode).toBe(200);
@@ -351,7 +351,7 @@ describe('Crate Route', () => {
 
       const response = await fastify.inject({
         method: 'HEAD',
-        url: `/entity/${encodeURIComponent('http://example.com/object')}/rocrate`,
+        url: `/entity/${encodeURIComponent('http://example.com/object')}/metadata`,
       });
 
       expect(response.statusCode).toBe(200);
@@ -365,7 +365,7 @@ describe('Crate Route', () => {
 
       const response = await fastify.inject({
         method: 'HEAD',
-        url: `/entity/${encodeURIComponent('http://example.com/nonexistent')}/rocrate`,
+        url: `/entity/${encodeURIComponent('http://example.com/nonexistent')}/metadata`,
       });
       const body = JSON.parse(response.body) as { error: { code: string } };
 
@@ -380,7 +380,7 @@ describe('Crate Route', () => {
 
       const response = await fastify.inject({
         method: 'HEAD',
-        url: `/entity/${encodeURIComponent('http://example.com/entity/file.wav')}/rocrate`,
+        url: `/entity/${encodeURIComponent('http://example.com/entity/file.wav')}/metadata`,
       });
       const body = JSON.parse(response.body) as { error: { code: string; message: string } };
 
@@ -395,7 +395,7 @@ describe('Crate Route', () => {
 
       const response = await fastify.inject({
         method: 'HEAD',
-        url: `/entity/${encodeURIComponent('http://example.com/entity/file.wav')}/rocrate`,
+        url: `/entity/${encodeURIComponent('http://example.com/entity/file.wav')}/metadata`,
       });
       const body = JSON.parse(response.body) as { error: { code: string } };
 
@@ -404,7 +404,7 @@ describe('Crate Route', () => {
     });
   });
 
-  describe('GET /entity/:id/rocrate - exhaustiveness check', () => {
+  describe('GET /entity/:id/metadata - exhaustiveness check', () => {
     it('should handle unexpected RO-Crate result type', async () => {
       prisma.entity.findUnique.mockResolvedValue(mockFileEntity);
 
@@ -417,7 +417,7 @@ describe('Crate Route', () => {
 
       const response = await fastify.inject({
         method: 'GET',
-        url: `/entity/${encodeURIComponent('http://example.com/entity/file.wav')}/rocrate`,
+        url: `/entity/${encodeURIComponent('http://example.com/entity/file.wav')}/metadata`,
       });
       const body = JSON.parse(response.body) as { error: { code: string } };
 
@@ -435,7 +435,7 @@ describe('Crate Route Restricted', () => {
 
   beforeEach(async () => {
     await fastifyBefore();
-    await fastify.register(crateRoute, {
+    await fastify.register(metadataRoute, {
       prisma,
       accessTransformer: RestrictedAccessTransformer,
       roCrateHandler: mockRoCrateHandler,
@@ -466,7 +466,7 @@ describe('Crate Route Restricted', () => {
 
       const response = await fastify.inject({
         method: 'HEAD',
-        url: `/entity/${encodeURIComponent('http://example.com/entity/file.wav')}/rocrate`,
+        url: `/entity/${encodeURIComponent('http://example.com/entity/file.wav')}/metadata`,
       });
       const body = JSON.parse(response.body) as { error: { code: string; message: string } };
 
@@ -482,7 +482,7 @@ describe('Crate Route Restricted', () => {
 
       const response = await fastify.inject({
         method: 'GET',
-        url: `/entity/${encodeURIComponent('http://example.com/entity/file.wav')}/rocrate`,
+        url: `/entity/${encodeURIComponent('http://example.com/entity/file.wav')}/metadata`,
       });
       const body = JSON.parse(response.body) as { error: { code: string; message: string } };
 
