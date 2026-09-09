@@ -4,11 +4,11 @@ import type { Client } from '@opensearch-project/opensearch';
 import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
 import { hasZodFastifySchemaValidationErrors, serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod';
 import type { PrismaClient } from './generated/prisma/client.js';
-import crate from './routes/crate.js';
 import entities from './routes/entities.js';
 import entity from './routes/entity.js';
 import file from './routes/file.js';
 import files from './routes/files.js';
+import metadata from './routes/metadata.js';
 import search from './routes/search.js';
 import type { FileHandler, RoCrateHandler } from './types/fileHandlers.js';
 import type {
@@ -133,7 +133,7 @@ const app: FastifyPluginAsync<Options> = async (fastify, options) => {
   fastify.register(entity, { prisma, accessTransformer, entityTransformers });
   fastify.register(files, { prisma, fileAccessTransformer, fileTransformers });
   fastify.register(file, { prisma, fileHandler });
-  fastify.register(crate, { prisma, roCrateHandler });
+  fastify.register(metadata, { prisma, roCrateHandler });
   fastify.register(search, {
     prisma,
     opensearch,

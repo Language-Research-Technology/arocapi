@@ -20,7 +20,7 @@ const crate: FastifyPluginAsync<CrateRouteOptions> = async (fastify, opts) => {
   const { prisma, roCrateHandler } = opts;
 
   fastify.withTypeProvider<ZodTypeProvider>().head(
-    '/entity/:id/rocrate',
+    '/entity/:id/metadata',
     {
       schema: {
         params: paramsSchema,
@@ -57,7 +57,7 @@ const crate: FastifyPluginAsync<CrateRouteOptions> = async (fastify, opts) => {
   );
 
   fastify.withTypeProvider<ZodTypeProvider>().get(
-    '/entity/:id/rocrate',
+    '/entity/:id/metadata',
     {
       schema: {
         params: paramsSchema,
