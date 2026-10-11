@@ -132,6 +132,27 @@ try {
 }
 ```
 
+### CORS
+
+arocapi doesn't set CORS headers; CORS is up to your application. To let
+browsers on other origins call the API, register
+[`@fastify/cors`](https://github.com/fastify/fastify-cors) on the root
+instance:
+
+```bash
+pnpm add @fastify/cors
+```
+
+```typescript
+import cors from '@fastify/cors';
+
+fastify.register(cors);
+fastify.register(arocapi, { /* ... */ });
+```
+
+The defaults allow all origins with `GET`, `HEAD` and `POST`, matching what
+arocapi registered before 5.0.0. See the `@fastify/cors` docs to restrict them.
+
 ## Database Setup with Prisma
 
 ### 1. Initialize Prisma

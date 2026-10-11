@@ -1,4 +1,3 @@
-import cors from '@fastify/cors';
 import sensible from '@fastify/sensible';
 import type { Client } from '@opensearch-project/opensearch';
 import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
@@ -76,7 +75,6 @@ export type Options = {
   opensearch: Client;
   queryBuilderClass?: typeof OpensearchQueryBuilder;
   queryBuilderOptions?: QueryBuilderOptions;
-  disableCors?: boolean;
   accessTransformer: AccessTransformer;
   entityTransformers?: EntityTransformer[];
   fileAccessTransformer: FileAccessTransformer;
@@ -90,7 +88,6 @@ const app: FastifyPluginAsync<Options> = async (fastify, options) => {
     opensearch,
     queryBuilderClass,
     queryBuilderOptions,
-    disableCors = false,
     accessTransformer,
     entityTransformers,
     fileAccessTransformer,
@@ -124,9 +121,6 @@ const app: FastifyPluginAsync<Options> = async (fastify, options) => {
   }
 
   fastify.register(sensible);
-  if (!disableCors) {
-    fastify.register(cors);
-  }
   setupValidation(fastify);
 
   fastify.register(entities, { prisma, accessTransformer, entityTransformers });

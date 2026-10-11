@@ -37,7 +37,6 @@ export async function setupIntegrationTests() {
   await fastify.register(app, {
     prisma,
     opensearch,
-    disableCors: true,
     accessTransformer: AllPublicAccessTransformer,
     fileAccessTransformer: AllPublicFileAccessTransformer,
     fileHandler: {

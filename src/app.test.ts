@@ -19,7 +19,6 @@ describe('Entity Route', () => {
       // @ts-expect-error we are testing missing options
       fastify.register(app, {
         opensearch,
-        disableCors: false,
       });
 
       await expect(() => fastify.ready()).rejects.toThrowError('Prisma client is required');
@@ -31,7 +30,6 @@ describe('Entity Route', () => {
       // @ts-expect-error we are testing missing options
       fastify.register(app, {
         prisma,
-        disableCors: false,
       });
 
       await expect(() => fastify.ready()).rejects.toThrowError('OpenSearch client is required');
@@ -44,7 +42,6 @@ describe('Entity Route', () => {
       fastify.register(app, {
         prisma,
         opensearch,
-        disableCors: false,
       });
 
       await expect(() => fastify.ready()).rejects.toThrowError('accessTransformer is required');
@@ -57,7 +54,6 @@ describe('Entity Route', () => {
       fastify.register(app, {
         prisma,
         opensearch,
-        disableCors: false,
         accessTransformer: AllPublicAccessTransformer,
       });
 
@@ -71,7 +67,6 @@ describe('Entity Route', () => {
       fastify.register(app, {
         prisma,
         opensearch,
-        disableCors: false,
         accessTransformer: AllPublicAccessTransformer,
         fileAccessTransformer: AllPublicFileAccessTransformer,
       });
@@ -86,7 +81,6 @@ describe('Entity Route', () => {
       fastify.register(app, {
         prisma,
         opensearch,
-        disableCors: false,
         accessTransformer: AllPublicAccessTransformer,
         fileAccessTransformer: AllPublicFileAccessTransformer,
         fileHandler: {
@@ -104,7 +98,6 @@ describe('Entity Route', () => {
       await fastify.register(app, {
         prisma,
         opensearch,
-        disableCors: false,
         accessTransformer: AllPublicAccessTransformer,
         fileAccessTransformer: AllPublicFileAccessTransformer,
         fileHandler: { get: vi.fn(), head: vi.fn() },
