@@ -5,8 +5,7 @@
   "description": "An RO-Crate API",
   "main": "dist/app.js",
   "exports": {
-    ".": "./dist/app.js",
-    "./express": "./dist/express.js"
+    ".": "./dist/app.js"
   },
   "keywords": [
     "rocrate",
@@ -20,7 +19,6 @@
     "@opensearch-project/opensearch": "^3.5.1",
     "@prisma/config": "^7.5.0",
     "dotenv": "^17.3.1",
-    "express": "^5.2.1",
     "fastify": "^5.8.4",
     "fastify-type-provider-zod": "^6.1.0",
     "zod": "^4.3.6"
@@ -34,7 +32,6 @@
     "@semantic-release/changelog": "^6.0.3",
     "@semantic-release/git": "^10.0.1",
     "@total-typescript/ts-reset": "^0.6.1",
-    "@types/express": "^5.0.6",
     "@types/node": "^24.12.0",
     "@vitest/coverage-v8": "^4.1.1",
     "@vitest/ui": "^4.1.1",

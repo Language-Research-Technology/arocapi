@@ -6,8 +6,9 @@ suitable use in long-term archival repository systems that aim to follow the
 Protocols for Long Term Archival Repository Services
 [PILARS](https://w3id.org/ldac/pilars).
 
-The library can be used to mount the API endpoints into your own Fastify or
-Express app.
+The library is a Fastify plugin that mounts the API endpoints into your own
+Fastify app, or into an Express app via Fastify (see
+[Using with Express](#using-with-express)).
 
 The aim is to provide an API-centred reference implementation of a repository
 with an access-controlled web portal for data dissemination and deposit:
@@ -63,11 +64,6 @@ OPENSEARCH_URL="http://localhost:9200"
 ```
 
 ## Creating Your API
-
-> [!TIP]
-> We recommend using the Fastify as it will be a native integration
-
-### Option 1: Fastify Implementation
 
 Create your Fastify application with Typescript support:
 
@@ -134,37 +130,6 @@ try {
   fastify.log.error(err);
   process.exit(1);
 }
-```
-
-### Option 2: Express Implementation
-
-Create your Express application:
-
-```typescript
-// src/app.ts
-import { Client } from '@opensearch-project/opensearch';
-import Arocapi from 'arocapi/express';
-import express from 'express';
-import expressListRoutes from 'express-list-routes';
-import { PrismaClient } from './generated/prisma/client.js';
-
-const prisma = new PrismaClient();
-
-if (!process.env.OPENSEARCH_URL) {
-  throw new Error('OPENSEARCH_URL environment variable is not set');
-}
-const opensearchUrl = process.env.OPENSEARCH_URL;
-const opensearch = new Client({ node: opensearchUrl });
-
-const app = express();
-
-const arocapi = await Arocapi({ opensearch, prisma });
-app.use('/api', arocapi);
-
-const port = process.env.PORT || 3000;
-app.listen(port, () => {
-  console.log(`API server listening on port ${port}`);
-});
 ```
 
 ## Database Setup with Prisma
@@ -711,6 +676,39 @@ await prisma.entity.create({
 ```
 
 Your file handler can use this metadata to locate files in your storage system.
+
+## Using with Express
+
+arocapi doesn't ship an Express adapter, but you can register the plugin on a
+Fastify instance and forward requests to it. Install `express` in your app
+first.
+
+```typescript
+// src/index.ts
+import arocapi, { type Options } from 'arocapi';
+import express from 'express';
+import Fastify from 'fastify';
+
+const options: Options = {
+  // Same options as passed to fastify.register in Creating Your API
+};
+
+const fastify = Fastify({
+  logger: true,
+});
+fastify.register(arocapi, options);
+await fastify.ready();
+
+const app = express();
+app.use('/api', (req, res) => {
+  fastify.routing(req, res);
+});
+
+const port = process.env.PORT || 3000;
+app.listen(port, () => {
+  console.log(`API server listening on port ${port}`);
+});
+```
 
 ## Development Workflow
 

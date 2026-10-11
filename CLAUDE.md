@@ -2,7 +2,7 @@
 
 ## What is this
 
-arocapi is a **published npm library** (not a standalone app). It provides an RO-Crate API as a Fastify plugin and an Express adapter. Changes must be mindful of the public API surface, semver implications, and peer dependencies (`@prisma/client`). The package is released via semantic-release.
+arocapi is a **published npm library** (not a standalone app). It provides an RO-Crate API as a Fastify plugin. Changes must be mindful of the public API surface, semver implications, and peer dependencies (`@prisma/client`). The package is released via semantic-release.
 
 ## Commands
 
