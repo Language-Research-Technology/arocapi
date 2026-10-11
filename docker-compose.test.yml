@@ -1,3 +1,5 @@
+name: arocapi
+
 services:
   test-db:
     image: mysql:8

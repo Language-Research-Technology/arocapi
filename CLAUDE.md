@@ -7,7 +7,8 @@ arocapi is a **published npm library** (not a standalone app). It provides an RO
 ## Commands
 
 - `pnpm lint` — run all linters in parallel (biome, type checking, knip)
-- `pnpm test` — run all tests with coverage
+- `pnpm test` — start test containers (docker-compose.test.yml), apply migrations, then run all tests with coverage
+- `pnpm test:ci` — run tests without starting containers (CI provides its own services)
 - `pnpm test <file>` — run a single test file, e.g. `pnpm run test src/routes/entity.test.ts`
 - `pnpm test:watch` — watch mode
 - `pnpm test:coverage` — tests with HTML coverage report
