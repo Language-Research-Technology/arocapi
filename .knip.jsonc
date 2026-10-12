@@ -3,6 +3,9 @@
   "ignore": ["src/index.dev.ts", "scripts/loadEntities.ts"],
   "ignoreDependencies": [
     // Needed by @semantic-release based on our config
-    "conventional-changelog-conventionalcommits"
+    "conventional-changelog-conventionalcommits",
+    // release.config.mjs drops these on beta
+    "@semantic-release/changelog",
+    "@semantic-release/git"
   ]
 }
