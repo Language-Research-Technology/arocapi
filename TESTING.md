@@ -273,6 +273,7 @@ The CI pipeline will **fail** if coverage drops below 95%. This ensures:
 Tests run automatically on:
 
 - **Pull requests** to main branch
+- **Pushes** to main branch, as the gate in the Publish Package workflow (see `RELEASING.md`)
 - **Manual triggers** via workflow_dispatch
 
 ### CI Pipeline Steps
@@ -280,7 +281,7 @@ Tests run automatically on:
 1. **Setup**: Install dependencies, start services
 2. **Health checks**: Verify database and OpenSearch connectivity
 3. **Database setup**: Run migrations
-4. **Linting**: Code style and type checking
+4. **Linting**: Code style (biome), type checking and unused code (knip)
 5. **Testing**: Execute full test suite
 6. **Coverage**: Verify coverage thresholds
 7. **Reporting**: Post results to PR

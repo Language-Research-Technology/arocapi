@@ -30,6 +30,9 @@ jobs:
       issues: write # to be able to comment on released issues
       pull-requests: write # to be able to comment on released pull requests
       id-token: write # for npm trusted publishing and provenance
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      NPM_CONFIG_PROVENANCE: true
 
     steps:
       - name: Checkout code
@@ -68,17 +71,11 @@ jobs:
 
       - name: Semantic Release (beta)
         if: github.event_name == 'push'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_CONFIG_PROVENANCE: true
         # semantic-release takes the branch from GITHUB_REF
         run: GITHUB_REF=refs/heads/beta npx semantic-release
 
       - name: Semantic Release (dry-run)
-        if: github.event_name == 'workflow_dispatch' && inputs.dry_run
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_CONFIG_PROVENANCE: true
+        if: inputs.dry_run
         run: |
           echo "## Semantic Release Dry Run"
           echo "This shows what would be released without making any changes:"
@@ -92,14 +89,11 @@ jobs:
 
       - name: Semantic Release
         if: github.event_name == 'workflow_dispatch' && !inputs.dry_run
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_CONFIG_PROVENANCE: true
         run: npx semantic-release
 
       - name: Summary
         run: |
-          if [ "${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}" == "true" ]; then
+          if [ "${{ inputs.dry_run }}" == "true" ]; then
             echo "## Dry Run Complete" >> $GITHUB_STEP_SUMMARY
             echo "Semantic release dry run has been completed. Check the logs above for details on what would be released." >> $GITHUB_STEP_SUMMARY
           else

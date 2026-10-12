@@ -78,8 +78,6 @@ jobs:
 
       - name: Lint (knip)
         run: pnpm run lint:knip
-        env:
-          DATABASE_URL: mysql://root:password@localhost:3307/catalog_test
 
       - name: Run unit tests
         run: pnpm run test:ci

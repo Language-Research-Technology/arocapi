@@ -19,18 +19,14 @@ export default {
         preset: 'conventionalcommits',
       },
     ],
-    ...(prerelease ? [] : ['@semantic-release/changelog']),
+    !prerelease && '@semantic-release/changelog',
     '@semantic-release/npm',
     '@semantic-release/github',
-    ...(prerelease
-      ? []
-      : [
-          [
-            '@semantic-release/git',
-            {
-              assets: ['CHANGELOG.md', 'package.json'],
-            },
-          ],
-        ]),
-  ],
+    !prerelease && [
+      '@semantic-release/git',
+      {
+        assets: ['CHANGELOG.md', 'package.json'],
+      },
+    ],
+  ].filter(Boolean),
 };
