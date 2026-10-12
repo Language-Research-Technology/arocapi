@@ -8,7 +8,7 @@ import type { PrismaClient } from '../generated/prisma/client.js';
 import { baseEntityTransformer, resolveEntityReferences } from '../transformers/default.js';
 import type { AccessTransformer, EntityTransformer } from '../types/transformers.js';
 import { createInternalError, createInvalidRequestError } from '../utils/errors.js';
-import { OpensearchQueryBuilder, type QueryBuilderOptions } from '../utils/queryBuilder.js';
+import type { OpensearchQueryBuilder } from '../utils/queryBuilder.js';
 
 const boundingBoxSchema = z.object({
   topRight: z.object({
@@ -38,20 +38,11 @@ type SearchRouteOptions = {
   opensearch: Client;
   accessTransformer: AccessTransformer;
   entityTransformers?: EntityTransformer[];
-  queryBuilderClass?: typeof OpensearchQueryBuilder;
-  queryBuilderOptions?: QueryBuilderOptions;
+  queryBuilder: OpensearchQueryBuilder;
 };
 
 const search: FastifyPluginAsync<SearchRouteOptions> = async (fastify, opts) => {
-  const {
-    prisma,
-    opensearch,
-    accessTransformer,
-    entityTransformers = [],
-    queryBuilderClass = OpensearchQueryBuilder,
-    queryBuilderOptions,
-  } = opts;
-  const queryBuilder = new queryBuilderClass(queryBuilderOptions);
+  const { prisma, opensearch, accessTransformer, entityTransformers = [], queryBuilder } = opts;
   fastify.withTypeProvider<ZodTypeProvider>().post(
     '/search',
     {

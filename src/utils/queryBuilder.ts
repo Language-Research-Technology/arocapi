@@ -19,6 +19,20 @@ export type QueryBuilderOptions = {
   aggregations?: Aggregations;
 };
 
+export type FilterCapability = {
+  type: 'string' | 'date' | 'number' | 'boolean';
+  label?: string;
+};
+
+export type FacetCapability = {
+  label?: string;
+};
+
+export type SearchCapability = {
+  filters: Record<string, FilterCapability>;
+  facets: Record<string, FacetCapability>;
+};
+
 export class OpensearchQueryBuilder {
   aggregations: Aggregations;
 
@@ -116,6 +130,17 @@ export class OpensearchQueryBuilder {
     }
 
     return aggs;
+  }
+
+  searchCapabilities(): SearchCapability {
+    const fields = Object.entries(this.aggregations)
+      .filter(([, aggregation]) => 'terms' in aggregation)
+      .map(([name]) => name);
+
+    return {
+      filters: Object.fromEntries(fields.map((name) => [name, { type: 'string' }])),
+      facets: Object.fromEntries(fields.map((name) => [name, {}])),
+    };
   }
 
   buildSort(sort: string, order: SortOrder) {

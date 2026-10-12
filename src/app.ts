@@ -3,6 +3,7 @@ import type { Client } from '@opensearch-project/opensearch';
 import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
 import { hasZodFastifySchemaValidationErrors, serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod';
 import type { PrismaClient } from './generated/prisma/client.js';
+import capabilities from './routes/capabilities.js';
 import entities from './routes/entities.js';
 import entity from './routes/entity.js';
 import file from './routes/file.js';
@@ -17,7 +18,7 @@ import type {
   FileTransformer,
 } from './types/transformers.js';
 import { createValidationError } from './utils/errors.js';
-import type { QueryBuilderOptions } from './utils/queryBuilder.js';
+import type { FacetCapability, FilterCapability, QueryBuilderOptions, SearchCapability } from './utils/queryBuilder.js';
 import { OpensearchQueryBuilder } from './utils/queryBuilder.js';
 
 export type { AuthorisedEntity, AuthorisedFile, StandardEntity, StandardFile } from './transformers/default.js';
@@ -43,7 +44,7 @@ export type {
   FileTransformer,
   TransformerContext,
 } from './types/transformers.js';
-export type { QueryBuilderOptions };
+export type { FacetCapability, FilterCapability, QueryBuilderOptions, SearchCapability };
 export { OpensearchQueryBuilder };
 
 const setupValidation = (fastify: FastifyInstance) => {
@@ -123,6 +124,9 @@ const app: FastifyPluginAsync<Options> = async (fastify, options) => {
   fastify.register(sensible);
   setupValidation(fastify);
 
+  const queryBuilder = new (queryBuilderClass ?? OpensearchQueryBuilder)(queryBuilderOptions);
+
+  fastify.register(capabilities, { queryBuilder });
   fastify.register(entities, { prisma, accessTransformer, entityTransformers });
   fastify.register(entity, { prisma, accessTransformer, entityTransformers });
   fastify.register(files, { prisma, fileAccessTransformer, fileTransformers });
@@ -133,8 +137,7 @@ const app: FastifyPluginAsync<Options> = async (fastify, options) => {
     opensearch,
     accessTransformer,
     entityTransformers,
-    queryBuilderClass,
-    queryBuilderOptions,
+    queryBuilder,
   });
 };
 

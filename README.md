@@ -207,9 +207,10 @@ npx prisma generate
 
 The arocapi provides the following endpoints:
 
+- `GET /capabilities` - Declare the spec version and supported search filters and facets (always public)
 - `GET /entities` - List all entities with pagination and filtering
 - `GET /entity/:id` - Get a specific entity by ID
-- `GET /entity/:id/rocrate` - Download RO-Crate metadata
+- `GET /entity/:id/metadata` - Download RO-Crate metadata
 - `GET /files` - List files with pagination and filtering
 - `GET /file/:id` - Download or access file content
 - `POST /search` - Search entities using OpenSearch
@@ -230,6 +231,27 @@ may override any or all of the methods as required:
 - `buildQuery`: For generating the base search query.
 - `buildAggregations`: For generating the facets or aggregations related query.
 - `buildSort`: For generating the ordering/sorting part of the query.
+- `searchCapabilities`: For declaring the search filters and facets in `GET /capabilities`.
+
+By default `searchCapabilities` declares each `terms` aggregation as a `string`
+filter and a facet. Other aggregation types are not declared. Override it to add
+labels or declare filter-only fields:
+
+```typescript
+import { OpensearchQueryBuilder, type SearchCapability } from 'arocapi';
+
+class MyQueryBuilder extends OpensearchQueryBuilder {
+  searchCapabilities(): SearchCapability {
+    return {
+      filters: {
+        inLanguage: { type: 'string', label: 'Language' },
+        dateCreated: { type: 'date', label: 'Date created' },
+      },
+      facets: { inLanguage: { label: 'Language' } },
+    };
+  }
+}
+```
 
 ### Query Builder Options (Optional)
 The `queryBuilderOptions` optional parameter is passed as a constructor argument
