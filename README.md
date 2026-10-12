@@ -51,6 +51,8 @@ pnpm add @prisma/client @opensearch-project/opensearch
 pnpm add -D prisma
 ```
 
+Changes merged to `main` are published as prereleases under the `beta` tag: `pnpm add arocapi@beta`.
+
 ### 2. Environment Setup
 
 Create a `.env` file in your project root:

@@ -15,6 +15,8 @@ arocapi is a **published npm library** (not a standalone app). It provides an RO
 - `pnpm generate` — generate Prisma client (run after schema changes)
 - `pnpm db:migrate` — apply database migrations
 
+Releases (stable and `beta` prereleases) are covered in `RELEASING.md`.
+
 ## Architecture
 
 This is a Fastify plugin that registers routes for entities, files, search, and RO-Crate metadata. Consumers register it with required configuration: `prisma`, `opensearch`, `accessTransformer`, `fileAccessTransformer`, `fileHandler`, `roCrateHandler`.
