@@ -71,10 +71,16 @@ jobs:
         env:
           DATABASE_URL: mysql://root:password@localhost:3307/catalog_test
 
-      - name: Run linting
-        run: |
-          pnpm run lint:biome
-          pnpm run lint:types
+      - name: Lint (biome)
+        run: pnpm run lint:biome
+
+      - name: Lint (types)
+        run: pnpm run lint:types
+
+      - name: Lint (knip)
+        run: pnpm run lint:knip
+        env:
+          DATABASE_URL: mysql://root:password@localhost:3307/catalog_test
 
       - name: Run unit tests
         run: pnpm run test:ci
