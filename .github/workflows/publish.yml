@@ -68,7 +68,10 @@ jobs:
 
       - name: Fast-forward beta to main
         if: github.event_name == 'push'
-        run: git push origin HEAD:refs/heads/beta
+        # semantic-release needs a local beta branch to read its tags
+        run: |
+          git push origin HEAD:refs/heads/beta
+          git checkout -B beta
 
       - name: Semantic Release (beta)
         if: github.event_name == 'push'
