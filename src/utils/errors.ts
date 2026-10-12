@@ -31,7 +31,7 @@ const createErrorResponse = (code: ErrorCode, message: string, details?: ErrorDe
 
 type ValidationViolation = {
   field: string;
-  message: string;
+  message?: string;
   value?: unknown;
 };
 

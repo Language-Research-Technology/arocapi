@@ -1,7 +1,11 @@
-onlyBuiltDependencies:
-  - '@biomejs/biome'
-  - '@prisma/client'
-  - '@prisma/engines'
-  - esbuild
-  - lefthook
-  - prisma
+update:
+  githubActions: true
+
+autoDedupe: true
+saveTypes: true
+
+allowBuilds:
+  "@prisma/engines": true # downloads the schema engine used by `prisma migrate`
+  esbuild: true # validates/links the platform-specific binary
+  lefthook: true # installs the git hooks
+  prisma: false # preinstall only warns about unsupported Node versions

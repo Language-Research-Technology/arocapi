@@ -14,38 +14,38 @@
   "author": "John Ferlito <johnf@inodes.org>",
   "license": "ISC",
   "dependencies": {
-    "@fastify/sensible": "^6.0.4",
-    "@opensearch-project/opensearch": "^3.5.1",
-    "@prisma/config": "^7.5.0",
-    "dotenv": "^17.3.1",
-    "fastify": "^5.8.4",
-    "fastify-type-provider-zod": "^6.1.0",
-    "zod": "^4.3.6"
+    "@fastify/sensible": "^6.0.7",
+    "@opensearch-project/opensearch": "^3.9.0",
+    "@prisma/config": "^7.10.0",
+    "dotenv": "^18.0.7",
+    "fastify": "^5.12.5",
+    "fastify-type-provider-zod": "^7.0.0",
+    "zod": "^4.6.6"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.4.9",
-    "@commitlint/cli": "^20.5.0",
-    "@commitlint/config-conventional": "^20.5.0",
-    "@prisma/adapter-mariadb": "^7.5.0",
-    "@prisma/client": "^7.5.0",
-    "@semantic-release/changelog": "^6.0.3",
-    "@semantic-release/git": "^10.0.1",
+    "@biomejs/biome": "^2.5.15",
+    "@commitlint/cli": "^21.2.3",
+    "@commitlint/config-conventional": "^21.2.3",
+    "@prisma/adapter-mariadb": "^7.10.0",
+    "@prisma/client": "^7.10.0",
+    "@semantic-release/changelog": "^7.0.0",
+    "@semantic-release/git": "^11.0.1",
     "@total-typescript/ts-reset": "^0.6.1",
-    "@types/node": "^24.12.0",
-    "@vitest/coverage-v8": "^4.1.1",
-    "@vitest/ui": "^4.1.1",
-    "concurrently": "^9.2.1",
-    "conventional-changelog-conventionalcommits": "^9.3.0",
+    "@types/node": "^26.6.5",
+    "@vitest/coverage-v8": "^5.0.3",
+    "@vitest/ui": "^5.0.3",
+    "concurrently": "^10.0.6",
+    "conventional-changelog-conventionalcommits": "^9.3.1",
     "fastify-tsconfig": "^3.0.0",
-    "knip": "^6.0.5",
-    "lefthook": "^2.1.4",
-    "prisma": "^7.5.0",
-    "prisma-json-types-generator": "^4.1.1",
-    "semantic-release": "^25.0.3",
-    "tsx": "^4.21.0",
-    "typescript": "^6.0.2",
-    "vitest": "^4.1.1",
-    "vitest-mock-extended": "^3.1.0"
+    "knip": "^6.41.0",
+    "lefthook": "^2.2.1",
+    "prisma": "^7.10.0",
+    "prisma-json-types-generator": "^5.1.1",
+    "semantic-release": "^25.0.9",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.3",
+    "vitest-mock-extended": "^5.1.1"
   },
   "peerDependencies": {
     "@prisma/client": ">=6"
@@ -89,5 +89,5 @@
     "registry": "https://registry.npmjs.org/",
     "provenance": true
   },
-  "packageManager": "pnpm@10.24.0+sha512.01ff8ae71b4419903b65c60fb2dc9d34cf8bb6e06d03bde112ef38f7a34d6904c424ba66bea5cdcf12890230bf39f9580473140ed9c946fef328b6e5238a345a"
+  "packageManager": "pnpm@12.11.2"
 }
