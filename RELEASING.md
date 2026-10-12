@@ -16,7 +16,8 @@ around it.
 
 ## Stable releases
 
-1. Go to **Actions → Publish Package → Run workflow** and pick `main`.
+1. Go to **Actions → Publish Package → Run workflow** and leave the branch as `main` (runs from any
+   other branch are skipped).
 2. Leave **Dry run** ticked and run it. Check the logs for the version and release notes.
 3. Run it again with **Dry run** unticked.
 

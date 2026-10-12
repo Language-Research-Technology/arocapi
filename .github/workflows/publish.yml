@@ -17,6 +17,8 @@ concurrency:
 
 jobs:
   test:
+    # workflow_dispatch can't hide its branch picker; publish only runs (via needs) from main
+    if: github.ref == 'refs/heads/main'
     uses: ./.github/workflows/test.yml
     permissions:
       contents: read
@@ -47,7 +49,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: lts/*
-          registry-url: "https://registry.npmjs.org"
           cache: pnpm
 
       - name: Install dependencies
@@ -72,7 +73,7 @@ jobs:
       - name: Semantic Release (beta)
         if: github.event_name == 'push'
         # semantic-release takes the branch from GITHUB_REF
-        run: GITHUB_REF=refs/heads/beta npx semantic-release
+        run: GITHUB_REF=refs/heads/beta pnpm exec semantic-release
 
       - name: Semantic Release (dry-run)
         if: inputs.dry_run
@@ -80,7 +81,7 @@ jobs:
           echo "## Semantic Release Dry Run"
           echo "This shows what would be released without making any changes:"
           echo ""
-          npx semantic-release --dry-run
+          pnpm exec semantic-release --dry-run
           echo ""
           echo "## Package Contents Preview"
           echo "The following files would be included in the npm package:"
@@ -89,7 +90,7 @@ jobs:
 
       - name: Semantic Release
         if: github.event_name == 'workflow_dispatch' && !inputs.dry_run
-        run: npx semantic-release
+        run: pnpm exec semantic-release
 
       - name: Summary
         run: |

@@ -1,5 +1,4 @@
-// Prereleases don't commit back, so CI can keep beta fast-forwarded to main.
-const prerelease = process.env.GITHUB_REF === 'refs/heads/beta';
+const isPrerelease = process.env.GITHUB_REF === 'refs/heads/beta';
 
 /**
  * @type {import('semantic-release').GlobalConfig}
@@ -19,10 +18,11 @@ export default {
         preset: 'conventionalcommits',
       },
     ],
-    !prerelease && '@semantic-release/changelog',
+    // Prereleases don't commit back, so CI can keep beta fast-forwarded to main
+    !isPrerelease && '@semantic-release/changelog',
     '@semantic-release/npm',
     '@semantic-release/github',
-    !prerelease && [
+    !isPrerelease && [
       '@semantic-release/git',
       {
         assets: ['CHANGELOG.md', 'package.json'],
