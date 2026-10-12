@@ -1,7 +1,7 @@
 import { createReadStream } from 'node:fs';
 import type { FastifyPluginAsync } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
-import { z } from 'zod/v4';
+import { z } from 'zod';
 import type { PrismaClient } from '../generated/prisma/client.js';
 import type { FileHandler, FileMetadata } from '../types/fileHandlers.js';
 import { createInternalError, createNotFoundError } from '../utils/errors.js';
