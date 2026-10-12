@@ -17,14 +17,36 @@ concurrency:
 
 jobs:
   test:
-    # workflow_dispatch can't hide its branch picker; publish only runs (via needs) from main
-    if: github.ref == 'refs/heads/main'
+    # workflow_dispatch can't hide its branch picker; everything else (via needs) only runs from main or beta
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/beta'
     uses: ./.github/workflows/test.yml
     permissions:
       contents: read
       pull-requests: write
 
+  # Prereleases must run on beta itself: npm rejects provenance whose ref doesn't match the OIDC token
+  promote-beta:
+    if: github.event_name == 'push'
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # to push beta
+      actions: write # to dispatch the beta run
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Fast-forward beta to main
+        run: git push origin HEAD:refs/heads/beta
+
+      - name: Publish prerelease from beta
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh workflow run publish.yml --ref beta -f dry_run=false
+
   publish:
+    if: github.event_name == 'workflow_dispatch'
     needs: test
     runs-on: ubuntu-latest
     permissions:
@@ -66,18 +88,6 @@ jobs:
       - name: Verify the integrity of provenance attestations and registry signatures for installed dependencies
         run: npm audit signatures
 
-      - name: Fast-forward beta to main
-        if: github.event_name == 'push'
-        # semantic-release needs a local beta branch to read its tags
-        run: |
-          git push origin HEAD:refs/heads/beta
-          git checkout -B beta
-
-      - name: Semantic Release (beta)
-        if: github.event_name == 'push'
-        # semantic-release takes the branch from GITHUB_REF
-        run: GITHUB_REF=refs/heads/beta pnpm exec semantic-release
-
       - name: Semantic Release (dry-run)
         if: inputs.dry_run
         run: |
@@ -92,7 +102,7 @@ jobs:
           pnpm pack
 
       - name: Semantic Release
-        if: github.event_name == 'workflow_dispatch' && !inputs.dry_run
+        if: ${{ !inputs.dry_run }}
         run: pnpm exec semantic-release
 
       - name: Summary

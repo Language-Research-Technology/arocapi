@@ -16,8 +16,8 @@ around it.
 
 ## Stable releases
 
-1. Go to **Actions → Publish Package → Run workflow** and leave the branch as `main` (runs from any
-   other branch are skipped).
+1. Go to **Actions → Publish Package → Run workflow** and leave the branch as `main` (runs from
+   anything other than `main` or `beta` are skipped).
 2. Leave **Dry run** ticked and run it. Check the logs for the version and release notes.
 3. Run it again with **Dry run** unticked.
 
@@ -30,8 +30,10 @@ Every push to `main` that passes the tests publishes a prerelease under the `bet
 as it contains a releasable commit (`fix:`, `feat:` or a breaking change) since the last release.
 Consumers install it with `pnpm add arocapi@beta`; `latest` is untouched.
 
-CI fast-forwards the `beta` branch to the tested commit and runs semantic-release there, because
-semantic-release only cuts prereleases from a prerelease branch. Prereleases get a GitHub release
+CI fast-forwards the `beta` branch to the tested commit, then dispatches Publish Package on `beta`,
+which runs the tests again and publishes. It has to run on `beta` itself: semantic-release only cuts
+prereleases from a prerelease branch, and npm rejects provenance from a run on a different branch.
+Prereleases get a GitHub release
 marked as a prerelease but aren't added to `CHANGELOG.md`, and nothing is committed back, which
 keeps `beta` a fast-forward of `main`.
 
