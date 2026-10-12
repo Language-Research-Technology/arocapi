@@ -2,12 +2,17 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { fastify, fastifyAfter, fastifyBefore, prisma } from '../test/helpers/fastify.js';
 import { AllPublicAccessTransformer } from '../transformers/default.js';
+import { AllVisibleEntityFilter } from '../utils/visibility.js';
 import entitiesRoute from './entities.js';
 
 describe('Entities Route', () => {
   beforeEach(async () => {
     await fastifyBefore();
-    await fastify.register(entitiesRoute, { prisma, accessTransformer: AllPublicAccessTransformer });
+    await fastify.register(entitiesRoute, {
+      entityVisibilityFilter: AllVisibleEntityFilter,
+      prisma,
+      accessTransformer: AllPublicAccessTransformer,
+    });
   });
 
   afterEach(async () => {
@@ -59,7 +64,7 @@ describe('Entities Route', () => {
       expect(response.statusCode).toBe(200);
       expect(body).toMatchSnapshot();
       expect(prisma.entity.findMany).toHaveBeenCalledWith({
-        where: {},
+        where: { AND: [{}, {}] },
         include: { file: { select: { id: true } } },
         orderBy: { id: 'asc' },
         skip: 0,
@@ -81,7 +86,7 @@ describe('Entities Route', () => {
 
       expect(response.statusCode).toBe(200);
       expect(prisma.entity.findMany).toHaveBeenCalledWith({
-        where: { memberOf: 'http://example.com/collection/1' },
+        where: { AND: [{ memberOf: 'http://example.com/collection/1' }, {}] },
         include: { file: { select: { id: true } } },
         orderBy: { id: 'asc' },
         skip: 0,
@@ -103,7 +108,7 @@ describe('Entities Route', () => {
 
       expect(response.statusCode).toBe(200);
       expect(prisma.entity.findMany).toHaveBeenCalledWith({
-        where: { entityType: { in: ['http://pcdm.org/models#Collection'] } },
+        where: { AND: [{ entityType: { in: ['http://pcdm.org/models#Collection'] } }, {}] },
         include: { file: { select: { id: true } } },
         orderBy: { id: 'asc' },
         skip: 0,
@@ -126,9 +131,7 @@ describe('Entities Route', () => {
       expect(response.statusCode).toBe(200);
       expect(prisma.entity.findMany).toHaveBeenCalledWith({
         where: {
-          entityType: {
-            in: ['http://pcdm.org/models#Collection', 'http://pcdm.org/models#Object'],
-          },
+          AND: [{ entityType: { in: ['http://pcdm.org/models#Collection', 'http://pcdm.org/models#Object'] } }, {}],
         },
         include: { file: { select: { id: true } } },
         orderBy: { id: 'asc' },
@@ -152,7 +155,7 @@ describe('Entities Route', () => {
 
       expect(response.statusCode).toBe(200);
       expect(prisma.entity.findMany).toHaveBeenCalledWith({
-        where: {},
+        where: { AND: [{}, {}] },
         include: { file: { select: { id: true } } },
         orderBy: { id: 'asc' },
         skip: 10,
@@ -175,7 +178,7 @@ describe('Entities Route', () => {
 
       expect(response.statusCode).toBe(200);
       expect(prisma.entity.findMany).toHaveBeenCalledWith({
-        where: {},
+        where: { AND: [{}, {}] },
         include: { file: { select: { id: true } } },
         orderBy: { name: 'desc' },
         skip: 0,
@@ -197,7 +200,7 @@ describe('Entities Route', () => {
 
       expect(response.statusCode).toBe(200);
       expect(prisma.entity.findMany).toHaveBeenCalledWith({
-        where: {},
+        where: { AND: [{}, {}] },
         include: { file: { select: { id: true } } },
         orderBy: { id: 'asc' },
         skip: 0,
@@ -251,6 +254,7 @@ describe('Entities Route', () => {
 
       await fastifyBefore();
       await fastify.register(entitiesRoute, {
+        entityVisibilityFilter: AllVisibleEntityFilter,
         prisma,
         accessTransformer: AllPublicAccessTransformer,
         entityTransformers: [customTransformer],

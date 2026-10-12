@@ -17,6 +17,12 @@ import type {
   FileAccessTransformer,
   FileTransformer,
 } from './types/transformers.js';
+import type {
+  EntityVisibilityFilter,
+  HiddenReason,
+  HiddenResponse,
+  SearchVisibilityFilter,
+} from './types/visibility.js';
 import { createValidationError } from './utils/errors.js';
 import type { FacetCapability, FilterCapability, QueryBuilderOptions, SearchCapability } from './utils/queryBuilder.js';
 import { OpensearchQueryBuilder } from './utils/queryBuilder.js';
@@ -44,6 +50,13 @@ export type {
   FileTransformer,
   TransformerContext,
 } from './types/transformers.js';
+export type {
+  EntityVisibilityFilter,
+  HiddenReason,
+  HiddenResponse,
+  SearchVisibilityFilter,
+} from './types/visibility.js';
+export { AllVisibleEntityFilter, AllVisibleSearchFilter } from './utils/visibility.js';
 export type { FacetCapability, FilterCapability, QueryBuilderOptions, SearchCapability };
 export { OpensearchQueryBuilder };
 
@@ -71,6 +84,8 @@ const setupValidation = (fastify: FastifyInstance) => {
   });
 };
 
+const HIDDEN_REASONS: string[] = ['notFound', 'authenticationRequired', 'forbidden'] satisfies HiddenReason[];
+
 export type Options = {
   prisma: PrismaClient;
   opensearch: Client;
@@ -82,6 +97,9 @@ export type Options = {
   fileTransformers?: FileTransformer[];
   fileHandler: FileHandler;
   roCrateHandler: RoCrateHandler;
+  entityVisibilityFilter: EntityVisibilityFilter;
+  searchVisibilityFilter: SearchVisibilityFilter;
+  hiddenResponse?: HiddenResponse;
 };
 const app: FastifyPluginAsync<Options> = async (fastify, options) => {
   const {
@@ -95,6 +113,9 @@ const app: FastifyPluginAsync<Options> = async (fastify, options) => {
     fileTransformers,
     fileHandler,
     roCrateHandler,
+    entityVisibilityFilter,
+    searchVisibilityFilter,
+    hiddenResponse = 'notFound',
   } = options;
 
   if (!prisma) {
@@ -121,23 +142,37 @@ const app: FastifyPluginAsync<Options> = async (fastify, options) => {
     throw new Error('roCrateHandler is required');
   }
 
+  if (!entityVisibilityFilter) {
+    throw new Error('entityVisibilityFilter is required');
+  }
+
+  if (!searchVisibilityFilter) {
+    throw new Error('searchVisibilityFilter is required');
+  }
+
+  if (typeof hiddenResponse === 'string' && !HIDDEN_REASONS.includes(hiddenResponse)) {
+    throw new Error(`hiddenResponse must be a function or one of: ${HIDDEN_REASONS.join(', ')}`);
+  }
+
   fastify.register(sensible);
   setupValidation(fastify);
 
   const queryBuilder = new (queryBuilderClass ?? OpensearchQueryBuilder)(queryBuilderOptions);
 
   fastify.register(capabilities, { queryBuilder });
-  fastify.register(entities, { prisma, accessTransformer, entityTransformers });
-  fastify.register(entity, { prisma, accessTransformer, entityTransformers });
-  fastify.register(files, { prisma, fileAccessTransformer, fileTransformers });
-  fastify.register(file, { prisma, fileHandler });
-  fastify.register(metadata, { prisma, roCrateHandler });
+  fastify.register(entities, { prisma, accessTransformer, entityTransformers, entityVisibilityFilter });
+  fastify.register(entity, { prisma, accessTransformer, entityTransformers, entityVisibilityFilter, hiddenResponse });
+  fastify.register(files, { prisma, fileAccessTransformer, fileTransformers, entityVisibilityFilter });
+  fastify.register(file, { prisma, fileHandler, entityVisibilityFilter, hiddenResponse });
+  fastify.register(metadata, { prisma, roCrateHandler, entityVisibilityFilter, hiddenResponse });
   fastify.register(search, {
     prisma,
     opensearch,
     accessTransformer,
     entityTransformers,
     queryBuilder,
+    entityVisibilityFilter,
+    searchVisibilityFilter,
   });
 };
 

@@ -3,12 +3,17 @@ import type { FileAccessTransformer, FileTransformer } from '../app.js';
 import { fastify, fastifyAfter, fastifyBefore, prisma } from '../test/helpers/fastify.js';
 import { AllPublicFileAccessTransformer } from '../transformers/default.js';
 import type { StandardErrorResponse } from '../utils/errors.js';
+import { AllVisibleEntityFilter } from '../utils/visibility.js';
 import filesRoute from './files.js';
 
 describe('Files Route', () => {
   beforeEach(async () => {
     await fastifyBefore();
-    await fastify.register(filesRoute, { prisma, fileAccessTransformer: AllPublicFileAccessTransformer });
+    await fastify.register(filesRoute, {
+      entityVisibilityFilter: AllVisibleEntityFilter,
+      prisma,
+      fileAccessTransformer: AllPublicFileAccessTransformer,
+    });
   });
 
   afterEach(async () => {
@@ -79,7 +84,7 @@ describe('Files Route', () => {
       });
       expect(prisma.file.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: { entity: { memberOf: 'http://example.com/collection/1' } },
+          where: { entity: { AND: [{ memberOf: 'http://example.com/collection/1' }, {}] } },
         }),
       );
     });
@@ -213,6 +218,7 @@ describe('Files Route', () => {
       });
 
       await fastify.register(filesRoute, {
+        entityVisibilityFilter: AllVisibleEntityFilter,
         prisma,
         fileAccessTransformer: AllPublicFileAccessTransformer,
         fileTransformers: [customTransformer],
@@ -251,6 +257,7 @@ describe('Files Route', () => {
       });
 
       await fastify.register(filesRoute, {
+        entityVisibilityFilter: AllVisibleEntityFilter,
         prisma,
         fileAccessTransformer: customFileAccessTransformer,
       });

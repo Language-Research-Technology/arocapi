@@ -1,6 +1,8 @@
 const ERROR_CODES = {
   VALIDATION_ERROR: 'VALIDATION_ERROR',
   NOT_FOUND: 'NOT_FOUND',
+  UNAUTHORIZED: 'UNAUTHORIZED',
+  FORBIDDEN: 'FORBIDDEN',
   RATE_LIMIT_EXCEEDED: 'RATE_LIMIT_EXCEEDED',
   INTERNAL_ERROR: 'INTERNAL_ERROR',
   INVALID_REQUEST: 'INVALID_REQUEST',
@@ -40,6 +42,12 @@ export const createValidationError = (message: string, violations: ValidationVio
 
 export const createNotFoundError = (message: string, entityId?: string): StandardErrorResponse =>
   createErrorResponse(ERROR_CODES.NOT_FOUND, message, entityId ? { entityId } : undefined);
+
+export const createAuthenticationRequiredError = (message: string, entityId: string): StandardErrorResponse =>
+  createErrorResponse(ERROR_CODES.UNAUTHORIZED, message, { entityId });
+
+export const createForbiddenError = (message: string, entityId: string): StandardErrorResponse =>
+  createErrorResponse(ERROR_CODES.FORBIDDEN, message, { entityId });
 
 export const createInvalidRequestError = (message: string): StandardErrorResponse =>
   createErrorResponse(ERROR_CODES.INVALID_REQUEST, message);

@@ -72,7 +72,12 @@ Create your Fastify application with Typescript support:
 ```typescript
 // src/index.ts
 import { Client } from '@opensearch-project/opensearch';
-import arocapi, { AllPublicAccessTransformer, AllPublicFileAccessTransformer } from 'arocapi';
+import arocapi, {
+  AllPublicAccessTransformer,
+  AllPublicFileAccessTransformer,
+  AllVisibleEntityFilter,
+  AllVisibleSearchFilter,
+} from 'arocapi';
 import Fastify from 'fastify';
 import { PrismaClient } from './generated/prisma/client.js';
 import { Readable } from 'stream';
@@ -93,6 +98,8 @@ const fastify = Fastify({
 fastify.register(arocapi, {
   prisma,
   opensearch,
+  entityVisibilityFilter: AllVisibleEntityFilter,
+  searchVisibilityFilter: AllVisibleSearchFilter,
   accessTransformer: AllPublicAccessTransformer,
   fileAccessTransformer: AllPublicFileAccessTransformer,
   // Required: File handler for serving File entity content
@@ -259,6 +266,153 @@ when instantiating the queryBuilderClass. The default `OpensearchQueryBuilder` c
 configured with:
 
 - `aggregations`: This field controls the aggregation and will be passed verbatim as the `aggs` field in the generated search query.
+
+## Entity Visibility
+
+Each request runs through two layers:
+
+1. **Visibility** decides whether an entity exists for this request. A
+   **hidden** entity is left out of `/entities`, `/files` and `/search`,
+   including their totals and facet counts, and direct requests for it get the
+   [hidden response](#hidden-response-optional).
+2. **Access** decides what a visible entity's user can do with it, via the
+   [access transformers](#customising-entity-responses).
+
+Use visibility for things a user shouldn't know exist, such as drafts or
+private crates. Use access for things a user can see but not open, such as
+content under a licence they can request.
+
+The library doesn't decide who can see what. Your filters can draw on
+whatever suits your repository: a flag in `meta`, the user's groups, or an
+external arbiter such as REMS.
+
+Visibility is applied inside the database and search queries, so pagination,
+totals and facets stay correct. You supply it as two filters, one for Prisma
+and one for OpenSearch. **They must match the same entities**, and any field
+they use must be in both the database and your OpenSearch index.
+
+### Entity Visibility Filter (Required)
+
+`entityVisibilityFilter` returns a Prisma `EntityWhereInput` matching the
+entities visible to the request. It's applied to every route, including file
+lookups (via the file's entity).
+
+### Search Visibility Filter (Required)
+
+`searchVisibilityFilter` returns an OpenSearch query matching the same
+entities. `/search` adds it as a `bool` filter around your query builder's
+query, so custom query builders don't need to apply it.
+
+**For fully public datasets**, use the exported all-visible filters:
+
+```typescript
+import arocapi, { AllVisibleEntityFilter, AllVisibleSearchFilter } from 'arocapi';
+
+await server.register(arocapi, {
+  // ...
+  entityVisibilityFilter: AllVisibleEntityFilter,
+  searchVisibilityFilter: AllVisibleSearchFilter,
+});
+```
+
+**Hiding drafts from everyone but admins**, using a flag stored in `meta` and
+indexed into OpenSearch as `meta.draft`:
+
+```typescript
+import { Prisma } from './generated/prisma/client.js';
+
+await server.register(arocapi, {
+  // ...
+  entityVisibilityFilter: ({ request }) =>
+    isAdmin(request)
+      ? {}
+      : {
+          // Plain NOT/not excludes rows where meta or the path is null, so match those explicitly
+          OR: [{ meta: { path: '$.draft', equals: Prisma.AnyNull } }, { meta: { path: '$.draft', not: true } }],
+        },
+  searchVisibilityFilter: ({ request }) =>
+    isAdmin(request) ? { match_all: {} } : { bool: { must_not: { term: { 'meta.draft': true } } } },
+});
+```
+
+> [!NOTE]
+> Prisma JSON path filters can't use an index on MySQL. For large repositories,
+> consider storing visibility flags in your own indexed columns or views.
+
+**Restricting by group**: map the groups on your authenticated user to the
+licences they can see:
+
+```typescript
+const visibleLicences = (request: FastifyRequest) => [
+  ...PUBLIC_LICENCES,
+  ...(request.user?.groups ?? []).flatMap((group) => LICENCES_BY_GROUP[group] ?? []),
+];
+
+await server.register(arocapi, {
+  // ...
+  entityVisibilityFilter: ({ request }) => ({
+    metadataLicenseId: { in: visibleLicences(request) },
+  }),
+  searchVisibilityFilter: ({ request }) => ({
+    terms: { metadataLicenseId: visibleLicences(request) },
+  }),
+});
+```
+
+**Restricting via an external arbiter** such as REMS: the same filters, fed by
+a remote lookup. Cache it for each request so the two filters share one call:
+
+```typescript
+const grantsByRequest = new WeakMap<FastifyRequest, Promise<string[]>>();
+
+const visibleLicences = (request: FastifyRequest) => {
+  let grants = grantsByRequest.get(request);
+  if (!grants) {
+    grants = fetchRemsGrants(request).then((granted) => [...PUBLIC_LICENCES, ...granted]);
+    grantsByRequest.set(request, grants);
+  }
+
+  return grants;
+};
+
+await server.register(arocapi, {
+  // ...
+  entityVisibilityFilter: async ({ request }) => ({
+    metadataLicenseId: { in: await visibleLicences(request) },
+  }),
+  searchVisibilityFilter: async ({ request }) => ({
+    terms: { metadataLicenseId: await visibleLicences(request) },
+  }),
+});
+```
+
+Visibility doesn't pass down from collections: a member of a hidden collection
+is only hidden if your filter hides it, for example by also filtering on
+`rootCollection`.
+
+If the two filters disagree, `/search` drops any hit the entity filter hides
+and logs a warning, so the page can be shorter than `limit`.
+
+### Hidden Response (Optional)
+
+`hiddenResponse` controls how `/entity/:id`, `/entity/:id/metadata` and
+`/file/:id` respond to a hidden entity:
+
+| Value                    | Status | Error code                |
+| ------------------------ | ------ | ------------------------- |
+| `notFound` (default)     | 404    | `NOT_FOUND`               |
+| `authenticationRequired` | 401    | `UNAUTHORIZED`            |
+| `forbidden`              | 403    | `FORBIDDEN`               |
+
+`notFound` is the same response as for a missing entity, so nothing hidden is
+revealed. Pass a function to decide for each request, e.g. to prompt anonymous
+users to log in while logged-in users get a 404:
+
+```typescript
+hiddenResponse: ({ request }) => (request.user ? 'notFound' : 'authenticationRequired'),
+```
+
+Missing entities always get a 404.
 
 ## Customising Entity Responses
 

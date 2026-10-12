@@ -1,7 +1,12 @@
+import type { FastifyInstance } from 'fastify';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import type { HiddenReason } from '../app.js';
+import { AllVisibleSearchFilter } from '../app.js';
+import { Prisma } from '../generated/prisma/client.js';
 import type { AuthorisedEntity, AuthorisedFile } from '../transformers/default.js';
 import type { StandardErrorResponse } from '../utils/errors.js';
 import {
+  buildTestApp,
   cleanupTestData,
   getTestApp,
   seedTestData,
@@ -477,6 +482,221 @@ describe('Integration Tests', () => {
       });
 
       expect(response.statusCode).toBe(400);
+    });
+  });
+
+  describe('Visibility', () => {
+    const entityUrl = (n: number) => encodeURIComponent(`http://example.com/entity/${n}`);
+    const hideDrafts = {
+      OR: [{ meta: { path: '$.draft', equals: Prisma.AnyNull } }, { meta: { path: '$.draft', not: true } }],
+    };
+    const hideDraftsSearch = { bool: { must_not: { term: { 'meta.draft': true } } } };
+    const stubHandlers = {
+      fileHandler: {
+        get: async () => ({ type: 'redirect' as const, url: 'https://files.example.com/file' }),
+        head: async () => ({ contentType: 'audio/wav', contentLength: 2048 }),
+      },
+      roCrateHandler: {
+        get: async () => ({ type: 'redirect' as const, url: 'https://files.example.com/crate' }),
+        head: async () => ({ contentType: 'application/ld+json', contentLength: 100 }),
+      },
+    };
+
+    // Declared separately: the OpenSearch typings omit `field` from terms aggregations
+    const entityTypeFacet = { entityType: { terms: { field: 'entityType', size: 20 } } };
+
+    let app: FastifyInstance;
+
+    beforeAll(async () => {
+      app = await buildTestApp({
+        ...stubHandlers,
+        entityVisibilityFilter: () => hideDrafts,
+        searchVisibilityFilter: () => hideDraftsSearch,
+        hiddenResponse: ({ request }) => (request.headers['x-hidden-response'] as HiddenReason) ?? 'notFound',
+        queryBuilderOptions: { aggregations: entityTypeFacet },
+      });
+    });
+
+    afterAll(async () => {
+      await app.close();
+    });
+
+    const ids = (entities: Array<{ id: string }>) => entities.map((e) => e.id).sort();
+
+    describe('single entity routes', () => {
+      it('treats a hidden entity like a missing one by default', async () => {
+        const hidden = await app.inject({ method: 'GET', url: `/entity/${entityUrl(2)}` });
+        const missing = await app.inject({ method: 'GET', url: `/entity/${entityUrl(99)}` });
+
+        expect(hidden.statusCode).toBe(404);
+        expect(missing.statusCode).toBe(404);
+        const { error: hiddenError } = hidden.json<StandardErrorResponse>();
+        const { error: missingError } = missing.json<StandardErrorResponse>();
+        expect(hiddenError.code).toBe(missingError.code);
+        expect(hiddenError.message).toBe(missingError.message);
+      });
+
+      it.each([
+        ['authenticationRequired', 401, 'UNAUTHORIZED'],
+        ['forbidden', 403, 'FORBIDDEN'],
+      ])('returns the %s response for a hidden entity', async (reason, status, code) => {
+        const response = await app.inject({
+          method: 'GET',
+          url: `/entity/${entityUrl(2)}`,
+          headers: { 'x-hidden-response': reason },
+        });
+        const body = JSON.parse(response.body) as StandardErrorResponse;
+
+        expect(response.statusCode).toBe(status);
+        expect(body.error.code).toBe(code);
+      });
+
+      it('still returns 404 for a missing entity whatever the hidden response', async () => {
+        const response = await app.inject({
+          method: 'GET',
+          url: `/entity/${entityUrl(99)}`,
+          headers: { 'x-hidden-response': 'forbidden' },
+        });
+
+        expect(response.statusCode).toBe(404);
+      });
+
+      it('resolves parent references regardless of visibility', async () => {
+        const response = await app.inject({ method: 'GET', url: `/entity/${entityUrl(4)}` });
+        const body = JSON.parse(response.body) as AuthorisedEntity;
+
+        expect(response.statusCode).toBe(200);
+        expect(body.memberOf).toEqual({ id: 'http://example.com/entity/2', name: 'Test Object' });
+        expect(body.rootCollection).toEqual({ id: 'http://example.com/entity/1', name: 'Test Collection' });
+      });
+
+      it.each(['GET', 'HEAD'] as const)('applies the hidden response to %s /entity/:id/metadata', async (method) => {
+        const hidden = await app.inject({
+          method,
+          url: `/entity/${entityUrl(2)}/metadata`,
+          headers: { 'x-hidden-response': 'forbidden' },
+        });
+        const visible = await app.inject({ method, url: `/entity/${entityUrl(1)}/metadata` });
+
+        expect(hidden.statusCode).toBe(403);
+        expect(visible.statusCode).toBe(method === 'GET' ? 302 : 200);
+      });
+
+      it.each(['GET', 'HEAD'] as const)('applies the hidden response to %s /file/:id', async (method) => {
+        const hidden = await app.inject({
+          method,
+          url: `/file/${entityUrl(5)}`,
+          headers: { 'x-hidden-response': 'authenticationRequired' },
+        });
+        const missing = await app.inject({
+          method,
+          url: `/file/${entityUrl(99)}`,
+          headers: { 'x-hidden-response': 'authenticationRequired' },
+        });
+        const visible = await app.inject({ method, url: `/file/${entityUrl(4)}` });
+
+        expect(hidden.statusCode).toBe(401);
+        expect(missing.statusCode).toBe(404);
+        expect(visible.statusCode).toBe(method === 'GET' ? 302 : 200);
+      });
+
+      it.each([
+        [undefined, 404],
+        ['forbidden', 403],
+      ] as const)('applies a fixed hidden response of %s', async (hiddenResponse, status) => {
+        const fixedApp = await buildTestApp({ entityVisibilityFilter: () => hideDrafts, hiddenResponse });
+
+        const hidden = await fixedApp.inject({ method: 'GET', url: `/entity/${entityUrl(2)}` });
+        const missing = await fixedApp.inject({ method: 'GET', url: `/entity/${entityUrl(99)}` });
+        await fixedApp.close();
+
+        expect(hidden.statusCode).toBe(status);
+        expect(missing.statusCode).toBe(404);
+      });
+    });
+
+    describe('list routes', () => {
+      it('excludes hidden entities from /entities and its total', async () => {
+        const response = await app.inject({ method: 'GET', url: '/entities?limit=2' });
+        const body = JSON.parse(response.body) as { total: number; entities: AuthorisedEntity[] };
+
+        expect(body.total).toBe(3);
+        expect(ids(body.entities)).toEqual(['http://example.com/entity/1', 'http://example.com/entity/3']);
+      });
+
+      it('combines memberOf with visibility on /entities', async () => {
+        const response = await app.inject({ method: 'GET', url: `/entities?memberOf=${entityUrl(1)}` });
+        const body = JSON.parse(response.body) as { total: number; entities: AuthorisedEntity[] };
+
+        expect(body.total).toBe(1);
+        expect(ids(body.entities)).toEqual(['http://example.com/entity/3']);
+      });
+
+      it('combines entityType with visibility on /entities', async () => {
+        const response = await app.inject({
+          method: 'GET',
+          url: `/entities?entityType=${encodeURIComponent('http://schema.org/MediaObject')}`,
+        });
+        const body = JSON.parse(response.body) as { total: number; entities: AuthorisedEntity[] };
+
+        expect(body.total).toBe(1);
+        expect(ids(body.entities)).toEqual(['http://example.com/entity/4']);
+      });
+
+      it('excludes files of hidden entities from /files and its total', async () => {
+        const response = await app.inject({ method: 'GET', url: '/files' });
+        const body = JSON.parse(response.body) as { total: number; files: AuthorisedFile[] };
+
+        expect(body.total).toBe(1);
+        expect(ids(body.files)).toEqual(['http://example.com/entity/4']);
+      });
+
+      it('excludes hidden entities from /search results, total and facets', async () => {
+        const response = await app.inject({ method: 'POST', url: '/search', payload: { query: '' } });
+        const body = JSON.parse(response.body) as {
+          total: number;
+          entities: AuthorisedEntity[];
+          facets: Record<string, Array<{ name: string; count: number }>>;
+        };
+
+        expect(body.total).toBe(3);
+        expect(ids(body.entities)).toEqual([
+          'http://example.com/entity/1',
+          'http://example.com/entity/3',
+          'http://example.com/entity/4',
+        ]);
+        expect(body.facets.entityType.reduce((sum, bucket) => sum + bucket.count, 0)).toBe(3);
+      });
+
+      it('paginates /search over visible entities only', async () => {
+        const response = await app.inject({
+          method: 'POST',
+          url: '/search',
+          payload: { query: '', sort: 'id', limit: 2, offset: 2 },
+        });
+        const body = JSON.parse(response.body) as { total: number; entities: AuthorisedEntity[] };
+
+        expect(body.total).toBe(3);
+        expect(ids(body.entities)).toEqual(['http://example.com/entity/4']);
+      });
+
+      it('drops search hits the entity visibility filter hides when the filters disagree', async () => {
+        const mismatchedApp = await buildTestApp({
+          entityVisibilityFilter: () => hideDrafts,
+          searchVisibilityFilter: AllVisibleSearchFilter,
+        });
+
+        const response = await mismatchedApp.inject({ method: 'POST', url: '/search', payload: { query: '' } });
+        await mismatchedApp.close();
+        const body = JSON.parse(response.body) as { total: number; entities: AuthorisedEntity[] };
+
+        expect(body.total).toBe(5);
+        expect(ids(body.entities)).toEqual([
+          'http://example.com/entity/1',
+          'http://example.com/entity/3',
+          'http://example.com/entity/4',
+        ]);
+      });
     });
   });
 });

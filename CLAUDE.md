@@ -19,7 +19,9 @@ Releases (stable and `beta` prereleases) are covered in `RELEASING.md`.
 
 ## Architecture
 
-This is a Fastify plugin that registers routes for entities, files, search, and RO-Crate metadata. Consumers register it with required configuration: `prisma`, `opensearch`, `accessTransformer`, `fileAccessTransformer`, `fileHandler`, `roCrateHandler`.
+This is a Fastify plugin that registers routes for entities, files, search, and RO-Crate metadata. Consumers register it with required configuration: `prisma`, `opensearch`, `entityVisibilityFilter`, `searchVisibilityFilter`, `accessTransformer`, `fileAccessTransformer`, `fileHandler`, `roCrateHandler`.
+
+**Visibility**: Every query is filtered by the consumer's `entityVisibilityFilter` (Prisma) and `searchVisibilityFilter` (OpenSearch), so hidden entities never appear in results, totals or facets. Visibility runs before, and is separate from, access. See `docs/adr/0001-entity-visibility-filters.md`.
 
 **Transformation pipeline**: Every entity/file response flows through: base transformer → access transformer (required, adds access control) → optional entity/file transformers (chained). This is the core extension mechanism.
 

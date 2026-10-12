@@ -7,6 +7,7 @@ import { z } from 'zod';
 import type { PrismaClient } from '../generated/prisma/client.js';
 import { baseEntityTransformer, resolveEntityReferences } from '../transformers/default.js';
 import type { AccessTransformer, EntityTransformer } from '../types/transformers.js';
+import type { EntityVisibilityFilter, SearchVisibilityFilter } from '../types/visibility.js';
 import { createInternalError, createInvalidRequestError } from '../utils/errors.js';
 import type { OpensearchQueryBuilder } from '../utils/queryBuilder.js';
 
@@ -39,10 +40,20 @@ type SearchRouteOptions = {
   accessTransformer: AccessTransformer;
   entityTransformers?: EntityTransformer[];
   queryBuilder: OpensearchQueryBuilder;
+  entityVisibilityFilter: EntityVisibilityFilter;
+  searchVisibilityFilter: SearchVisibilityFilter;
 };
 
 const search: FastifyPluginAsync<SearchRouteOptions> = async (fastify, opts) => {
-  const { prisma, opensearch, accessTransformer, entityTransformers = [], queryBuilder } = opts;
+  const {
+    prisma,
+    opensearch,
+    accessTransformer,
+    entityTransformers = [],
+    queryBuilder,
+    entityVisibilityFilter,
+    searchVisibilityFilter,
+  } = opts;
   fastify.withTypeProvider<ZodTypeProvider>().post(
     '/search',
     {
@@ -54,10 +65,21 @@ const search: FastifyPluginAsync<SearchRouteOptions> = async (fastify, opts) => 
       const { searchType, query, filters, boundingBox, geohashPrecision, limit, offset, sort, order } = request.body;
 
       try {
+        const context = { request, fastify };
+        const [visibilityWhere, visibilityQuery] = await Promise.all([
+          entityVisibilityFilter(context),
+          searchVisibilityFilter(context),
+        ]);
+
         const opensearchQuery: Search_Request = {
           index: 'entities',
           body: {
-            query: queryBuilder.buildQuery(searchType, query, filters, boundingBox),
+            query: {
+              bool: {
+                must: [queryBuilder.buildQuery(searchType, query, filters, boundingBox)],
+                filter: [visibilityQuery],
+              },
+            },
             aggs: queryBuilder.buildAggregations(geohashPrecision, boundingBox),
             highlight: {
               fields: {
@@ -81,9 +103,7 @@ const search: FastifyPluginAsync<SearchRouteOptions> = async (fastify, opts) => 
 
         const dbEntities = await prisma.entity.findMany({
           where: {
-            id: {
-              in: entityIds,
-            },
+            AND: [{ id: { in: entityIds } }, visibilityWhere],
           },
           include: { file: { select: { id: true } } },
         });
@@ -101,7 +121,7 @@ const search: FastifyPluginAsync<SearchRouteOptions> = async (fastify, opts) => 
 
             const dbEntity = entityMap.get(hit._source.id);
             if (!dbEntity) {
-              fastify.log.warn(`Entity ${hit._source.id} found in OpenSearch but not in database`);
+              fastify.log.warn(`Entity ${hit._source.id} found in OpenSearch but missing or not visible in database`);
 
               return null;
             }
@@ -112,11 +132,11 @@ const search: FastifyPluginAsync<SearchRouteOptions> = async (fastify, opts) => 
               memberOf: base.memberOf ? (refMap.get(base.memberOf) ?? null) : null,
               rootCollection: base.rootCollection ? (refMap.get(base.rootCollection) ?? null) : null,
             };
-            const authorisedEntity = await accessTransformer(standardEntity, { request, fastify });
+            const authorisedEntity = await accessTransformer(standardEntity, context);
 
             let result = authorisedEntity;
             for (const transformer of entityTransformers) {
-              result = await transformer(result, { request, fastify });
+              result = await transformer(result, context);
             }
 
             // Add search-specific metadata

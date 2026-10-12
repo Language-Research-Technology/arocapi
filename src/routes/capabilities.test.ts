@@ -1,6 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import app, { AllPublicFileAccessTransformer, type Options } from '../app.js';
+import app, {
+  AllPublicFileAccessTransformer,
+  AllVisibleEntityFilter,
+  AllVisibleSearchFilter,
+  type Options,
+} from '../app.js';
 import { fastify, fastifyAfter, fastifyBefore, opensearch, prisma } from '../test/helpers/fastify.js';
 import { AllPublicAccessTransformer } from '../transformers/default.js';
 import { OpensearchQueryBuilder, type SearchCapability } from '../utils/queryBuilder.js';
@@ -14,6 +19,8 @@ const registerApp = async (options: Partial<Options> = {}) => {
     fileAccessTransformer: AllPublicFileAccessTransformer,
     fileHandler: { get: vi.fn(), head: vi.fn() },
     roCrateHandler: { get: vi.fn(), head: vi.fn() },
+    entityVisibilityFilter: AllVisibleEntityFilter,
+    searchVisibilityFilter: AllVisibleSearchFilter,
     ...options,
   });
 };

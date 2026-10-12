@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fastify, fastifyAfter, fastifyBefore, prisma } from '../test/helpers/fastify.js';
 import type { FileHandler, FileResult } from '../types/fileHandlers.js';
 import type { StandardErrorResponse } from '../utils/errors.js';
+import { AllVisibleEntityFilter } from '../utils/visibility.js';
 import fileRoute from './file.js';
 
 vi.mock('node:fs', () => ({
@@ -18,7 +19,12 @@ describe('File Route', () => {
 
   beforeEach(async () => {
     await fastifyBefore();
-    await fastify.register(fileRoute, { prisma, fileHandler: mockFileHandler });
+    await fastify.register(fileRoute, {
+      entityVisibilityFilter: AllVisibleEntityFilter,
+      hiddenResponse: 'notFound',
+      prisma,
+      fileHandler: mockFileHandler,
+    });
     vi.clearAllMocks();
   });
 
@@ -38,7 +44,7 @@ describe('File Route', () => {
 
   describe('GET /file/:id', () => {
     it('should stream file content successfully', async () => {
-      prisma.file.findUnique.mockResolvedValue(mockFile);
+      prisma.file.findFirst.mockResolvedValue(mockFile);
 
       const mockStream = Readable.from(['test file content']);
       const mockResult: FileResult = {
@@ -75,7 +81,7 @@ describe('File Route', () => {
     });
 
     it('should handle attachment disposition', async () => {
-      prisma.file.findUnique.mockResolvedValue(mockFile);
+      prisma.file.findFirst.mockResolvedValue(mockFile);
 
       const mockStream = Readable.from(['test']);
       const mockResult: FileResult = {
@@ -98,7 +104,7 @@ describe('File Route', () => {
     });
 
     it('should use custom filename when provided', async () => {
-      prisma.file.findUnique.mockResolvedValue(mockFile);
+      prisma.file.findFirst.mockResolvedValue(mockFile);
 
       const mockStream = Readable.from(['test']);
       const mockResult: FileResult = {
@@ -121,7 +127,7 @@ describe('File Route', () => {
     });
 
     it('should handle redirect response with noRedirect=false (default)', async () => {
-      prisma.file.findUnique.mockResolvedValue(mockFile);
+      prisma.file.findFirst.mockResolvedValue(mockFile);
 
       const mockResult: FileResult = {
         type: 'redirect',
@@ -139,7 +145,7 @@ describe('File Route', () => {
     });
 
     it('should handle redirect response with noRedirect=true', async () => {
-      prisma.file.findUnique.mockResolvedValue(mockFile);
+      prisma.file.findFirst.mockResolvedValue(mockFile);
 
       const mockResult: FileResult = {
         type: 'redirect',
@@ -158,7 +164,7 @@ describe('File Route', () => {
     });
 
     it('should handle file path response without nginx X-Accel-Redirect', async () => {
-      prisma.file.findUnique.mockResolvedValue(mockFile);
+      prisma.file.findFirst.mockResolvedValue(mockFile);
 
       const mockStream = Readable.from(['file content']);
       vi.mocked(createReadStream).mockReturnValue(mockStream as never);
@@ -186,7 +192,7 @@ describe('File Route', () => {
     });
 
     it('should handle file path response with nginx X-Accel-Redirect', async () => {
-      prisma.file.findUnique.mockResolvedValue(mockFile);
+      prisma.file.findFirst.mockResolvedValue(mockFile);
 
       const mockResult: FileResult = {
         type: 'file',
@@ -214,7 +220,7 @@ describe('File Route', () => {
     });
 
     it('should return 404 when entity not found', async () => {
-      prisma.file.findUnique.mockResolvedValue(null);
+      prisma.file.findFirst.mockResolvedValue(null);
 
       const response = await fastify.inject({
         method: 'GET',
@@ -229,7 +235,7 @@ describe('File Route', () => {
     });
 
     it('should return 500 when database error occurs', async () => {
-      prisma.file.findUnique.mockRejectedValue(new Error('Database connection failed'));
+      prisma.file.findFirst.mockRejectedValue(new Error('Database connection failed'));
 
       const response = await fastify.inject({
         method: 'GET',
@@ -242,7 +248,7 @@ describe('File Route', () => {
     });
 
     it('should return 500 when fileHandler throws error', async () => {
-      prisma.file.findUnique.mockResolvedValue(mockFile);
+      prisma.file.findFirst.mockResolvedValue(mockFile);
       vi.mocked(mockFileHandler.get).mockRejectedValue(new Error('File not found in storage'));
 
       const response = await fastify.inject({
@@ -267,7 +273,7 @@ describe('File Route', () => {
     });
 
     it('should validate disposition parameter', async () => {
-      prisma.file.findUnique.mockResolvedValue(mockFile);
+      prisma.file.findFirst.mockResolvedValue(mockFile);
 
       const response = await fastify.inject({
         method: 'GET',
@@ -280,7 +286,7 @@ describe('File Route', () => {
     });
 
     it('should return 404 when get handler returns false', async () => {
-      prisma.file.findUnique.mockResolvedValue(mockFile);
+      prisma.file.findFirst.mockResolvedValue(mockFile);
       vi.mocked(mockFileHandler.get).mockResolvedValue(false);
 
       const response = await fastify.inject({
@@ -297,7 +303,7 @@ describe('File Route', () => {
 
   describe('HEAD /file/:id', () => {
     it('should return headers without body using head handler', async () => {
-      prisma.file.findUnique.mockResolvedValue(mockFile);
+      prisma.file.findFirst.mockResolvedValue(mockFile);
 
       const mockMetadata = {
         contentType: 'audio/wav',
@@ -328,7 +334,7 @@ describe('File Route', () => {
     });
 
     it('should return 404 when file not found', async () => {
-      prisma.file.findUnique.mockResolvedValue(null);
+      prisma.file.findFirst.mockResolvedValue(null);
 
       const response = await fastify.inject({
         method: 'HEAD',
@@ -342,7 +348,7 @@ describe('File Route', () => {
     });
 
     it('should return 500 when head handler throws error', async () => {
-      prisma.file.findUnique.mockResolvedValue(mockFile);
+      prisma.file.findFirst.mockResolvedValue(mockFile);
       vi.mocked(mockFileHandler.head).mockRejectedValue(new Error('Failed to get metadata'));
 
       const response = await fastify.inject({
@@ -356,7 +362,7 @@ describe('File Route', () => {
     });
 
     it('should return 404 when head handler returns false', async () => {
-      prisma.file.findUnique.mockResolvedValue(mockFile);
+      prisma.file.findFirst.mockResolvedValue(mockFile);
       vi.mocked(mockFileHandler.head).mockResolvedValue(false);
 
       const response = await fastify.inject({
@@ -373,7 +379,7 @@ describe('File Route', () => {
 
   describe('GET /file/:id - exhaustiveness check', () => {
     it('should handle unexpected file result type', async () => {
-      prisma.file.findUnique.mockResolvedValue(mockFile);
+      prisma.file.findFirst.mockResolvedValue(mockFile);
 
       // Mock an invalid result type to test exhaustiveness check
       const invalidResult = {

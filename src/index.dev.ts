@@ -7,6 +7,8 @@ import Fastify from 'fastify';
 import arocapi, {
   AllPublicAccessTransformer,
   AllPublicFileAccessTransformer,
+  AllVisibleEntityFilter,
+  AllVisibleSearchFilter,
   type EntityTransformer,
   type FileHandler,
   type RoCrateHandler,
@@ -187,6 +189,8 @@ fastify.register(arocapi, {
   accessTransformer: AllPublicAccessTransformer,
   entityTransformers: [oniTransformer],
   fileAccessTransformer: AllPublicFileAccessTransformer,
+  entityVisibilityFilter: AllVisibleEntityFilter,
+  searchVisibilityFilter: AllVisibleSearchFilter,
 });
 
 const start = async () => {

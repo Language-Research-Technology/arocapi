@@ -2,7 +2,13 @@ import { Client } from '@opensearch-project/opensearch';
 import { PrismaMariaDb } from '@prisma/adapter-mariadb';
 import type { FastifyInstance } from 'fastify';
 import Fastify from 'fastify';
-import app, { AllPublicAccessTransformer, AllPublicFileAccessTransformer } from '../app.js';
+import type { Options } from '../app.js';
+import app, {
+  AllPublicAccessTransformer,
+  AllPublicFileAccessTransformer,
+  AllVisibleEntityFilter,
+  AllVisibleSearchFilter,
+} from '../app.js';
 import { PrismaClient } from '../generated/prisma/client.js';
 
 let fastify: FastifyInstance;
@@ -32,13 +38,19 @@ export async function setupIntegrationTests() {
     node: process.env.OPENSEARCH_URL,
   });
 
-  fastify = Fastify({ logger: false });
+  fastify = await buildTestApp();
+}
 
-  await fastify.register(app, {
+export async function buildTestApp(overrides: Partial<Options> = {}) {
+  const instance = Fastify({ logger: false });
+
+  await instance.register(app, {
     prisma,
     opensearch,
     accessTransformer: AllPublicAccessTransformer,
     fileAccessTransformer: AllPublicFileAccessTransformer,
+    entityVisibilityFilter: AllVisibleEntityFilter,
+    searchVisibilityFilter: AllVisibleSearchFilter,
     fileHandler: {
       get: async () => {
         throw new Error('File handler not implemented in integration tests');
@@ -55,9 +67,12 @@ export async function setupIntegrationTests() {
         throw new Error('RO-Crate head handler not implemented in integration tests');
       },
     },
+    ...overrides,
   });
 
-  await fastify.ready();
+  await instance.ready();
+
+  return instance;
 }
 
 export async function teardownIntegrationTests() {
@@ -103,6 +118,7 @@ export async function seedTestData() {
       rootCollection: 'http://example.com/entity/1',
       metadataLicenseId: 'https://creativecommons.org/licenses/by/4.0/',
       contentLicenseId: 'https://creativecommons.org/licenses/by/4.0/',
+      meta: { draft: true },
       createdAt: new Date(),
       updatedAt: new Date(),
     },
@@ -139,6 +155,7 @@ export async function seedTestData() {
       rootCollection: 'http://example.com/entity/1',
       metadataLicenseId: 'https://creativecommons.org/licenses/by/4.0/',
       contentLicenseId: 'https://creativecommons.org/licenses/by/4.0/',
+      meta: { draft: true },
       createdAt: new Date(),
       updatedAt: new Date(),
     },

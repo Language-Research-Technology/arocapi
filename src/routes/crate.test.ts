@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fastify, fastifyAfter, fastifyBefore, prisma } from '../test/helpers/fastify.js';
 import type { FileResult, RoCrateHandler } from '../types/fileHandlers.js';
 import type { StandardErrorResponse } from '../utils/errors.js';
+import { AllVisibleEntityFilter } from '../utils/visibility.js';
 import metadataRoute from './metadata.js';
 
 vi.mock('node:fs', () => ({
@@ -18,7 +19,12 @@ describe('Crate Route', () => {
 
   beforeEach(async () => {
     await fastifyBefore();
-    await fastify.register(metadataRoute, { prisma, roCrateHandler: mockRoCrateHandler });
+    await fastify.register(metadataRoute, {
+      entityVisibilityFilter: AllVisibleEntityFilter,
+      hiddenResponse: 'notFound',
+      prisma,
+      roCrateHandler: mockRoCrateHandler,
+    });
     vi.clearAllMocks();
   });
 
@@ -60,7 +66,7 @@ describe('Crate Route', () => {
 
   describe('GET /entity/:id/metadata', () => {
     it('should stream RO-Crate metadata for File entity', async () => {
-      prisma.entity.findUnique.mockResolvedValue(mockFileEntity);
+      prisma.entity.findFirst.mockResolvedValue(mockFileEntity);
 
       const mockStream = Readable.from(['{"@context": "https://w3id.org/ro/crate/1.1/context"}']);
       const mockResult: FileResult = {
@@ -96,7 +102,7 @@ describe('Crate Route', () => {
     });
 
     it('should stream RO-Crate metadata for Collection entity', async () => {
-      prisma.entity.findUnique.mockResolvedValue(mockCollectionEntity);
+      prisma.entity.findFirst.mockResolvedValue(mockCollectionEntity);
 
       const mockStream = Readable.from(['{"@context": "https://w3id.org/ro/crate/1.1/context"}']);
       const mockResult: FileResult = {
@@ -120,7 +126,7 @@ describe('Crate Route', () => {
     });
 
     it('should stream RO-Crate metadata for Object entity', async () => {
-      prisma.entity.findUnique.mockResolvedValue(mockObjectEntity);
+      prisma.entity.findFirst.mockResolvedValue(mockObjectEntity);
 
       const mockStream = Readable.from(['{"@context": "https://w3id.org/ro/crate/1.1/context"}']);
       const mockResult: FileResult = {
@@ -144,7 +150,7 @@ describe('Crate Route', () => {
     });
 
     it('should handle redirect response', async () => {
-      prisma.entity.findUnique.mockResolvedValue(mockFileEntity);
+      prisma.entity.findFirst.mockResolvedValue(mockFileEntity);
 
       const mockResult: FileResult = {
         type: 'redirect',
@@ -162,7 +168,7 @@ describe('Crate Route', () => {
     });
 
     it('should handle file path response without nginx X-Accel-Redirect', async () => {
-      prisma.entity.findUnique.mockResolvedValue(mockCollectionEntity);
+      prisma.entity.findFirst.mockResolvedValue(mockCollectionEntity);
 
       const mockStream = Readable.from(['rocrate content']);
       vi.mocked(createReadStream).mockReturnValue(mockStream as never);
@@ -190,7 +196,7 @@ describe('Crate Route', () => {
     });
 
     it('should handle file path response with nginx X-Accel-Redirect', async () => {
-      prisma.entity.findUnique.mockResolvedValue(mockFileEntity);
+      prisma.entity.findFirst.mockResolvedValue(mockFileEntity);
 
       const mockResult: FileResult = {
         type: 'file',
@@ -215,7 +221,7 @@ describe('Crate Route', () => {
     });
 
     it('should return 404 when entity not found', async () => {
-      prisma.entity.findUnique.mockResolvedValue(null);
+      prisma.entity.findFirst.mockResolvedValue(null);
 
       const response = await fastify.inject({
         method: 'GET',
@@ -230,7 +236,7 @@ describe('Crate Route', () => {
     });
 
     it('should return 404 when handler returns false', async () => {
-      prisma.entity.findUnique.mockResolvedValue(mockFileEntity);
+      prisma.entity.findFirst.mockResolvedValue(mockFileEntity);
       vi.mocked(mockRoCrateHandler.get).mockResolvedValue(false);
 
       const response = await fastify.inject({
@@ -245,7 +251,7 @@ describe('Crate Route', () => {
     });
 
     it('should return 500 when database error occurs', async () => {
-      prisma.entity.findUnique.mockRejectedValue(new Error('Database connection failed'));
+      prisma.entity.findFirst.mockRejectedValue(new Error('Database connection failed'));
 
       const response = await fastify.inject({
         method: 'GET',
@@ -258,7 +264,7 @@ describe('Crate Route', () => {
     });
 
     it('should return 500 when roCrateHandler throws error', async () => {
-      prisma.entity.findUnique.mockResolvedValue(mockFileEntity);
+      prisma.entity.findFirst.mockResolvedValue(mockFileEntity);
       vi.mocked(mockRoCrateHandler.get).mockRejectedValue(new Error('RO-Crate error'));
 
       const response = await fastify.inject({
@@ -285,7 +291,7 @@ describe('Crate Route', () => {
 
   describe('HEAD /entity/:id/metadata', () => {
     it('should return RO-Crate metadata headers for File entity', async () => {
-      prisma.entity.findUnique.mockResolvedValue(mockFileEntity);
+      prisma.entity.findFirst.mockResolvedValue(mockFileEntity);
 
       const mockMetadata = {
         contentType: 'application/ld+json',
@@ -316,7 +322,7 @@ describe('Crate Route', () => {
     });
 
     it('should return RO-Crate metadata headers for Collection entity', async () => {
-      prisma.entity.findUnique.mockResolvedValue(mockCollectionEntity);
+      prisma.entity.findFirst.mockResolvedValue(mockCollectionEntity);
 
       const mockMetadata = {
         contentType: 'text/plain',
@@ -336,7 +342,7 @@ describe('Crate Route', () => {
     });
 
     it('should return RO-Crate metadata headers for Object entity', async () => {
-      prisma.entity.findUnique.mockResolvedValue(mockObjectEntity);
+      prisma.entity.findFirst.mockResolvedValue(mockObjectEntity);
 
       const mockMetadata = {
         contentType: 'application/json',
@@ -356,7 +362,7 @@ describe('Crate Route', () => {
     });
 
     it('should return 404 when entity not found', async () => {
-      prisma.entity.findUnique.mockResolvedValue(null);
+      prisma.entity.findFirst.mockResolvedValue(null);
 
       const response = await fastify.inject({
         method: 'HEAD',
@@ -370,7 +376,7 @@ describe('Crate Route', () => {
     });
 
     it('should return 404 when head handler returns false', async () => {
-      prisma.entity.findUnique.mockResolvedValue(mockFileEntity);
+      prisma.entity.findFirst.mockResolvedValue(mockFileEntity);
       vi.mocked(mockRoCrateHandler.head).mockResolvedValue(false);
 
       const response = await fastify.inject({
@@ -385,7 +391,7 @@ describe('Crate Route', () => {
     });
 
     it('should return 500 when head handler throws error', async () => {
-      prisma.entity.findUnique.mockResolvedValue(mockFileEntity);
+      prisma.entity.findFirst.mockResolvedValue(mockFileEntity);
       vi.mocked(mockRoCrateHandler.head).mockRejectedValue(new Error('Metadata error'));
 
       const response = await fastify.inject({
@@ -401,7 +407,7 @@ describe('Crate Route', () => {
 
   describe('GET /entity/:id/metadata - exhaustiveness check', () => {
     it('should handle unexpected RO-Crate result type', async () => {
-      prisma.entity.findUnique.mockResolvedValue(mockFileEntity);
+      prisma.entity.findFirst.mockResolvedValue(mockFileEntity);
 
       // Mock an invalid result type to test exhaustiveness check
       const invalidResult = {

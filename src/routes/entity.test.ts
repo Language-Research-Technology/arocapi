@@ -3,12 +3,18 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { fastify, fastifyAfter, fastifyBefore, prisma } from '../test/helpers/fastify.js';
 import { AllPublicAccessTransformer } from '../transformers/default.js';
 import type { StandardErrorResponse } from '../utils/errors.js';
+import { AllVisibleEntityFilter } from '../utils/visibility.js';
 import entityRoute from './entity.js';
 
 describe('Entity Route', () => {
   beforeEach(async () => {
     await fastifyBefore();
-    await fastify.register(entityRoute, { prisma, accessTransformer: AllPublicAccessTransformer });
+    await fastify.register(entityRoute, {
+      entityVisibilityFilter: AllVisibleEntityFilter,
+      hiddenResponse: 'notFound',
+      prisma,
+      accessTransformer: AllPublicAccessTransformer,
+    });
   });
 
   afterEach(async () => {
@@ -32,7 +38,7 @@ describe('Entity Route', () => {
         meta: {},
       };
 
-      prisma.entity.findUnique.mockResolvedValue(mockEntity);
+      prisma.entity.findFirst.mockResolvedValue(mockEntity);
 
       const response = await fastify.inject({
         method: 'GET',
@@ -42,16 +48,14 @@ describe('Entity Route', () => {
 
       expect(response.statusCode).toBe(200);
       expect(body).toMatchSnapshot();
-      expect(prisma.entity.findUnique).toHaveBeenCalledWith({
-        where: {
-          id: 'http://example.com/entity/123',
-        },
+      expect(prisma.entity.findFirst).toHaveBeenCalledWith({
+        where: { AND: [{ id: 'http://example.com/entity/123' }, {}] },
         include: { file: { select: { id: true } } },
       });
     });
 
     it('should return 404 when entity not found', async () => {
-      prisma.entity.findUnique.mockResolvedValue(null);
+      prisma.entity.findFirst.mockResolvedValue(null);
 
       const response = await fastify.inject({
         method: 'GET',
@@ -64,7 +68,7 @@ describe('Entity Route', () => {
     });
 
     it('should return 500 when database error occurs', async () => {
-      prisma.entity.findUnique.mockRejectedValue(new Error('Database connection failed'));
+      prisma.entity.findFirst.mockRejectedValue(new Error('Database connection failed'));
 
       const response = await fastify.inject({
         method: 'GET',
@@ -96,6 +100,8 @@ describe('Entity Route', () => {
 
       await fastifyBefore();
       await fastify.register(entityRoute, {
+        entityVisibilityFilter: AllVisibleEntityFilter,
+        hiddenResponse: 'notFound',
         prisma,
         accessTransformer: AllPublicAccessTransformer,
         entityTransformers: [customTransformer],
@@ -115,7 +121,7 @@ describe('Entity Route', () => {
       };
 
       // @ts-expect-error TS is looking at the wronf function signature
-      prisma.entity.findUnique.mockResolvedValue(mockEntity);
+      prisma.entity.findFirst.mockResolvedValue(mockEntity);
 
       const response = await fastify.inject({
         method: 'GET',
@@ -144,7 +150,7 @@ describe('Entity Route', () => {
       };
 
       // First call returns the entity, second call (for reference resolution) returns empty
-      prisma.entity.findUnique.mockResolvedValue(mockEntity);
+      prisma.entity.findFirst.mockResolvedValue(mockEntity);
       prisma.entity.findMany.mockResolvedValue([]);
 
       const response = await fastify.inject({

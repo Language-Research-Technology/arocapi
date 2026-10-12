@@ -4,8 +4,11 @@ import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import type { PrismaClient } from '../generated/prisma/client.js';
 import type { FileHandler, FileMetadata } from '../types/fileHandlers.js';
+import type { TransformerContext } from '../types/transformers.js';
+import type { EntityVisibilityFilter, HiddenResponse } from '../types/visibility.js';
 import { createInternalError, createNotFoundError } from '../utils/errors.js';
 import { setFileHeaders } from '../utils/headers.js';
+import { createNotVisibleResponder } from '../utils/visibility.js';
 
 const paramsSchema = z.object({
   id: z.url(),
@@ -20,10 +23,21 @@ const querySchema = z.object({
 type FileRouteOptions = {
   prisma: PrismaClient;
   fileHandler: FileHandler;
+  entityVisibilityFilter: EntityVisibilityFilter;
+  hiddenResponse: HiddenResponse;
 };
 
 const file: FastifyPluginAsync<FileRouteOptions> = async (fastify, opts) => {
-  const { prisma, fileHandler } = opts;
+  const { prisma, fileHandler, entityVisibilityFilter, hiddenResponse } = opts;
+
+  const findVisibleFile = async (id: string, context: TransformerContext) =>
+    prisma.file.findFirst({ where: { id, entity: await entityVisibilityFilter(context) } });
+
+  const sendFileNotVisible = createNotVisibleResponder({
+    hiddenResponse,
+    notFoundMessage: 'The requested file was not found',
+    exists: async (id) => (await prisma.file.count({ where: { id } })) > 0,
+  });
 
   fastify.withTypeProvider<ZodTypeProvider>().head(
     '/file/:id',
@@ -36,15 +50,14 @@ const file: FastifyPluginAsync<FileRouteOptions> = async (fastify, opts) => {
       const { id } = request.params;
 
       try {
-        const file = await prisma.file.findUnique({
-          where: { id },
-        });
+        const context = { request, fastify };
+        const file = await findVisibleFile(id, context);
 
         if (!file) {
-          return reply.code(404).send(createNotFoundError('The requested file was not found', id));
+          return sendFileNotVisible(reply, id, context);
         }
 
-        const metadata: FileMetadata | false = await fileHandler.head(file, { request, fastify });
+        const metadata: FileMetadata | false = await fileHandler.head(file, context);
 
         if (!metadata) {
           return reply.code(404).send(createNotFoundError('The requested file metadata was not found', id));
@@ -74,15 +87,14 @@ const file: FastifyPluginAsync<FileRouteOptions> = async (fastify, opts) => {
       const { id } = request.params;
 
       try {
-        const file = await prisma.file.findUnique({
-          where: { id },
-        });
+        const context = { request, fastify };
+        const file = await findVisibleFile(id, context);
 
         if (!file) {
-          return reply.code(404).send(createNotFoundError('The requested file was not found', id));
+          return sendFileNotVisible(reply, id, context);
         }
 
-        const result = await fileHandler.get(file, { request, fastify });
+        const result = await fileHandler.get(file, context);
 
         if (!result) {
           return reply.code(404).send(createNotFoundError('The requested file could not be retrieved', id));

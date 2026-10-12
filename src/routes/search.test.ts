@@ -4,12 +4,15 @@ import { fastify, fastifyAfter, fastifyBefore, opensearch, prisma } from '../tes
 import { AllPublicAccessTransformer } from '../transformers/default.js';
 import type { StandardErrorResponse } from '../utils/errors.js';
 import { OpensearchQueryBuilder } from '../utils/queryBuilder.js';
+import { AllVisibleEntityFilter, AllVisibleSearchFilter } from '../utils/visibility.js';
 import searchRoute from './search.js';
 
 describe('Search Route', () => {
   beforeEach(async () => {
     await fastifyBefore();
     await fastify.register(searchRoute, {
+      entityVisibilityFilter: AllVisibleEntityFilter,
+      searchVisibilityFilter: AllVisibleSearchFilter,
       prisma,
       opensearch,
       accessTransformer: AllPublicAccessTransformer,
@@ -108,9 +111,7 @@ describe('Search Route', () => {
       // Verify database was queried with correct ids
       expect(prisma.entity.findMany).toHaveBeenCalledWith({
         where: {
-          id: {
-            in: ['http://example.com/entity/1', 'http://example.com/entity/2'],
-          },
+          AND: [{ id: { in: ['http://example.com/entity/1', 'http://example.com/entity/2'] } }, {}],
         },
         include: { file: { select: { id: true } } },
       });
@@ -120,18 +121,25 @@ describe('Search Route', () => {
         body: {
           query: {
             bool: {
+              filter: [{ match_all: {} }],
               must: [
                 {
-                  multi_match: {
-                    query: 'test',
-                    fields: ['name^2', 'description'],
-                    type: 'best_fields',
-                    fuzziness: 'AUTO',
-                    zero_terms_query: 'all',
+                  bool: {
+                    must: [
+                      {
+                        multi_match: {
+                          query: 'test',
+                          fields: ['name^2', 'description'],
+                          type: 'best_fields',
+                          fuzziness: 'AUTO',
+                          zero_terms_query: 'all',
+                        },
+                      },
+                    ],
+                    filter: [],
                   },
                 },
               ],
-              filter: [],
             },
           },
           aggs: {
@@ -184,16 +192,23 @@ describe('Search Route', () => {
         body: {
           query: {
             bool: {
+              filter: [{ match_all: {} }],
               must: [
                 {
-                  query_string: {
-                    query: 'name:test AND description:entity',
-                    fields: ['name^2', 'description'],
-                    default_operator: 'AND',
+                  bool: {
+                    must: [
+                      {
+                        query_string: {
+                          query: 'name:test AND description:entity',
+                          fields: ['name^2', 'description'],
+                          default_operator: 'AND',
+                        },
+                      },
+                    ],
+                    filter: [],
                   },
                 },
               ],
-              filter: [],
             },
           },
           aggs: {
@@ -260,11 +275,18 @@ describe('Search Route', () => {
       expect(opensearch.search).toHaveBeenCalledWith(
         expect.objectContaining({
           body: expect.objectContaining({
-            query: expect.objectContaining({
-              bool: expect.objectContaining({
-                filter: expectedFilters,
-              }),
-            }),
+            query: {
+              bool: {
+                filter: [{ match_all: {} }],
+                must: [
+                  expect.objectContaining({
+                    bool: expect.objectContaining({
+                      filter: expectedFilters,
+                    }),
+                  }),
+                ],
+              },
+            },
           }),
         }),
       );
@@ -316,20 +338,27 @@ describe('Search Route', () => {
       expect(opensearch.search).toHaveBeenCalledWith(
         expect.objectContaining({
           body: expect.objectContaining({
-            query: expect.objectContaining({
-              bool: expect.objectContaining({
-                filter: [
-                  {
-                    geo_bounding_box: {
-                      location: {
-                        top_left: { lat: 51.5, lon: 0.0 },
-                        bottom_right: { lat: 51.4, lon: 0.1 },
-                      },
-                    },
-                  },
+            query: {
+              bool: {
+                filter: [{ match_all: {} }],
+                must: [
+                  expect.objectContaining({
+                    bool: expect.objectContaining({
+                      filter: [
+                        {
+                          geo_bounding_box: {
+                            location: {
+                              top_left: { lat: 51.5, lon: 0.0 },
+                              bottom_right: { lat: 51.4, lon: 0.1 },
+                            },
+                          },
+                        },
+                      ],
+                    }),
+                  }),
                 ],
-              }),
-            }),
+              },
+            },
             aggs: expect.objectContaining({
               geohash_grid: {
                 geohash_grid: {
@@ -617,6 +646,8 @@ describe('Search Route', () => {
 
       await fastifyBefore();
       await fastify.register(searchRoute, {
+        entityVisibilityFilter: AllVisibleEntityFilter,
+        searchVisibilityFilter: AllVisibleSearchFilter,
         prisma,
         opensearch,
         accessTransformer: AllPublicAccessTransformer,
