@@ -26,3 +26,17 @@ This is a Fastify plugin that registers routes for entities, files, search, and 
 **Search**: `OpensearchQueryBuilder` in `src/utils/queryBuilder.ts` builds OpenSearch queries. Consumers can subclass it and pass via `queryBuilderClass` option to customise query building, aggregations, and sorting.
 
 **Prisma**: Uses folder-based schema (`prisma/` directory with `prisma.config.ts`). Models in `prisma/models/`. Generated client output goes to `src/generated/prisma/`.
+
+## Agent skills
+
+### Issue tracker
+
+Issues live in GitHub Issues on `Language-Research-Technology/arocapi` (via `gh`). See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default vocabulary: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: `GLOSSARY.md` and `docs/adr/` at the repo root. See `docs/agents/domain.md`.
