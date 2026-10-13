@@ -25,6 +25,10 @@ const arocapiOptions = {
   searchVisibilityFilter: AllVisibleSearchFilter,
 };
 
+const internalErrorBody = { error: { code: 'INTERNAL_ERROR', message: 'Internal server error' } };
+const notFoundBody = { error: { code: 'NOT_FOUND', message: 'The requested resource was not found' } };
+const message = 'Something specific went wrong';
+
 const buildConsumer = () => {
   const logs: Record<string, unknown>[] = [];
   const fastify = Fastify({
@@ -52,47 +56,35 @@ describe('Error handling for consumer routes', () => {
     const response = await fastify.inject({ method: 'GET', url: '/boom' });
 
     expect(response.statusCode).toBe(500);
-    expect(response.json()).toEqual({ error: { code: 'INTERNAL_ERROR', message: 'Internal server error' } });
+    expect(response.json()).toEqual(internalErrorBody);
     expect(
       logs.some((l) => l.level === 50 && (l.err as { message: string }).message === 'db password is hunter2'),
     ).toBe(true);
   });
 
   it.each([
-    [400, 'VALIDATION_ERROR'],
-    [401, 'UNAUTHORIZED'],
-    [403, 'FORBIDDEN'],
-    [404, 'NOT_FOUND'],
-    [405, 'VALIDATION_ERROR'],
-    [409, 'CONFLICT'],
-    [413, 'VALIDATION_ERROR'],
-    [416, 'RANGE_NOT_SATISFIABLE'],
-    [422, 'VALIDATION_ERROR'],
-    [429, 'RATE_LIMIT_EXCEEDED'],
-  ])('answers a thrown %i with code %s and keeps the message', async (status, code) => {
+    [400, 400, { error: { code: 'VALIDATION_ERROR', message } }],
+    [401, 401, { error: { code: 'UNAUTHORIZED', message } }],
+    [403, 403, { error: { code: 'FORBIDDEN', message } }],
+    [404, 404, { error: { code: 'NOT_FOUND', message } }],
+    [405, 405, { error: { code: 'VALIDATION_ERROR', message } }],
+    [409, 409, { error: { code: 'CONFLICT', message } }],
+    [413, 413, { error: { code: 'VALIDATION_ERROR', message } }],
+    [416, 416, { error: { code: 'RANGE_NOT_SATISFIABLE', message } }],
+    [422, 422, { error: { code: 'VALIDATION_ERROR', message } }],
+    [429, 429, { error: { code: 'RATE_LIMIT_EXCEEDED', message } }],
+    [503, 500, internalErrorBody],
+  ])('answers a thrown %i http error with %i in the spec shape', async (thrown, status, body) => {
     const { fastify } = buildConsumer();
     await fastify.register(sensible);
     fastify.get('/fail', async () => {
-      throw fastify.httpErrors.createError(status, 'Something specific went wrong');
+      throw fastify.httpErrors.createError(thrown, message);
     });
 
     const response = await fastify.inject({ method: 'GET', url: '/fail' });
 
     expect(response.statusCode).toBe(status);
-    expect(response.json()).toEqual({ error: { code, message: 'Something specific went wrong' } });
-  });
-
-  it('answers a thrown 5xx http error with a generic 500', async () => {
-    const { fastify } = buildConsumer();
-    await fastify.register(sensible);
-    fastify.get('/fail', async () => {
-      throw fastify.httpErrors.serviceUnavailable('upstream at 10.0.0.5 is down');
-    });
-
-    const response = await fastify.inject({ method: 'GET', url: '/fail' });
-
-    expect(response.statusCode).toBe(500);
-    expect(response.json()).toEqual({ error: { code: 'INTERNAL_ERROR', message: 'Internal server error' } });
+    expect(response.json()).toEqual(body);
   });
 
   it('answers Zod validation failures with VALIDATION_ERROR violations', async () => {
@@ -119,7 +111,7 @@ describe('Error handling for consumer routes', () => {
     const response = await fastify.inject({ method: 'GET', url: '/nowhere' });
 
     expect(response.statusCode).toBe(404);
-    expect(response.json()).toEqual({ error: { code: 'NOT_FOUND', message: 'The requested resource was not found' } });
+    expect(response.json()).toEqual(notFoundBody);
   });
 
   it.each([
@@ -137,6 +129,21 @@ describe('Error handling for consumer routes', () => {
     expect(unknown.statusCode).toBe(404);
     expect(unknown.json().error.code).toBe('NOT_FOUND');
   });
+  it('leaves 404s to a prefixed consumer scope that mounts arocapi without its own prefix', async () => {
+    const { fastify } = buildConsumer();
+    await fastify.register(
+      async (api) => {
+        api.setNotFoundHandler((_request, reply) => reply.code(404).send({ scope: 'api' }));
+        await api.register(arocapi, arocapiOptions);
+      },
+      { prefix: '/api' },
+    );
+
+    const response = await fastify.inject({ method: 'GET', url: '/api/nowhere' });
+
+    expect(response.statusCode).toBe(404);
+    expect(response.json()).toEqual({ scope: 'api' });
+  });
 });
 
 describe('Error handling for arocapi on its own', () => {
@@ -147,6 +154,6 @@ describe('Error handling for arocapi on its own', () => {
     const response = await fastify.inject({ method: 'GET', url: '/api/nowhere' });
 
     expect(response.statusCode).toBe(404);
-    expect(response.json()).toEqual({ error: { code: 'NOT_FOUND', message: 'The requested resource was not found' } });
+    expect(response.json()).toEqual(notFoundBody);
   });
 });

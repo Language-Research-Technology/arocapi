@@ -196,8 +196,9 @@ return reply.code(404).send(createNotFoundError('The requested collection was no
 return reply.code(409).send(createError(ERROR_CODES.CONFLICT, 'The deposit is already finalised'));
 ```
 
-When registered under a prefix, arocapi also answers unknown paths under that
-prefix with 404 `NOT_FOUND`. Without a prefix, use the root `notFoundHandler`.
+When registered with its own `prefix` option, arocapi also answers unknown
+paths under that prefix with 404 `NOT_FOUND`. Otherwise, unknown paths go to
+the not-found handler of the scope arocapi is registered in.
 
 ## Database Setup with Prisma
 

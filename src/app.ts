@@ -77,10 +77,6 @@ const setupValidation = (fastify: FastifyInstance) => {
   fastify.setSerializerCompiler(serializerCompiler);
 
   fastify.setErrorHandler(errorHandler);
-  // At the root this would clash with the consumer's own not-found handler
-  if (fastify.prefix) {
-    fastify.setNotFoundHandler(notFoundHandler);
-  }
 };
 
 const HIDDEN_REASONS: string[] = ['notFound', 'authenticationRequired', 'forbidden'] satisfies HiddenReason[];
@@ -155,6 +151,11 @@ const app: FastifyPluginAsync<Options> = async (fastify, options) => {
 
   fastify.register(sensible);
   setupValidation(fastify);
+
+  // Fastify only gives a plugin its own not-found handler when registered with its own prefix
+  if ((options as { prefix?: string }).prefix) {
+    fastify.setNotFoundHandler(notFoundHandler);
+  }
 
   const queryBuilder = new (queryBuilderClass ?? OpensearchQueryBuilder)(queryBuilderOptions);
 

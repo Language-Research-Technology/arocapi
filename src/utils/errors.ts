@@ -1,4 +1,4 @@
-import type { FastifyReply, FastifyRequest } from 'fastify';
+import type { FastifyError, FastifyReply, FastifyRequest } from 'fastify';
 import { hasZodFastifySchemaValidationErrors } from 'fastify-type-provider-zod';
 
 export const ERROR_CODES = {
@@ -53,9 +53,8 @@ export const createAuthenticationRequiredError = (message: string, entityId: str
 export const createForbiddenError = (message: string, entityId: string): StandardErrorResponse =>
   createError(ERROR_CODES.FORBIDDEN, message, { entityId });
 
-export const createInternalError = (message = 'Internal server error'): StandardErrorResponse => {
-  return createError(ERROR_CODES.INTERNAL_ERROR, message);
-};
+export const createInternalError = (message = 'Internal server error'): StandardErrorResponse =>
+  createError(ERROR_CODES.INTERNAL_ERROR, message);
 
 const STATUS_CODES: Record<number, ErrorCode> = {
   401: ERROR_CODES.UNAUTHORIZED,
@@ -76,11 +75,11 @@ export const errorHandler = (error: unknown, request: FastifyRequest, reply: Fas
     return reply.code(400).send(createValidationError('The request parameters are invalid', violations));
   }
 
-  const statusCode = (error as { statusCode?: unknown }).statusCode;
-  if (typeof statusCode === 'number' && statusCode >= 400 && statusCode < 500) {
+  const { statusCode, message } = error as Partial<FastifyError>;
+  if (statusCode && statusCode >= 400 && statusCode < 500) {
     const code = STATUS_CODES[statusCode] ?? ERROR_CODES.VALIDATION_ERROR;
 
-    return reply.code(statusCode).send(createError(code, (error as Error).message));
+    return reply.code(statusCode).send(createError(code, message ?? ''));
   }
 
   request.log.error({ err: error });
