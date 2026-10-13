@@ -162,6 +162,43 @@ fastify.register(arocapi, { /* ... */ });
 The defaults allow all origins with `GET`, `HEAD` and `POST`, matching what
 arocapi registered before 5.0.0. See the `@fastify/cors` docs to restrict them.
 
+### Error Responses
+
+arocapi's routes answer errors in the spec's shape,
+`{ error: { code, message, details? } }`. To make your own routes and unknown
+URLs answer the same way, set arocapi's handlers on the root instance:
+
+```typescript
+import arocapi, { errorHandler, notFoundHandler } from 'arocapi';
+
+fastify.setErrorHandler(errorHandler);
+fastify.setNotFoundHandler(notFoundHandler);
+fastify.register(arocapi, { /* ... */ });
+```
+
+`errorHandler` answers:
+
+- Zod validation errors with 400 `VALIDATION_ERROR` and `details.violations`
+- errors with a 4xx `statusCode` (e.g. from `@fastify/sensible`) with that
+  status and message, and the matching code: 401 `UNAUTHORIZED`, 403
+  `FORBIDDEN`, 404 `NOT_FOUND`, 409 `CONFLICT`, 416 `RANGE_NOT_SATISFIABLE`,
+  429 `RATE_LIMIT_EXCEEDED`, otherwise `VALIDATION_ERROR`
+- anything else with 500 `INTERNAL_ERROR` and a generic message, logging the
+  real error
+
+In your routes, build error bodies with the same helpers arocapi uses, so the
+code moves into arocapi unchanged:
+
+```typescript
+import { createError, createNotFoundError, ERROR_CODES } from 'arocapi';
+
+return reply.code(404).send(createNotFoundError('The requested collection was not found', id));
+return reply.code(409).send(createError(ERROR_CODES.CONFLICT, 'The deposit is already finalised'));
+```
+
+When registered under a prefix, arocapi also answers unknown paths under that
+prefix with 404 `NOT_FOUND`. Without a prefix, use the root `notFoundHandler`.
+
 ## Database Setup with Prisma
 
 ### 1. Initialize Prisma

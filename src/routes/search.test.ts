@@ -431,7 +431,7 @@ describe('Search Route', () => {
 
       expect(response.statusCode).toBe(422);
       const body = JSON.parse(response.body) as StandardErrorResponse;
-      expect(body.error.code).toBe('INVALID_REQUEST');
+      expect(body.error.code).toBe('VALIDATION_ERROR');
     });
 
     it('should handle opensearch errors', async () => {
@@ -465,7 +465,7 @@ describe('Search Route', () => {
 
       expect(response.statusCode).toBe(422);
       const body = JSON.parse(response.body) as StandardErrorResponse;
-      expect(body.error.code).toBe('INVALID_REQUEST');
+      expect(body.error.code).toBe('VALIDATION_ERROR');
       expect(body.error.message).toBe('parsing_exception');
     });
 

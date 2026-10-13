@@ -1,15 +1,19 @@
-const ERROR_CODES = {
+import type { FastifyReply, FastifyRequest } from 'fastify';
+import { hasZodFastifySchemaValidationErrors } from 'fastify-type-provider-zod';
+
+export const ERROR_CODES = {
   VALIDATION_ERROR: 'VALIDATION_ERROR',
   NOT_FOUND: 'NOT_FOUND',
   UNAUTHORIZED: 'UNAUTHORIZED',
   FORBIDDEN: 'FORBIDDEN',
+  CONFLICT: 'CONFLICT',
+  RANGE_NOT_SATISFIABLE: 'RANGE_NOT_SATISFIABLE',
   RATE_LIMIT_EXCEEDED: 'RATE_LIMIT_EXCEEDED',
   INTERNAL_ERROR: 'INTERNAL_ERROR',
-  INVALID_REQUEST: 'INVALID_REQUEST',
   INVALID_ENTITY_TYPE: 'INVALID_ENTITY_TYPE',
 } as const;
 
-type ErrorCode = (typeof ERROR_CODES)[keyof typeof ERROR_CODES];
+export type ErrorCode = (typeof ERROR_CODES)[keyof typeof ERROR_CODES];
 
 type ErrorDetails = {
   [key: string]: unknown;
@@ -23,7 +27,7 @@ export type StandardErrorResponse = {
   };
 };
 
-const createErrorResponse = (code: ErrorCode, message: string, details?: ErrorDetails): StandardErrorResponse => ({
+export const createError = (code: ErrorCode, message: string, details?: ErrorDetails): StandardErrorResponse => ({
   error: {
     code,
     message,
@@ -38,20 +42,51 @@ type ValidationViolation = {
 };
 
 export const createValidationError = (message: string, violations: ValidationViolation[]): StandardErrorResponse =>
-  createErrorResponse(ERROR_CODES.VALIDATION_ERROR, message, { violations });
+  createError(ERROR_CODES.VALIDATION_ERROR, message, { violations });
 
 export const createNotFoundError = (message: string, entityId?: string): StandardErrorResponse =>
-  createErrorResponse(ERROR_CODES.NOT_FOUND, message, entityId ? { entityId } : undefined);
+  createError(ERROR_CODES.NOT_FOUND, message, entityId ? { entityId } : undefined);
 
 export const createAuthenticationRequiredError = (message: string, entityId: string): StandardErrorResponse =>
-  createErrorResponse(ERROR_CODES.UNAUTHORIZED, message, { entityId });
+  createError(ERROR_CODES.UNAUTHORIZED, message, { entityId });
 
 export const createForbiddenError = (message: string, entityId: string): StandardErrorResponse =>
-  createErrorResponse(ERROR_CODES.FORBIDDEN, message, { entityId });
-
-export const createInvalidRequestError = (message: string): StandardErrorResponse =>
-  createErrorResponse(ERROR_CODES.INVALID_REQUEST, message);
+  createError(ERROR_CODES.FORBIDDEN, message, { entityId });
 
 export const createInternalError = (message = 'Internal server error'): StandardErrorResponse => {
-  return createErrorResponse(ERROR_CODES.INTERNAL_ERROR, message);
+  return createError(ERROR_CODES.INTERNAL_ERROR, message);
 };
+
+const STATUS_CODES: Record<number, ErrorCode> = {
+  401: ERROR_CODES.UNAUTHORIZED,
+  403: ERROR_CODES.FORBIDDEN,
+  404: ERROR_CODES.NOT_FOUND,
+  409: ERROR_CODES.CONFLICT,
+  416: ERROR_CODES.RANGE_NOT_SATISFIABLE,
+  429: ERROR_CODES.RATE_LIMIT_EXCEEDED,
+};
+
+export const errorHandler = (error: unknown, request: FastifyRequest, reply: FastifyReply) => {
+  if (hasZodFastifySchemaValidationErrors(error)) {
+    const violations = error.validation.map((v) => ({
+      field: v.instancePath,
+      message: v.message,
+    }));
+
+    return reply.code(400).send(createValidationError('The request parameters are invalid', violations));
+  }
+
+  const statusCode = (error as { statusCode?: unknown }).statusCode;
+  if (typeof statusCode === 'number' && statusCode >= 400 && statusCode < 500) {
+    const code = STATUS_CODES[statusCode] ?? ERROR_CODES.VALIDATION_ERROR;
+
+    return reply.code(statusCode).send(createError(code, (error as Error).message));
+  }
+
+  request.log.error({ err: error });
+
+  return reply.code(500).send(createInternalError());
+};
+
+export const notFoundHandler = (_request: FastifyRequest, reply: FastifyReply) =>
+  reply.code(404).send(createNotFoundError('The requested resource was not found'));

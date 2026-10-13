@@ -8,7 +8,7 @@ import type { PrismaClient } from '../generated/prisma/client.js';
 import { baseEntityTransformer, resolveEntityReferences } from '../transformers/default.js';
 import type { AccessTransformer, EntityTransformer } from '../types/transformers.js';
 import type { EntityVisibilityFilter, SearchVisibilityFilter } from '../types/visibility.js';
-import { createInternalError, createInvalidRequestError } from '../utils/errors.js';
+import { createError, createInternalError, ERROR_CODES } from '../utils/errors.js';
 import type { OpensearchQueryBuilder } from '../utils/queryBuilder.js';
 
 const boundingBoxSchema = z.object({
@@ -198,7 +198,7 @@ const search: FastifyPluginAsync<SearchRouteOptions> = async (fastify, opts) => 
         if ('statusCode' in err && (err as { statusCode: number }).statusCode === 400) {
           fastify.log.warn(`Invalid search query: ${err.message}`);
 
-          return reply.code(422).send(createInvalidRequestError(err.message));
+          return reply.code(422).send(createError(ERROR_CODES.VALIDATION_ERROR, err.message));
         }
 
         fastify.log.error(`Search error: ${err.message}`);

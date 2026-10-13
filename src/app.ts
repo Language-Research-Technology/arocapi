@@ -1,7 +1,7 @@
 import sensible from '@fastify/sensible';
 import type { Client } from '@opensearch-project/opensearch';
 import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
-import { hasZodFastifySchemaValidationErrors, serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod';
+import { serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod';
 import type { PrismaClient } from './generated/prisma/client.js';
 import capabilities from './routes/capabilities.js';
 import entities from './routes/entities.js';
@@ -23,7 +23,7 @@ import type {
   HiddenResponse,
   SearchVisibilityFilter,
 } from './types/visibility.js';
-import { createValidationError } from './utils/errors.js';
+import { errorHandler, notFoundHandler } from './utils/errors.js';
 import type { FacetCapability, FilterCapability, QueryBuilderOptions, SearchCapability } from './utils/queryBuilder.js';
 import { OpensearchQueryBuilder } from './utils/queryBuilder.js';
 
@@ -56,6 +56,18 @@ export type {
   HiddenResponse,
   SearchVisibilityFilter,
 } from './types/visibility.js';
+export type { ErrorCode, StandardErrorResponse } from './utils/errors.js';
+export {
+  createAuthenticationRequiredError,
+  createError,
+  createForbiddenError,
+  createInternalError,
+  createNotFoundError,
+  createValidationError,
+  ERROR_CODES,
+  errorHandler,
+  notFoundHandler,
+} from './utils/errors.js';
 export { AllVisibleEntityFilter, AllVisibleSearchFilter } from './utils/visibility.js';
 export type { FacetCapability, FilterCapability, QueryBuilderOptions, SearchCapability };
 export { OpensearchQueryBuilder };
@@ -64,24 +76,11 @@ const setupValidation = (fastify: FastifyInstance) => {
   fastify.setValidatorCompiler(validatorCompiler);
   fastify.setSerializerCompiler(serializerCompiler);
 
-  fastify.setErrorHandler((error, _req, reply) => {
-    /* c8 ignore else -- non-Zod errors are caught by route try/catch in practice -- @preserve */
-    if (hasZodFastifySchemaValidationErrors(error)) {
-      const violations = error.validation.map((v) => ({
-        field: v.instancePath,
-        message: v.message,
-      }));
-
-      return reply.code(400).send(createValidationError('The request parameters are invalid', violations));
-    }
-
-    /* v8 ignore start -- defensive fallback for non-Zod errors -- @preserve */
-    // NOTE: We are exposing the error message here for development purposes.
-    // In production, consider hiding error details to avoid leaking sensitive information.
-    const err = error as Error;
-    return reply.code(500).send({ error: 'Internal Server Error', message: err.message });
-    /* v8 ignore stop */
-  });
+  fastify.setErrorHandler(errorHandler);
+  // At the root this would clash with the consumer's own not-found handler
+  if (fastify.prefix) {
+    fastify.setNotFoundHandler(notFoundHandler);
+  }
 };
 
 const HIDDEN_REASONS: string[] = ['notFound', 'authenticationRequired', 'forbidden'] satisfies HiddenReason[];
