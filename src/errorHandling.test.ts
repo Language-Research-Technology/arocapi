@@ -87,6 +87,55 @@ describe('Error handling for consumer routes', () => {
     expect(response.json()).toEqual(body);
   });
 
+  it('keeps headers carried by the error', async () => {
+    const { fastify } = buildConsumer();
+    await fastify.register(sensible);
+    fastify.get('/fail', async () => {
+      throw fastify.httpErrors.createError(401, message, { headers: { 'www-authenticate': 'Bearer' } });
+    });
+
+    const response = await fastify.inject({ method: 'GET', url: '/fail' });
+
+    expect(response.statusCode).toBe(401);
+    expect(response.headers['www-authenticate']).toBe('Bearer');
+  });
+
+  it('maps errors that carry only a status', async () => {
+    const { fastify } = buildConsumer();
+    fastify.get('/fail', async () => {
+      throw Object.assign(new Error(message), { status: 403 });
+    });
+
+    const response = await fastify.inject({ method: 'GET', url: '/fail' });
+
+    expect(response.statusCode).toBe(403);
+    expect(response.json()).toEqual({ error: { code: 'FORBIDDEN', message } });
+  });
+
+  it('maps a thrown plain object with a status and no message', async () => {
+    const { fastify } = buildConsumer();
+    fastify.get('/fail', async () => {
+      throw { statusCode: 404 };
+    });
+
+    const response = await fastify.inject({ method: 'GET', url: '/fail' });
+
+    expect(response.statusCode).toBe(404);
+    expect(response.json()).toEqual({ error: { code: 'NOT_FOUND', message: '' } });
+  });
+
+  it.each([null, undefined])('answers a thrown %s with a generic 500', async (thrown) => {
+    const { fastify } = buildConsumer();
+    fastify.get('/fail', async () => {
+      throw thrown;
+    });
+
+    const response = await fastify.inject({ method: 'GET', url: '/fail' });
+
+    expect(response.statusCode).toBe(500);
+    expect(response.json()).toEqual(internalErrorBody);
+  });
+
   it('answers Zod validation failures with VALIDATION_ERROR violations', async () => {
     const { fastify } = buildConsumer();
     fastify
@@ -129,6 +178,7 @@ describe('Error handling for consumer routes', () => {
     expect(unknown.statusCode).toBe(404);
     expect(unknown.json().error.code).toBe('NOT_FOUND');
   });
+
   it('leaves 404s to a prefixed consumer scope that mounts arocapi without its own prefix', async () => {
     const { fastify } = buildConsumer();
     await fastify.register(
@@ -143,6 +193,15 @@ describe('Error handling for consumer routes', () => {
 
     expect(response.statusCode).toBe(404);
     expect(response.json()).toEqual({ scope: 'api' });
+  });
+  it("leaves the consumer's root 404s alone when arocapi is registered with prefix '/'", async () => {
+    const fastify = Fastify({ logger: false });
+    fastify.setNotFoundHandler((_request, reply) => reply.code(404).send({ scope: 'root' }));
+    await fastify.register(arocapi, { ...arocapiOptions, prefix: '/' });
+
+    const response = await fastify.inject({ method: 'GET', url: '/nowhere' });
+
+    expect(response.json()).toEqual({ scope: 'root' });
   });
 });
 

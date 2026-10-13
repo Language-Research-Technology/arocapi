@@ -56,7 +56,7 @@ export const createForbiddenError = (message: string, entityId: string): Standar
 export const createInternalError = (message = 'Internal server error'): StandardErrorResponse =>
   createError(ERROR_CODES.INTERNAL_ERROR, message);
 
-const STATUS_CODES: Record<number, ErrorCode> = {
+const ERROR_CODE_BY_STATUS: Record<number, ErrorCode> = {
   401: ERROR_CODES.UNAUTHORIZED,
   403: ERROR_CODES.FORBIDDEN,
   404: ERROR_CODES.NOT_FOUND,
@@ -75,11 +75,17 @@ export const errorHandler = (error: unknown, request: FastifyRequest, reply: Fas
     return reply.code(400).send(createValidationError('The request parameters are invalid', violations));
   }
 
-  const { statusCode, message } = error as Partial<FastifyError>;
-  if (statusCode && statusCode >= 400 && statusCode < 500) {
-    const code = STATUS_CODES[statusCode] ?? ERROR_CODES.VALIDATION_ERROR;
+  const { statusCode, status, message, headers } = (error ?? {}) as Partial<
+    FastifyError & { status: number; headers: Record<string, string> }
+  >;
+  const httpStatus = statusCode ?? status;
+  if (httpStatus && httpStatus >= 400 && httpStatus < 500) {
+    const code = ERROR_CODE_BY_STATUS[httpStatus] ?? ERROR_CODES.VALIDATION_ERROR;
 
-    return reply.code(statusCode).send(createError(code, message ?? ''));
+    return reply
+      .code(httpStatus)
+      .headers(headers ?? {})
+      .send(createError(code, message ?? ''));
   }
 
   request.log.error({ err: error });

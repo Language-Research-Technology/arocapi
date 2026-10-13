@@ -153,7 +153,8 @@ const app: FastifyPluginAsync<Options> = async (fastify, options) => {
   setupValidation(fastify);
 
   // Fastify only gives a plugin its own not-found handler when registered with its own prefix
-  if ((options as { prefix?: string }).prefix) {
+  const { prefix } = options as { prefix?: string };
+  if (prefix && prefix !== '/') {
     fastify.setNotFoundHandler(notFoundHandler);
   }
 
