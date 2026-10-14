@@ -12,6 +12,7 @@ fi
 docker compose -f docker-compose.test.yml up --wait --detach
 
 export DATABASE_URL='mysql://root:password@localhost:3307/catalog_test'
+prisma generate >/dev/null
 prisma migrate deploy
 
 if [ $# -gt 0 ]; then
