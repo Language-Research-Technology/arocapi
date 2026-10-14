@@ -1,6 +1,8 @@
 import type { Entity, File, PrismaClient } from '../generated/prisma/client.js';
+import type { AccessFunction, AccessInfo } from '../types/access.js';
+import type { RequestContext } from '../types/context.js';
 
-type EntityWithFile = Entity & { file?: { id: string } | null };
+export type EntityWithFile = Omit<Entity, 'meta'> & { file?: { id: string } | null };
 
 /**
  * Entity reference - used for memberOf and rootCollection
@@ -11,8 +13,8 @@ type EntityReference = {
 };
 
 /**
- * Base entity shape - output of base transformation with unresolved references
- * Used internally before reference resolution
+ * Base entity shape - an entity's Record fields with memberOf and rootCollection as ids
+ * The access function receives this shape, so deciding access never looks up parent entities
  */
 export type BaseEntity = {
   id: string;
@@ -41,31 +43,13 @@ export type StandardEntity = {
 };
 
 /**
- * Access information for an entity
- */
-type AccessInfo = {
-  metadata: boolean;
-  content: boolean;
-  metadataAuthorizationUrl?: string;
-  contentAuthorizationUrl?: string;
-};
-
-/**
- * Authorised entity - includes access information
- * This is the output of the access transformer
+ * Authorised entity - a standard entity with the access function's result attached
  */
 export type AuthorisedEntity = StandardEntity & {
   access: AccessInfo;
 };
 
-/**
- * Access information for a file
- * Files only control content access - metadata is always accessible
- */
-type FileAccessInfo = {
-  content: boolean;
-  contentAuthorizationUrl?: string;
-};
+type FileAccessInfo = Pick<AccessInfo, 'content' | 'contentAuthorizationUrl'>;
 
 /**
  * Standard file shape - output of base file transformation
@@ -79,9 +63,7 @@ export type StandardFile = {
 };
 
 /**
- * Authorised file - includes access information
- * This is the output of the file access transformer
- * File metadata is always accessible - only content access is controlled
+ * Authorised file - a standard file with its file entity's Content access attached
  */
 export type AuthorisedFile = StandardFile & {
   access: FileAccessInfo;
@@ -108,69 +90,14 @@ export const baseEntityTransformer = (entity: EntityWithFile): BaseEntity => {
 };
 
 /**
- * All Public Access Transformer - grants full access to metadata and content
- *
- * WARNING: This transformer makes ALL content publicly accessible without restrictions.
- * Only use this for fully public datasets where no access control is needed.
- *
- * For repositories with restricted content, implement a custom accessTransformer
- * that checks user permissions and licenses.
- *
- * @example
- * ```typescript
- * await server.register(arocapi, {
- *   prisma,
- *   opensearch,
- *   accessTransformer: AllPublicAccessTransformer, // Explicit choice for public data
- * });
- * ```
- */
-export const AllPublicAccessTransformer = (entity: StandardEntity): AuthorisedEntity => ({
-  ...entity,
-  access: {
-    metadata: true,
-    content: true,
-  },
-});
-
-/**
  * Base file transformer - always applied first
  * Transforms raw database file to standard file shape (without access)
  */
-export const baseFileTransformer = (file: File): StandardFile => ({
+const baseFileTransformer = (file: File): StandardFile => ({
   id: file.id,
   filename: file.filename,
   mediaType: file.mediaType,
   size: Number(file.size),
-});
-
-/**
- * All Public File Access Transformer - grants full access to file content
- *
- * WARNING: This transformer makes ALL file content publicly accessible without restrictions.
- * Only use this for fully public datasets where no access control is needed.
- *
- * For repositories with restricted content, implement a custom fileAccessTransformer
- * that checks user permissions and licenses.
- *
- * Note: File metadata (filename, size, mediaType, etc.) is always accessible.
- * This transformer only controls content access.
- *
- * @example
- * ```typescript
- * await server.register(arocapi, {
- *   prisma,
- *   opensearch,
- *   accessTransformer: AllPublicAccessTransformer,
- *   fileAccessTransformer: AllPublicFileAccessTransformer, // Explicit choice for public data
- * });
- * ```
- */
-export const AllPublicFileAccessTransformer = (file: StandardFile): AuthorisedFile => ({
-  ...file,
-  access: {
-    content: true,
-  },
 });
 
 /**
@@ -181,7 +108,7 @@ export const AllPublicFileAccessTransformer = (file: StandardFile): AuthorisedFi
  * @param prisma - Prisma client instance
  * @returns Map of entity ID to EntityReference object
  */
-export const resolveEntityReferences = async (
+const resolveEntityReferences = async (
   entities: Array<{ memberOf: string | null; rootCollection: string | null }>,
   prisma: PrismaClient,
 ): Promise<Map<string, EntityReference>> => {
@@ -207,4 +134,97 @@ export const resolveEntityReferences = async (
   });
 
   return new Map(refs.map((r) => [r.id, { id: r.id, name: r.name }]));
+};
+
+/**
+ * Transform database entities to standard entities, resolving their references in one query
+ */
+const toStandardEntities = async (entities: EntityWithFile[], prisma: PrismaClient): Promise<StandardEntity[]> => {
+  const refMap = await resolveEntityReferences(entities, prisma);
+
+  return entities.map((entity) => {
+    const base = baseEntityTransformer(entity);
+
+    return {
+      ...base,
+      memberOf: base.memberOf ? (refMap.get(base.memberOf) ?? null) : null,
+      rootCollection: base.rootCollection ? (refMap.get(base.rootCollection) ?? null) : null,
+    };
+  });
+};
+
+const pickAccess = ({
+  metadata,
+  content,
+  metadataAuthorizationUrl,
+  contentAuthorizationUrl,
+}: AccessInfo): AccessInfo => ({
+  metadata,
+  content,
+  ...(metadataAuthorizationUrl && { metadataAuthorizationUrl }),
+  ...(contentAuthorizationUrl && { contentAuthorizationUrl }),
+});
+
+/**
+ * Decide access to database entities with the access function
+ */
+export const decideAccess = async (
+  entities: EntityWithFile[],
+  access: AccessFunction,
+  context: RequestContext,
+): Promise<AccessInfo[]> =>
+  Promise.all(entities.map(async (entity) => pickAccess(await access(baseEntityTransformer(entity), context))));
+
+/**
+ * Transform database entities to standard entities with the access function's result attached
+ */
+export const authoriseEntities = async (
+  entities: EntityWithFile[],
+  prisma: PrismaClient,
+  access: AccessFunction,
+  context: RequestContext,
+): Promise<AuthorisedEntity[]> => {
+  const [standardEntities, entityAccess] = await Promise.all([
+    toStandardEntities(entities, prisma),
+    decideAccess(entities, access, context),
+  ]);
+
+  return standardEntities.map((entity, i) => ({ ...entity, access: entityAccess[i] }));
+};
+
+/**
+ * Transform database files to standard files with their file entity's Content access attached
+ */
+export const authoriseFiles = async (
+  files: Array<File & { entity: EntityWithFile }>,
+  access: AccessFunction,
+  context: RequestContext,
+): Promise<AuthorisedFile[]> => {
+  const fileEntityAccess = await decideAccess(
+    files.map((file) => file.entity),
+    access,
+    context,
+  );
+
+  return files.map((file, i) => {
+    const { metadata: _metadata, metadataAuthorizationUrl: _metadataUrl, ...fileAccess } = fileEntityAccess[i];
+
+    return { ...baseFileTransformer(file), access: fileAccess };
+  });
+};
+
+/**
+ * Apply consumer transformers in order, each receiving the previous one's output
+ */
+export const applyTransformers = async <T>(
+  item: T,
+  transformers: Array<(item: T, context: RequestContext) => Promise<T> | T>,
+  context: RequestContext,
+): Promise<T> => {
+  let result = item;
+  for (const transformer of transformers) {
+    result = await transformer(result, context);
+  }
+
+  return result;
 };

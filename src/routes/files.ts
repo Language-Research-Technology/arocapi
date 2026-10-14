@@ -2,8 +2,9 @@ import type { FastifyPluginAsync } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import type { PrismaClient } from '../generated/prisma/client.js';
-import { baseFileTransformer } from '../transformers/default.js';
-import type { FileAccessTransformer, FileTransformer } from '../types/transformers.js';
+import { applyTransformers, authoriseFiles } from '../transformers/default.js';
+import type { AccessFunction } from '../types/access.js';
+import type { FileTransformer } from '../types/transformers.js';
 import type { EntityVisibilityFilter } from '../types/visibility.js';
 
 const querySchema = z.object({
@@ -16,13 +17,13 @@ const querySchema = z.object({
 
 type FilesRouteOptions = {
   prisma: PrismaClient;
-  fileAccessTransformer: FileAccessTransformer;
+  access: AccessFunction;
   fileTransformers?: FileTransformer[];
   entityVisibilityFilter: EntityVisibilityFilter;
 };
 
 const files: FastifyPluginAsync<FilesRouteOptions> = async (fastify, opts) => {
-  const { prisma, fileAccessTransformer, fileTransformers = [], entityVisibilityFilter } = opts;
+  const { prisma, access, fileTransformers = [], entityVisibilityFilter } = opts;
 
   fastify.withTypeProvider<ZodTypeProvider>().get(
     '/files',
@@ -41,6 +42,7 @@ const files: FastifyPluginAsync<FilesRouteOptions> = async (fastify, opts) => {
       const [dbFiles, total] = await Promise.all([
         prisma.file.findMany({
           where,
+          include: { entity: { omit: { meta: true } } },
           orderBy: {
             [sort]: order,
           },
@@ -50,19 +52,9 @@ const files: FastifyPluginAsync<FilesRouteOptions> = async (fastify, opts) => {
         prisma.file.count({ where }),
       ]);
 
-      // Apply transformers to each entity: base -> access -> additional
+      const authorisedFiles = await authoriseFiles(dbFiles, access, context);
       const filesWithAccess = await Promise.all(
-        dbFiles.map(async (dbFile) => {
-          const standardFile = baseFileTransformer(dbFile);
-          const authorisedFile = await fileAccessTransformer(standardFile, context);
-
-          let result = authorisedFile;
-          for (const transformer of fileTransformers) {
-            result = await transformer(result, context);
-          }
-
-          return result;
-        }),
+        authorisedFiles.map((file) => applyTransformers(file, fileTransformers, context)),
       );
 
       return {

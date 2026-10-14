@@ -5,8 +5,7 @@ import { PrismaMariaDb } from '@prisma/adapter-mariadb';
 import Fastify from 'fastify';
 
 import arocapi, {
-  AllPublicAccessTransformer,
-  AllPublicFileAccessTransformer,
+  AllPublicAccess,
   AllVisibleEntityFilter,
   AllVisibleSearchFilter,
   type EntityTransformer,
@@ -186,9 +185,8 @@ fastify.register(arocapi, {
   opensearch,
   fileHandler,
   roCrateHandler,
-  accessTransformer: AllPublicAccessTransformer,
+  access: AllPublicAccess,
   entityTransformers: [oniTransformer],
-  fileAccessTransformer: AllPublicFileAccessTransformer,
   entityVisibilityFilter: AllVisibleEntityFilter,
   searchVisibilityFilter: AllVisibleSearchFilter,
 });

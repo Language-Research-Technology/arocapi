@@ -2,7 +2,7 @@ import type { FastifyReply } from 'fastify';
 import type { PrismaClient } from '../generated/prisma/client.js';
 import type { IsAuthenticated, RequestContext } from '../types/context.js';
 import type { EntityVisibilityFilter, SearchVisibilityFilter } from '../types/visibility.js';
-import { createAuthenticationRequiredError, createNotFoundError } from './errors.js';
+import { createNotFoundError, sendRefusal } from './errors.js';
 
 /**
  * All Visible Entity Filter - every entity is visible to every request
@@ -17,6 +17,12 @@ export const AllVisibleEntityFilter: EntityVisibilityFilter = () => ({});
  * Use together with AllVisibleEntityFilter for repositories with no hidden entities.
  */
 export const AllVisibleSearchFilter: SearchVisibilityFilter = () => ({ match_all: {} });
+
+/**
+ * Whether a request has no credentials; without isAuthenticated the repository has no logins, so no request is
+ */
+export const isAnonymous = async (isAuthenticated: IsAuthenticated | undefined, context: RequestContext) =>
+  isAuthenticated ? !(await isAuthenticated(context)) : false;
 
 export type RefusalOptions = {
   promptLoginForHidden: boolean;
@@ -35,10 +41,8 @@ type NotVisibleResponderOptions = RefusalOptions & {
 export const createNotVisibleResponder =
   ({ promptLoginForHidden, isAuthenticated, notFoundMessage, exists }: NotVisibleResponderOptions) =>
   async (reply: FastifyReply, id: string, context: RequestContext) => {
-    if (promptLoginForHidden && !(await isAuthenticated?.(context)) && (await exists(id))) {
-      return reply
-        .code(401)
-        .send(createAuthenticationRequiredError('Authentication is required to access this resource', id));
+    if (promptLoginForHidden && (await isAnonymous(isAuthenticated, context)) && (await exists(id))) {
+      return sendRefusal(reply, true, id);
     }
 
     return reply.code(404).send(createNotFoundError(notFoundMessage, id));

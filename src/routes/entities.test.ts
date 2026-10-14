@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { fastify, fastifyAfter, fastifyBefore, prisma } from '../test/helpers/fastify.js';
-import { AllPublicAccessTransformer } from '../transformers/default.js';
+import { AllPublicAccess } from '../utils/access.js';
 import { AllVisibleEntityFilter } from '../utils/visibility.js';
 import entitiesRoute from './entities.js';
 
@@ -11,7 +11,7 @@ describe('Entities Route', () => {
     await fastify.register(entitiesRoute, {
       entityVisibilityFilter: AllVisibleEntityFilter,
       prisma,
-      accessTransformer: AllPublicAccessTransformer,
+      access: AllPublicAccess,
     });
   });
 
@@ -256,7 +256,7 @@ describe('Entities Route', () => {
       await fastify.register(entitiesRoute, {
         entityVisibilityFilter: AllVisibleEntityFilter,
         prisma,
-        accessTransformer: AllPublicAccessTransformer,
+        access: AllPublicAccess,
         entityTransformers: [customTransformer],
       });
 

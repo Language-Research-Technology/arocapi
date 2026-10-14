@@ -3,9 +3,11 @@ import type { FastifyPluginAsync } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import type { PrismaClient } from '../generated/prisma/client.js';
+import type { AccessFunction } from '../types/access.js';
 import type { RequestContext } from '../types/context.js';
 import type { FileHandler, FileMetadata } from '../types/fileHandlers.js';
 import type { EntityVisibilityFilter } from '../types/visibility.js';
+import { createAccessGuard } from '../utils/access.js';
 import { createNotFoundError } from '../utils/errors.js';
 import { setFileHeaders } from '../utils/headers.js';
 import { createNotVisibleResponder, type RefusalOptions } from '../utils/visibility.js';
@@ -23,15 +25,30 @@ const querySchema = z.object({
 type FileRouteOptions = {
   prisma: PrismaClient;
   fileHandler: FileHandler;
+  access: AccessFunction;
   entityVisibilityFilter: EntityVisibilityFilter;
   refusal: RefusalOptions;
 };
 
 const file: FastifyPluginAsync<FileRouteOptions> = async (fastify, opts) => {
-  const { prisma, fileHandler, entityVisibilityFilter, refusal } = opts;
+  const { prisma, fileHandler, access, entityVisibilityFilter, refusal } = opts;
 
-  const findVisibleFile = async (id: string, context: RequestContext) =>
-    prisma.file.findFirst({ where: { id, entity: await entityVisibilityFilter(context) } });
+  // Split the entity off so handlers receive only the File they're typed for
+  const findVisibleFile = async (id: string, context: RequestContext) => {
+    const found = await prisma.file.findFirst({
+      where: { id, entity: await entityVisibilityFilter(context) },
+      include: { entity: { omit: { meta: true } } },
+    });
+    if (!found) {
+      return null;
+    }
+
+    const { entity, ...file } = found;
+
+    return { file, entity };
+  };
+
+  const denyContent = createAccessGuard({ access, isAuthenticated: refusal.isAuthenticated, level: 'content' });
 
   const sendFileNotVisible = createNotVisibleResponder({
     ...refusal,
@@ -50,10 +67,15 @@ const file: FastifyPluginAsync<FileRouteOptions> = async (fastify, opts) => {
       const { id } = request.params;
 
       const context = { request, fastify };
-      const file = await findVisibleFile(id, context);
+      const visible = await findVisibleFile(id, context);
 
-      if (!file) {
+      if (!visible) {
         return sendFileNotVisible(reply, id, context);
+      }
+
+      const { file, entity } = visible;
+      if (await denyContent(reply, entity, context)) {
+        return reply;
       }
 
       const metadata: FileMetadata | false = await fileHandler.head(file, context);
@@ -80,10 +102,15 @@ const file: FastifyPluginAsync<FileRouteOptions> = async (fastify, opts) => {
       const { id } = request.params;
 
       const context = { request, fastify };
-      const file = await findVisibleFile(id, context);
+      const visible = await findVisibleFile(id, context);
 
-      if (!file) {
+      if (!visible) {
         return sendFileNotVisible(reply, id, context);
+      }
+
+      const { file, entity } = visible;
+      if (await denyContent(reply, entity, context)) {
+        return reply;
       }
 
       const result = await fileHandler.get(file, context);

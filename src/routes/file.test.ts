@@ -2,7 +2,9 @@ import { createReadStream } from 'node:fs';
 import { Readable } from 'node:stream';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fastify, fastifyAfter, fastifyBefore, prisma } from '../test/helpers/fastify.js';
+import type { AccessFunction } from '../types/access.js';
 import type { FileHandler, FileResult } from '../types/fileHandlers.js';
+import { AllPublicAccess } from '../utils/access.js';
 import type { StandardErrorResponse } from '../utils/errors.js';
 import { AllVisibleEntityFilter } from '../utils/visibility.js';
 import fileRoute from './file.js';
@@ -16,16 +18,20 @@ describe('File Route', () => {
     get: vi.fn(),
     head: vi.fn(),
   };
+  const mockAccess = vi.fn<AccessFunction>();
 
   beforeEach(async () => {
     await fastifyBefore();
     await fastify.register(fileRoute, {
+      access: mockAccess,
       entityVisibilityFilter: AllVisibleEntityFilter,
       refusal: { promptLoginForHidden: false },
       prisma,
       fileHandler: mockFileHandler,
     });
     vi.clearAllMocks();
+    mockAccess.mockImplementation(AllPublicAccess);
+    prisma.entity.findMany.mockResolvedValue([]);
   });
 
   afterEach(async () => {
@@ -40,7 +46,21 @@ describe('File Route', () => {
     meta: { storagePath: '/data/files/test.wav' },
     createdAt: new Date(),
     updatedAt: new Date(),
+    entity: {
+      id: 'http://example.com/file/test.wav',
+      name: 'test.wav',
+      description: 'A test file',
+      entityType: 'http://schema.org/MediaObject',
+      memberOf: 'http://example.com/object',
+      rootCollection: 'http://example.com/collection',
+      metadataLicenseId: 'https://creativecommons.org/licenses/by/4.0/',
+      contentLicenseId: 'https://example.com/licence/restricted',
+      meta: {},
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    },
   };
+  const { entity: _entity, ...handlerFile } = mockFile;
 
   describe('GET /file/:id', () => {
     it('should stream file content successfully', async () => {
@@ -72,7 +92,7 @@ describe('File Route', () => {
       expect(response.body).toBe('test file content');
 
       expect(mockFileHandler.get).toHaveBeenCalledWith(
-        mockFile,
+        handlerFile,
         expect.objectContaining({
           request: expect.any(Object),
           fastify: expect.any(Object),
@@ -247,6 +267,60 @@ describe('File Route', () => {
       expect(body.error.code).toBe('INTERNAL_ERROR');
     });
 
+    it('should decide access on the file entity without looking up its parents', async () => {
+      prisma.file.findFirst.mockResolvedValue(mockFile);
+      vi.mocked(mockFileHandler.get).mockResolvedValue({ type: 'redirect', url: 'https://example.com/test.wav' });
+
+      await fastify.inject({
+        method: 'GET',
+        url: `/file/${encodeURIComponent('http://example.com/file/test.wav')}`,
+      });
+
+      expect(prisma.file.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({ include: { entity: { omit: { meta: true } } } }),
+      );
+      expect(mockAccess).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: 'http://example.com/file/test.wav',
+          contentLicenseId: 'https://example.com/licence/restricted',
+          memberOf: 'http://example.com/object',
+          rootCollection: 'http://example.com/collection',
+        }),
+        expect.objectContaining({ request: expect.any(Object), fastify: expect.any(Object) }),
+      );
+      expect(prisma.entity.findMany).not.toHaveBeenCalled();
+    });
+
+    it('should return 403 when the content is not accessible', async () => {
+      prisma.file.findFirst.mockResolvedValue(mockFile);
+      mockAccess.mockReturnValue({ metadata: true, content: false });
+
+      const response = await fastify.inject({
+        method: 'GET',
+        url: `/file/${encodeURIComponent('http://example.com/file/test.wav')}`,
+      });
+      const body = JSON.parse(response.body) as { error: { code: string; message: string } };
+
+      expect(response.statusCode).toBe(403);
+      expect(body.error.code).toBe('FORBIDDEN');
+      expect(body.error.message).toBe('You do not have permission to access this resource');
+      expect(mockFileHandler.get).not.toHaveBeenCalled();
+    });
+
+    it('should serve the content when only the metadata is not accessible', async () => {
+      prisma.file.findFirst.mockResolvedValue(mockFile);
+      mockAccess.mockReturnValue({ metadata: false, content: true });
+      vi.mocked(mockFileHandler.get).mockResolvedValue({ type: 'redirect', url: 'https://example.com/test.wav' });
+
+      const response = await fastify.inject({
+        method: 'GET',
+        url: `/file/${encodeURIComponent('http://example.com/file/test.wav')}`,
+      });
+
+      expect(response.statusCode).toBe(302);
+      expect(mockFileHandler.get).toHaveBeenCalled();
+    });
+
     it('should return 500 when fileHandler throws error', async () => {
       prisma.file.findFirst.mockResolvedValue(mockFile);
       vi.mocked(mockFileHandler.get).mockRejectedValue(new Error('File not found in storage'));
@@ -325,7 +399,7 @@ describe('File Route', () => {
       expect(response.body).toBe(''); // No body for HEAD
 
       expect(mockFileHandler.head).toHaveBeenCalledWith(
-        mockFile,
+        handlerFile,
         expect.objectContaining({
           request: expect.any(Object),
           fastify: expect.any(Object),
@@ -345,6 +419,19 @@ describe('File Route', () => {
       expect(response.statusCode).toBe(404);
       expect(body.error.code).toBe('NOT_FOUND');
       expect(mockFileHandler.get).not.toHaveBeenCalled();
+    });
+
+    it('should return 403 when the content is not accessible', async () => {
+      prisma.file.findFirst.mockResolvedValue(mockFile);
+      mockAccess.mockReturnValue({ metadata: true, content: false });
+
+      const response = await fastify.inject({
+        method: 'HEAD',
+        url: `/file/${encodeURIComponent('http://example.com/file/test.wav')}`,
+      });
+
+      expect(response.statusCode).toBe(403);
+      expect(mockFileHandler.head).not.toHaveBeenCalled();
     });
 
     it('should return 500 when head handler throws error', async () => {

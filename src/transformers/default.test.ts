@@ -1,6 +1,17 @@
-import { describe, expect, it } from 'vitest';
+import type { FastifyInstance, FastifyRequest } from 'fastify';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { mockReset } from 'vitest-mock-extended';
 import type { Entity } from '../generated/prisma/client.js';
-import { AllPublicAccessTransformer, baseEntityTransformer } from './default.js';
+import { prisma } from '../test/helpers/fastify.js';
+import type { AccessFunction } from '../types/access.js';
+import type { RequestContext } from '../types/context.js';
+import { AllPublicAccess } from '../utils/access.js';
+import { applyTransformers, authoriseEntities, authoriseFiles, baseEntityTransformer } from './default.js';
+
+const context: RequestContext = {
+  request: {} as FastifyRequest,
+  fastify: {} as FastifyInstance,
+};
 
 describe('baseEntityTransformer', () => {
   it('should transform entity to standard entity shape', () => {
@@ -117,68 +128,149 @@ describe('baseEntityTransformer', () => {
   });
 });
 
-describe('AllPublicAccessTransformer', () => {
-  it('should grant full access to metadata and content', () => {
-    const standardEntity = {
+describe('AllPublicAccess', () => {
+  it('should grant access to metadata and content without authorisation URLs', () => {
+    const baseEntity = {
       id: 'http://example.com/entity/123',
       name: 'Test Entity',
       description: 'A test entity',
       entityType: 'http://schema.org/MediaObject',
-      memberOf: { id: 'http://example.com/parent', name: 'Parent Entity' },
-      rootCollection: { id: 'http://example.com/root', name: 'Root Collection' },
+      memberOf: 'http://example.com/parent',
+      rootCollection: 'http://example.com/root',
       metadataLicenseId: 'https://creativecommons.org/licenses/by/4.0/',
       contentLicenseId: 'https://creativecommons.org/licenses/by/4.0/',
     };
 
-    const result = AllPublicAccessTransformer(standardEntity);
+    expect(AllPublicAccess(baseEntity, context)).toEqual({ metadata: true, content: true });
+  });
+});
 
-    expect(result).toEqual({
-      ...standardEntity,
-      access: {
-        metadata: true,
-        content: true,
-      },
+const dbEntity = (id: string, overrides: Partial<Entity> = {}): Entity => ({
+  id,
+  name: `Name of ${id}`,
+  description: '',
+  entityType: 'http://schema.org/MediaObject',
+  memberOf: null,
+  rootCollection: null,
+  metadataLicenseId: 'https://example.com/licence/metadata',
+  contentLicenseId: 'https://example.com/licence/content',
+  createdAt: new Date(),
+  updatedAt: new Date(),
+  meta: null,
+  ...overrides,
+});
+
+describe('authoriseEntities', () => {
+  beforeEach(() => {
+    mockReset(prisma);
+  });
+
+  it('should pass the access function parent ids but return the Record with parent names', async () => {
+    prisma.entity.findMany.mockResolvedValue([dbEntity('http://example.com/collection')]);
+    const access = vi.fn<AccessFunction>(AllPublicAccess);
+
+    const [entity] = await authoriseEntities(
+      [dbEntity('http://example.com/item', { memberOf: 'http://example.com/collection' })],
+      prisma,
+      access,
+      context,
+    );
+
+    expect(access).toHaveBeenCalledWith(
+      expect.objectContaining({ memberOf: 'http://example.com/collection' }),
+      context,
+    );
+    expect(entity.memberOf).toEqual({
+      id: 'http://example.com/collection',
+      name: 'Name of http://example.com/collection',
+    });
+    expect(entity.access).toEqual({ metadata: true, content: true });
+  });
+
+  it('should keep only the access keys the library defines', async () => {
+    const access = vi.fn(async () => ({
+      metadata: false,
+      content: false,
+      metadataAuthorizationUrl: 'https://example.com/request-metadata',
+      contentAuthorizationUrl: 'https://example.com/request-content',
+      licence: 'secret',
+    }));
+
+    const [entity] = await authoriseEntities([dbEntity('http://example.com/item')], prisma, access, context);
+
+    expect(entity.access).toEqual({
+      metadata: false,
+      content: false,
+      metadataAuthorizationUrl: 'https://example.com/request-metadata',
+      contentAuthorizationUrl: 'https://example.com/request-content',
     });
   });
+});
 
-  it('should preserve all standard entity fields', () => {
-    const standardEntity = {
-      id: 'http://example.com/entity/789',
-      name: 'Another Entity',
-      description: 'Another description',
-      entityType: 'http://schema.org/Person',
-      memberOf: null,
-      rootCollection: null,
-      metadataLicenseId: 'https://creativecommons.org/publicdomain/zero/1.0/',
-      contentLicenseId: 'https://creativecommons.org/publicdomain/zero/1.0/',
-    };
-
-    const result = AllPublicAccessTransformer(standardEntity);
-
-    expect(result.id).toBe(standardEntity.id);
-    expect(result.name).toBe(standardEntity.name);
-    expect(result.description).toBe(standardEntity.description);
-    expect(result.entityType).toBe(standardEntity.entityType);
-    expect(result.memberOf).toBe(standardEntity.memberOf);
-    expect(result.rootCollection).toBe(standardEntity.rootCollection);
-    expect(result.metadataLicenseId).toBe(standardEntity.metadataLicenseId);
-    expect(result.contentLicenseId).toBe(standardEntity.contentLicenseId);
+describe('authoriseFiles', () => {
+  beforeEach(() => {
+    mockReset(prisma);
   });
 
-  it('should not add contentAuthorizationUrl for public access', () => {
-    const standardEntity = {
-      id: 'http://example.com/entity/public',
-      name: 'Public Entity',
-      description: 'Fully public',
-      entityType: 'http://pcdm.org/models#Collection',
-      memberOf: null,
-      rootCollection: null,
-      metadataLicenseId: 'https://creativecommons.org/licenses/by/4.0/',
-      contentLicenseId: 'https://creativecommons.org/licenses/by/4.0/',
-    };
+  const dbFile = (id: string) => ({
+    id,
+    filename: 'audio.wav',
+    mediaType: 'audio/wav',
+    size: BigInt(2048),
+    meta: null,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    entity: dbEntity(id),
+  });
 
-    const result = AllPublicAccessTransformer(standardEntity);
+  it("should attach only the Content access of each file's entity", async () => {
+    const access: AccessFunction = (entity) =>
+      entity.id === 'http://example.com/restricted.wav'
+        ? {
+            metadata: false,
+            content: false,
+            metadataAuthorizationUrl: 'https://example.com/request-metadata',
+            contentAuthorizationUrl: 'https://example.com/request-content',
+          }
+        : { metadata: false, content: true };
 
-    expect(result.access.contentAuthorizationUrl).toBeUndefined();
+    const files = await authoriseFiles(
+      [dbFile('http://example.com/restricted.wav'), dbFile('http://example.com/open.wav')],
+      access,
+      context,
+    );
+
+    expect(files).toEqual([
+      {
+        id: 'http://example.com/restricted.wav',
+        filename: 'audio.wav',
+        mediaType: 'audio/wav',
+        size: 2048,
+        access: { content: false, contentAuthorizationUrl: 'https://example.com/request-content' },
+      },
+      {
+        id: 'http://example.com/open.wav',
+        filename: 'audio.wav',
+        mediaType: 'audio/wav',
+        size: 2048,
+        access: { content: true },
+      },
+    ]);
+  });
+});
+
+describe('applyTransformers', () => {
+  it('should chain transformers in order', async () => {
+    const result = await applyTransformers(
+      'a',
+      [(item) => `${item}b`, async (item, { request }) => `${item}c${request.url}`],
+      { ...context, request: { url: '/d' } as FastifyRequest },
+    );
+
+    expect(result).toBe('abc/d');
+  });
+
+  it('should return the item unchanged without transformers', async () => {
+    expect(await applyTransformers('a', [], context)).toBe('a');
   });
 });

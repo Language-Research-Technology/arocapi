@@ -56,6 +56,14 @@ export const createForbiddenError = (message: string, entityId: string): Standar
 export const createInternalError = (message = 'Internal server error'): StandardErrorResponse =>
   createError(ERROR_CODES.INTERNAL_ERROR, message);
 
+/**
+ * Refuse a request for a resource: 401 if it is anonymous, so the client can prompt a login, otherwise 403
+ */
+export const sendRefusal = (reply: FastifyReply, anonymous: boolean, id: string) =>
+  anonymous
+    ? reply.code(401).send(createAuthenticationRequiredError('Authentication is required to access this resource', id))
+    : reply.code(403).send(createForbiddenError('You do not have permission to access this resource', id));
+
 const ERROR_CODE_BY_STATUS: Record<number, ErrorCode> = {
   401: ERROR_CODES.UNAUTHORIZED,
   403: ERROR_CODES.FORBIDDEN,

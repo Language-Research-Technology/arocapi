@@ -3,9 +3,11 @@ import type { FastifyPluginAsync } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import type { PrismaClient } from '../generated/prisma/client.js';
+import type { AccessFunction } from '../types/access.js';
 import type { RequestContext } from '../types/context.js';
 import type { FileMetadata, RoCrateHandler } from '../types/fileHandlers.js';
 import type { EntityVisibilityFilter } from '../types/visibility.js';
+import { createAccessGuard } from '../utils/access.js';
 import { createNotFoundError } from '../utils/errors.js';
 import { setFileHeaders } from '../utils/headers.js';
 import { createEntityNotVisibleResponder, type RefusalOptions } from '../utils/visibility.js';
@@ -17,17 +19,19 @@ const paramsSchema = z.object({
 type CrateRouteOptions = {
   prisma: PrismaClient;
   roCrateHandler: RoCrateHandler;
+  access: AccessFunction;
   entityVisibilityFilter: EntityVisibilityFilter;
   refusal: RefusalOptions;
 };
 
 const crate: FastifyPluginAsync<CrateRouteOptions> = async (fastify, opts) => {
-  const { prisma, roCrateHandler, entityVisibilityFilter, refusal } = opts;
+  const { prisma, roCrateHandler, access, entityVisibilityFilter, refusal } = opts;
 
   const findVisibleEntity = async (id: string, context: RequestContext) =>
     prisma.entity.findFirst({ where: { AND: [{ id }, await entityVisibilityFilter(context)] } });
 
   const sendEntityNotVisible = createEntityNotVisibleResponder(prisma, refusal);
+  const denyMetadata = createAccessGuard({ access, isAuthenticated: refusal.isAuthenticated, level: 'metadata' });
 
   fastify.withTypeProvider<ZodTypeProvider>().head(
     '/entity/:id/metadata',
@@ -44,6 +48,10 @@ const crate: FastifyPluginAsync<CrateRouteOptions> = async (fastify, opts) => {
 
       if (!entity) {
         return sendEntityNotVisible(reply, id, context);
+      }
+
+      if (await denyMetadata(reply, entity, context)) {
+        return reply;
       }
 
       const metadata: FileMetadata | false = await roCrateHandler.head(entity, context);
@@ -73,6 +81,10 @@ const crate: FastifyPluginAsync<CrateRouteOptions> = async (fastify, opts) => {
 
       if (!entity) {
         return sendEntityNotVisible(reply, id, context);
+      }
+
+      if (await denyMetadata(reply, entity, context)) {
+        return reply;
       }
 
       const result = await roCrateHandler.get(entity, context);

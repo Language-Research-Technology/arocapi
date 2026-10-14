@@ -2,7 +2,9 @@ import { createReadStream } from 'node:fs';
 import { Readable } from 'node:stream';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fastify, fastifyAfter, fastifyBefore, prisma } from '../test/helpers/fastify.js';
+import type { AccessFunction } from '../types/access.js';
 import type { FileResult, RoCrateHandler } from '../types/fileHandlers.js';
+import { AllPublicAccess } from '../utils/access.js';
 import type { StandardErrorResponse } from '../utils/errors.js';
 import { AllVisibleEntityFilter } from '../utils/visibility.js';
 import metadataRoute from './metadata.js';
@@ -16,16 +18,20 @@ describe('Crate Route', () => {
     get: vi.fn(),
     head: vi.fn(),
   };
+  const mockAccess = vi.fn<AccessFunction>();
 
   beforeEach(async () => {
     await fastifyBefore();
     await fastify.register(metadataRoute, {
+      access: mockAccess,
       entityVisibilityFilter: AllVisibleEntityFilter,
       refusal: { promptLoginForHidden: false },
       prisma,
       roCrateHandler: mockRoCrateHandler,
     });
     vi.clearAllMocks();
+    mockAccess.mockImplementation(AllPublicAccess);
+    prisma.entity.findMany.mockResolvedValue([]);
   });
 
   afterEach(async () => {
@@ -235,6 +241,42 @@ describe('Crate Route', () => {
       expect(mockRoCrateHandler.get).not.toHaveBeenCalled();
     });
 
+    it('should decide access on the entity without looking up its parents', async () => {
+      prisma.entity.findFirst.mockResolvedValue(mockObjectEntity);
+      vi.mocked(mockRoCrateHandler.get).mockResolvedValue({ type: 'redirect', url: 'https://example.com/ro-crate' });
+
+      await fastify.inject({
+        method: 'GET',
+        url: `/entity/${encodeURIComponent('http://example.com/object')}/metadata`,
+      });
+
+      expect(mockAccess).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: 'http://example.com/object',
+          memberOf: 'http://example.com/collection',
+          rootCollection: 'http://example.com/collection',
+        }),
+        expect.objectContaining({ request: expect.any(Object), fastify: expect.any(Object) }),
+      );
+      expect(prisma.entity.findMany).not.toHaveBeenCalled();
+    });
+
+    it('should return 403 when the metadata is not accessible', async () => {
+      prisma.entity.findFirst.mockResolvedValue(mockFileEntity);
+      mockAccess.mockReturnValue({ metadata: false, content: true });
+
+      const response = await fastify.inject({
+        method: 'GET',
+        url: `/entity/${encodeURIComponent('http://example.com/entity/file.wav')}/metadata`,
+      });
+      const body = JSON.parse(response.body) as { error: { code: string; message: string } };
+
+      expect(response.statusCode).toBe(403);
+      expect(body.error.code).toBe('FORBIDDEN');
+      expect(body.error.message).toBe('You do not have permission to access this resource');
+      expect(mockRoCrateHandler.get).not.toHaveBeenCalled();
+    });
+
     it('should return 404 when handler returns false', async () => {
       prisma.entity.findFirst.mockResolvedValue(mockFileEntity);
       vi.mocked(mockRoCrateHandler.get).mockResolvedValue(false);
@@ -372,6 +414,19 @@ describe('Crate Route', () => {
 
       expect(response.statusCode).toBe(404);
       expect(body.error.code).toBe('NOT_FOUND');
+      expect(mockRoCrateHandler.head).not.toHaveBeenCalled();
+    });
+
+    it('should return 403 when the metadata is not accessible', async () => {
+      prisma.entity.findFirst.mockResolvedValue(mockFileEntity);
+      mockAccess.mockReturnValue({ metadata: false, content: true });
+
+      const response = await fastify.inject({
+        method: 'HEAD',
+        url: `/entity/${encodeURIComponent('http://example.com/entity/file.wav')}/metadata`,
+      });
+
+      expect(response.statusCode).toBe(403);
       expect(mockRoCrateHandler.head).not.toHaveBeenCalled();
     });
 

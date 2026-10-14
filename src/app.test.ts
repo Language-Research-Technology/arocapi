@@ -3,12 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { mockReset } from 'vitest-mock-extended';
 
 import type { Options } from './app.js';
-import app, {
-  AllPublicAccessTransformer,
-  AllPublicFileAccessTransformer,
-  AllVisibleEntityFilter,
-  AllVisibleSearchFilter,
-} from './app.js';
+import app, { AllPublicAccess, AllVisibleEntityFilter, AllVisibleSearchFilter } from './app.js';
 
 import { opensearch, prisma } from './test/helpers/fastify.js';
 
@@ -18,148 +13,45 @@ describe('Entity Route', () => {
     mockReset(opensearch);
   });
 
+  const requiredOptions = (): Options => ({
+    prisma,
+    opensearch,
+    access: AllPublicAccess,
+    fileHandler: { get: vi.fn(), head: vi.fn() },
+    roCrateHandler: { get: vi.fn(), head: vi.fn() },
+    entityVisibilityFilter: AllVisibleEntityFilter,
+    searchVisibilityFilter: AllVisibleSearchFilter,
+  });
+
   describe('App Registration', () => {
-    it('should handle missing prisma', async () => {
+    it.each([
+      ['prisma', 'Prisma client is required'],
+      ['opensearch', 'OpenSearch client is required'],
+      ['access', 'access is required'],
+      ['fileHandler', 'fileHandler is required'],
+      ['roCrateHandler', 'roCrateHandler is required'],
+      ['entityVisibilityFilter', 'entityVisibilityFilter is required'],
+      ['searchVisibilityFilter', 'searchVisibilityFilter is required'],
+    ] as const)('should handle missing %s', async (option, message) => {
       const fastify = Fastify({ logger: false });
+      const { [option]: _omitted, ...options } = requiredOptions();
 
       // @ts-expect-error we are testing missing options
-      fastify.register(app, {
-        opensearch,
-      });
+      fastify.register(app, options);
 
-      await expect(() => fastify.ready()).rejects.toThrowError('Prisma client is required');
+      await expect(() => fastify.ready()).rejects.toThrowError(message);
     });
 
-    it('should handle missing opensearch', async () => {
+    it.each([
+      ['accessTransformer', 'access'],
+      ['fileAccessTransformer', 'access'],
+      ['hiddenResponse', 'promptLoginForHidden and isAuthenticated'],
+    ])('should reject the removed %s option', async (option, replacement) => {
       const fastify = Fastify({ logger: false });
 
-      // @ts-expect-error we are testing missing options
-      fastify.register(app, {
-        prisma,
-      });
+      fastify.register(app, { ...requiredOptions(), [option]: 'notFound' });
 
-      await expect(() => fastify.ready()).rejects.toThrowError('OpenSearch client is required');
-    });
-
-    it('should handle missing accessTransformer', async () => {
-      const fastify = Fastify({ logger: false });
-
-      // @ts-expect-error we are testing missing options
-      fastify.register(app, {
-        prisma,
-        opensearch,
-      });
-
-      await expect(() => fastify.ready()).rejects.toThrowError('accessTransformer is required');
-    });
-
-    it('should handle missing fileAccessTransformer', async () => {
-      const fastify = Fastify({ logger: false });
-
-      // @ts-expect-error we are testing missing options
-      fastify.register(app, {
-        prisma,
-        opensearch,
-        accessTransformer: AllPublicAccessTransformer,
-      });
-
-      await expect(() => fastify.ready()).rejects.toThrowError('fileAccessTransformer is required');
-    });
-
-    it('should handle missing fileHandler', async () => {
-      const fastify = Fastify({ logger: false });
-
-      // @ts-expect-error we are testing missing options
-      fastify.register(app, {
-        prisma,
-        opensearch,
-        accessTransformer: AllPublicAccessTransformer,
-        fileAccessTransformer: AllPublicFileAccessTransformer,
-      });
-
-      await expect(() => fastify.ready()).rejects.toThrowError('fileHandler is required');
-    });
-
-    it('should handle missing roCrateHandler', async () => {
-      const fastify = Fastify({ logger: false });
-
-      // @ts-expect-error we are testing missing options
-      fastify.register(app, {
-        prisma,
-        opensearch,
-        accessTransformer: AllPublicAccessTransformer,
-        fileAccessTransformer: AllPublicFileAccessTransformer,
-        fileHandler: {
-          get: vi.fn(),
-          head: vi.fn(),
-        },
-      });
-
-      await expect(() => fastify.ready()).rejects.toThrowError('roCrateHandler is required');
-    });
-
-    it('should handle missing entityVisibilityFilter', async () => {
-      const fastify = Fastify({ logger: false });
-
-      // @ts-expect-error we are testing missing options
-      fastify.register(app, {
-        prisma,
-        opensearch,
-        accessTransformer: AllPublicAccessTransformer,
-        fileAccessTransformer: AllPublicFileAccessTransformer,
-        fileHandler: { get: vi.fn(), head: vi.fn() },
-        roCrateHandler: { get: vi.fn(), head: vi.fn() },
-      });
-
-      await expect(() => fastify.ready()).rejects.toThrowError('entityVisibilityFilter is required');
-    });
-
-    it('should handle missing searchVisibilityFilter', async () => {
-      const fastify = Fastify({ logger: false });
-
-      // @ts-expect-error we are testing missing options
-      fastify.register(app, {
-        prisma,
-        opensearch,
-        accessTransformer: AllPublicAccessTransformer,
-        fileAccessTransformer: AllPublicFileAccessTransformer,
-        fileHandler: { get: vi.fn(), head: vi.fn() },
-        roCrateHandler: { get: vi.fn(), head: vi.fn() },
-        entityVisibilityFilter: AllVisibleEntityFilter,
-      });
-
-      await expect(() => fastify.ready()).rejects.toThrowError('searchVisibilityFilter is required');
-    });
-
-    const requiredOptions = () => ({
-      prisma,
-      opensearch,
-      accessTransformer: AllPublicAccessTransformer,
-      fileAccessTransformer: AllPublicFileAccessTransformer,
-      fileHandler: { get: vi.fn(), head: vi.fn() },
-      roCrateHandler: { get: vi.fn(), head: vi.fn() },
-      entityVisibilityFilter: AllVisibleEntityFilter,
-      searchVisibilityFilter: AllVisibleSearchFilter,
-    });
-
-    it('should reject the removed hiddenResponse option', async () => {
-      const fastify = Fastify({ logger: false });
-
-      fastify.register(app, { ...requiredOptions(), hiddenResponse: 'notFound' } as Options);
-
-      await expect(() => fastify.ready()).rejects.toThrowError(
-        'hiddenResponse has been replaced by promptLoginForHidden and isAuthenticated',
-      );
-    });
-
-    it('should ignore a removed option left undefined', async () => {
-      const fastify = Fastify({ logger: false });
-
-      await fastify.register(app, { ...requiredOptions(), hiddenResponse: undefined } as Options);
-
-      await expect(fastify.ready()).resolves.toBeDefined();
-
-      await fastify.close();
+      await expect(() => fastify.ready()).rejects.toThrowError(`${option} has been replaced by ${replacement}`);
     });
 
     it('should reject promptLoginForHidden without isAuthenticated', async () => {
@@ -170,19 +62,20 @@ describe('Entity Route', () => {
       await expect(() => fastify.ready()).rejects.toThrowError('promptLoginForHidden requires isAuthenticated');
     });
 
+    it('should ignore a removed option left undefined', async () => {
+      const fastify = Fastify({ logger: false });
+
+      await fastify.register(app, { ...requiredOptions(), accessTransformer: undefined } as Options);
+
+      await expect(fastify.ready()).resolves.toBeDefined();
+
+      await fastify.close();
+    });
+
     it('should register successfully with all required options', async () => {
       const fastify = Fastify({ logger: false });
 
-      await fastify.register(app, {
-        prisma,
-        opensearch,
-        accessTransformer: AllPublicAccessTransformer,
-        fileAccessTransformer: AllPublicFileAccessTransformer,
-        fileHandler: { get: vi.fn(), head: vi.fn() },
-        roCrateHandler: { get: vi.fn(), head: vi.fn() },
-        entityVisibilityFilter: AllVisibleEntityFilter,
-        searchVisibilityFilter: AllVisibleSearchFilter,
-      });
+      await fastify.register(app, requiredOptions());
 
       await expect(fastify.ready()).resolves.toBeDefined();
 

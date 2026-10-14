@@ -1,18 +1,32 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import type { FileAccessTransformer, FileTransformer } from '../app.js';
+import type { AccessFunction, FileTransformer } from '../app.js';
 import { fastify, fastifyAfter, fastifyBefore, prisma } from '../test/helpers/fastify.js';
-import { AllPublicFileAccessTransformer } from '../transformers/default.js';
+import { AllPublicAccess } from '../utils/access.js';
 import type { StandardErrorResponse } from '../utils/errors.js';
 import { AllVisibleEntityFilter } from '../utils/visibility.js';
 import filesRoute from './files.js';
 
 describe('Files Route', () => {
+  const mockEntity = (id: string, name: string) => ({
+    id,
+    name,
+    description: '',
+    entityType: 'http://schema.org/MediaObject',
+    memberOf: null,
+    rootCollection: null,
+    metadataLicenseId: 'https://creativecommons.org/licenses/by/4.0/',
+    contentLicenseId: 'https://creativecommons.org/licenses/by/4.0/',
+    meta: {},
+    createdAt: new Date('2025-01-01'),
+    updatedAt: new Date('2025-01-01'),
+  });
+
   beforeEach(async () => {
     await fastifyBefore();
     await fastify.register(filesRoute, {
       entityVisibilityFilter: AllVisibleEntityFilter,
       prisma,
-      fileAccessTransformer: AllPublicFileAccessTransformer,
+      access: AllPublicAccess,
     });
   });
 
@@ -28,6 +42,7 @@ describe('Files Route', () => {
     meta: {},
     createdAt: new Date('2025-01-01'),
     updatedAt: new Date('2025-01-01'),
+    entity: mockEntity('http://example.com/file1.wav', 'file1.wav'),
   };
 
   const mockFile2 = {
@@ -38,6 +53,7 @@ describe('Files Route', () => {
     meta: {},
     createdAt: new Date('2025-01-02'),
     updatedAt: new Date('2025-01-02'),
+    entity: mockEntity('http://example.com/file2.txt', 'file2.txt'),
   };
 
   describe('GET /files', () => {
@@ -63,6 +79,9 @@ describe('Files Route', () => {
           content: true,
         },
       });
+      expect(prisma.file.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ include: { entity: { omit: { meta: true } } } }),
+      );
     });
 
     it('should filter files by memberOf', async () => {
@@ -220,7 +239,7 @@ describe('Files Route', () => {
       await fastify.register(filesRoute, {
         entityVisibilityFilter: AllVisibleEntityFilter,
         prisma,
-        fileAccessTransformer: AllPublicFileAccessTransformer,
+        access: AllPublicAccess,
         fileTransformers: [customTransformer],
       });
 
@@ -244,26 +263,27 @@ describe('Files Route', () => {
       await fastifyAfter();
     });
 
-    it('should apply custom file access transformer', async () => {
+    it('should attach the content access of each file entity', async () => {
       await fastifyBefore();
 
-      // Custom access transformer that restricts content access
-      const customFileAccessTransformer: FileAccessTransformer = (file) => ({
-        ...file,
-        access: {
-          content: false,
-          contentAuthorizationUrl: 'https://example.com/request-access',
-        },
-      });
+      const access: AccessFunction = (entity) =>
+        entity.id === 'http://example.com/file1.wav'
+          ? {
+              metadata: false,
+              content: false,
+              metadataAuthorizationUrl: 'https://example.com/request-metadata',
+              contentAuthorizationUrl: 'https://example.com/request-access',
+            }
+          : { metadata: true, content: true };
 
       await fastify.register(filesRoute, {
         entityVisibilityFilter: AllVisibleEntityFilter,
         prisma,
-        fileAccessTransformer: customFileAccessTransformer,
+        access,
       });
 
-      prisma.file.findMany.mockResolvedValue([mockFile1]);
-      prisma.file.count.mockResolvedValue(1);
+      prisma.file.findMany.mockResolvedValue([mockFile1, mockFile2]);
+      prisma.file.count.mockResolvedValue(2);
 
       const response = await fastify.inject({
         method: 'GET',
@@ -271,13 +291,12 @@ describe('Files Route', () => {
       });
 
       expect(response.statusCode).toBe(200);
-      const body = JSON.parse(response.body) as { files: unknown[] };
-      expect(body.files[0]).toMatchObject({
-        access: {
-          content: false,
-          contentAuthorizationUrl: 'https://example.com/request-access',
-        },
+      const body = JSON.parse(response.body) as { files: Array<{ access: unknown }> };
+      expect(body.files[0].access).toEqual({
+        content: false,
+        contentAuthorizationUrl: 'https://example.com/request-access',
       });
+      expect(body.files[1].access).toEqual({ content: true });
 
       await fastifyAfter();
     });

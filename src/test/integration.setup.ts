@@ -3,12 +3,7 @@ import { PrismaMariaDb } from '@prisma/adapter-mariadb';
 import type { FastifyInstance } from 'fastify';
 import Fastify from 'fastify';
 import type { Options } from '../app.js';
-import app, {
-  AllPublicAccessTransformer,
-  AllPublicFileAccessTransformer,
-  AllVisibleEntityFilter,
-  AllVisibleSearchFilter,
-} from '../app.js';
+import app, { AllPublicAccess, AllVisibleEntityFilter, AllVisibleSearchFilter } from '../app.js';
 import { PrismaClient } from '../generated/prisma/client.js';
 
 let fastify: FastifyInstance;
@@ -47,8 +42,7 @@ export async function buildTestApp(overrides: Partial<Options> = {}) {
   await instance.register(app, {
     prisma,
     opensearch,
-    accessTransformer: AllPublicAccessTransformer,
-    fileAccessTransformer: AllPublicFileAccessTransformer,
+    access: AllPublicAccess,
     entityVisibilityFilter: AllVisibleEntityFilter,
     searchVisibilityFilter: AllVisibleSearchFilter,
     fileHandler: {
@@ -142,7 +136,7 @@ export async function seedTestData() {
       memberOf: 'http://example.com/entity/2',
       rootCollection: 'http://example.com/entity/1',
       metadataLicenseId: 'https://creativecommons.org/licenses/by/4.0/',
-      contentLicenseId: 'https://creativecommons.org/licenses/by/4.0/',
+      contentLicenseId: 'https://example.com/licences/restricted',
       createdAt: new Date(),
       updatedAt: new Date(),
     },

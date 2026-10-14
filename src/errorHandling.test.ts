@@ -5,8 +5,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 
 import arocapi, {
-  AllPublicAccessTransformer,
-  AllPublicFileAccessTransformer,
+  AllPublicAccess,
   AllVisibleEntityFilter,
   AllVisibleSearchFilter,
   errorHandler,
@@ -17,8 +16,7 @@ import { opensearch, prisma } from './test/helpers/fastify.js';
 const arocapiOptions = {
   prisma,
   opensearch,
-  accessTransformer: AllPublicAccessTransformer,
-  fileAccessTransformer: AllPublicFileAccessTransformer,
+  access: AllPublicAccess,
   fileHandler: { get: vi.fn(), head: vi.fn() },
   roCrateHandler: { get: vi.fn(), head: vi.fn() },
   entityVisibilityFilter: AllVisibleEntityFilter,

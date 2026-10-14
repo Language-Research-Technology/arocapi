@@ -72,12 +72,7 @@ Create your Fastify application with Typescript support:
 ```typescript
 // src/index.ts
 import { Client } from '@opensearch-project/opensearch';
-import arocapi, {
-  AllPublicAccessTransformer,
-  AllPublicFileAccessTransformer,
-  AllVisibleEntityFilter,
-  AllVisibleSearchFilter,
-} from 'arocapi';
+import arocapi, { AllPublicAccess, AllVisibleEntityFilter, AllVisibleSearchFilter } from 'arocapi';
 import Fastify from 'fastify';
 import { PrismaClient } from './generated/prisma/client.js';
 import { Readable } from 'stream';
@@ -100,8 +95,7 @@ fastify.register(arocapi, {
   opensearch,
   entityVisibilityFilter: AllVisibleEntityFilter,
   searchVisibilityFilter: AllVisibleSearchFilter,
-  accessTransformer: AllPublicAccessTransformer,
-  fileAccessTransformer: AllPublicFileAccessTransformer,
+  access: AllPublicAccess,
   // Required: File handler for serving File entity content
   fileHandler: {
     get: async (file) => {
@@ -327,9 +321,9 @@ Each request runs through two layers:
 1. **Visibility** decides whether an entity exists for this request. A
    **hidden** entity is left out of `/entities`, `/files` and `/search`,
    including their totals and facet counts, and direct requests for it get a
-   [404](#hidden-entities).
-2. **Access** decides what a visible entity's user can do with it, via the
-   [access transformers](#customising-entity-responses).
+   [404](#refusals).
+2. **Access** decides whether the request may read a visible entity's
+   Metadata and Content, via the [access function](#access).
 
 Use visibility for things a user shouldn't know exist, such as drafts or
 private crates. Use access for things a user can see but not open, such as
@@ -446,71 +440,137 @@ is only hidden if your filter hides it, for example by also filtering on
 If the two filters disagree, `/search` drops any hit the entity filter hides
 and logs a warning, so the page can be shorter than `limit`.
 
-### Hidden Entities
+## Access
 
-Direct requests (`/entity/:id`, `/entity/:id/metadata` and `/file/:id`) for a
-hidden entity get a 404 `NOT_FOUND`, the same as a missing entity, so nothing
-hidden is revealed.
+An entity's data comes in three levels, each with one guard:
 
-`isAuthenticated` (optional) tells the library whether a request carries valid
-credentials:
+| Level        | What it is                                             | Served by               | Guarded by       |
+| ------------ | ------------------------------------------------------ | ----------------------- | ---------------- |
+| **Record**   | The summary in listings, search and `/entity/:id`      | all entity routes       | visibility       |
+| **Metadata** | The entity's RO-Crate metadata document                | `/entity/:id/metadata`  | `access.metadata` |
+| **Content**  | A file's bytes                                         | `/file/:id`             | `access.content` |
+
+A visible entity's Record is always returned whole; the library never redacts
+it. Metadata and Content are guarded by your access function, which the
+library both reports and enforces:
+
+- Every entity in `/entity/:id`, `/entities` and `/search` carries its
+  `access`, and every file in `/files` carries its file entity's
+  `access.content`, so clients can show locks and enrolment links up front.
+- `GET`/`HEAD /entity/:id/metadata` is **denied** when `access.metadata` is
+  false, and `GET`/`HEAD /file/:id` when the file entity's `access.content` is
+  false. Your `roCrateHandler` and `fileHandler` are only called once access is
+  granted, so they only need to deliver bytes.
+
+A file is an entity, so its access is its file entity's access. On collections
+and objects, `access.content` is only a signal to clients.
+
+### Access Function (Required)
+
+`access` receives the entity's Record fields as a `BaseEntity`, with
+`memberOf` and `rootCollection` as ids rather than `{ id, name }`, and the
+[request context](#request-context). It returns only access:
+
+```typescript
+type AccessInfo = {
+  metadata: boolean;
+  content: boolean;
+  metadataAuthorizationUrl?: string; // where to request Metadata access
+  contentAuthorizationUrl?: string; // where to request Content access
+};
+```
+
+Anything else it returns is ignored.
+
+**For fully public datasets**, use `AllPublicAccess`:
+
+```typescript
+import arocapi, { AllPublicAccess } from 'arocapi';
+
+await server.register(arocapi, {
+  // ...
+  access: AllPublicAccess,
+});
+```
+
+**When access is decided by licence**, use `LicenceAccess`. Metadata needs the
+entity's `metadataLicenseId`, Content its `contentLicenseId`. Each licence is
+checked at most once per request, so a page of entities sharing a few licences
+costs a few checks, even when `hasLicence` calls a remote service such as REMS:
+
+```typescript
+import arocapi, { LicenceAccess } from 'arocapi';
+
+await server.register(arocapi, {
+  // ...
+  access: LicenceAccess({
+    hasLicence: async (licenceId, { request }) =>
+      PUBLIC_LICENCES.includes(licenceId) || (await fetchRemsGrants(request)).includes(licenceId),
+    // Optional: added only when access is false
+    authorisationUrl: (licenceId) => `https://rems.example.com/apply?resource=${encodeURIComponent(licenceId)}`,
+  }),
+});
+```
+
+**For other rules**, write your own access function:
+
+```typescript
+access: async (entity, { request }) => {
+  const user = await verifyToken(request.headers.authorization);
+  const archived = await isArchived(entity.id);
+
+  return {
+    metadata: true,
+    content: Boolean(user) && (!archived || user.isAdmin),
+    contentAuthorizationUrl: user ? undefined : 'https://auth.example.com/login',
+  };
+},
+```
+
+The access function runs once per entity in listings and once per Metadata or
+Content request. Cache remote lookups per request, as `LicenceAccess` does.
+
+> [!NOTE]
+> A consumer wanting to serve a redacted RO-Crate rather than refuse it grants
+> `access.metadata` and redacts in its `roCrateHandler`.
+
+## Refusals
+
+Direct requests (`/entity/:id`, `/entity/:id/metadata` and `/file/:id`) that
+the library refuses get:
+
+| Request for                                  | Anonymous request | Authenticated request |
+| -------------------------------------------- | ----------------- | --------------------- |
+| A missing entity                             | 404 `NOT_FOUND`   | 404 `NOT_FOUND`       |
+| A hidden entity                              | 404 `NOT_FOUND`   | 404 `NOT_FOUND`       |
+| A hidden entity, with `promptLoginForHidden` | 401 `UNAUTHORIZED`| 404 `NOT_FOUND`       |
+| Denied Metadata or Content                   | 401 `UNAUTHORIZED`| 403 `FORBIDDEN`       |
+
+A hidden entity gets the same response as a missing one, so nothing hidden is
+revealed. A denied request is never a 404: the entity is visible, so the client
+already knows it exists. The error body doesn't include authorisation URLs;
+clients take those from the entity's `access`.
+
+### Is Authenticated (Optional)
+
+`isAuthenticated` tells the library whether a request carries valid
+credentials. The library uses it to pick 401 (log in) or 403 (logging in won't
+help):
 
 ```typescript
 isAuthenticated: ({ request }) => Boolean(request.user),
 ```
 
-`promptLoginForHidden: true` then gives an anonymous request for a hidden
-entity a 401 `UNAUTHORIZED`, in case logging in makes it visible.
-Authenticated requests still get a 404, and missing entities always do. A
-hidden entity never gets a 403.
+Without it, the repository has no logins: no request is anonymous, so a denied
+request is always a 403.
+
+### Prompt Login for Hidden (Optional)
+
+`promptLoginForHidden: true` gives an anonymous request for a hidden entity a
+401, in case logging in makes it visible. Authenticated requests still get a
+404, and missing entities always do. It requires `isAuthenticated`.
 
 ## Customising Entity Responses
-
-The API provides a flexible transformer system for customising entity responses
-through two types of transformers:
-
-### Access Transformer (Required)
-
-The `accessTransformer` parameter is **required** for security. You must explicitly
-choose how access control is handled for your repository.
-
-**For fully public datasets**, use `AllPublicAccessTransformer`:
-
-```typescript
-import arocapi, { AllPublicAccessTransformer } from 'arocapi';
-
-await server.register(arocapi, {
-  prisma,
-  opensearch,
-  accessTransformer: AllPublicAccessTransformer,
-});
-```
-
-**For restricted content**, implement a custom access transformer:
-
-```typescript
-const accessTransformer = async (entity, { request }) => {
-  // Custom logic to determine access
-  const user = await authenticateUser(request);
-  const canAccessContent = await checkLicense(entity.contentLicenseId, user);
-
-  return {
-    ...entity,
-    access: {
-      metadata: true, // Metadata always visible
-      content: canAccessContent,
-      contentAuthorisationUrl: canAccessContent
-        ? undefined
-        : 'https://rems.example.com/request-access',
-    },
-  };
-};
-```
-
-> [!WARNING]
-> The `accessTransformer` is required to prevent accidental exposure of
-> restricted content. You must make an explicit choice about access control for
-> your repository.
 
 ### Entity Transformers
 
@@ -519,9 +579,7 @@ transformers can be chained together.
 
 ```typescript
 await server.register(arocapi, {
-  prisma,
-  opensearch,
-  accessTransformer: AllPublicAccessTransformer,
+  // ...
   entityTransformers: [
     // Add computed fields
     (entity) => ({
@@ -552,29 +610,14 @@ await server.register(arocapi, {
 Every entity response flows through this three-stage pipeline:
 
 1. **Base transformer** - Converts database entities to standard format
-2. **Access transformer** - Adds access control information
-3. **Entity transformers** - Optional additional transformations
+2. **Access** - The library attaches your [access function](#access)'s result as `access`
+3. **Entity transformers** - Optional additional transformations, which can read `access`
 
 ### Request Context
 
-Visibility filters, transformers and handlers receive a `RequestContext` with the shape `{ request, fastify }`. The `request` is the Fastify request for per-call data (headers, auth, query). The `fastify` instance is provided as an extension point — arocapi does not decorate it with anything itself, but consumers who decorate `fastify` with their own helpers (e.g. via `fastify.decorate('userService', ...)`) can read those decorations through `context.fastify` from inside them. For database access, prefer closing over your own client reference as shown in the examples below.
+Visibility filters, the access function, `isAuthenticated`, transformers and handlers receive a `RequestContext` with the shape `{ request, fastify }`. The `request` is the Fastify request for per-call data (headers, auth, query). The `fastify` instance is provided as an extension point — arocapi does not decorate it with anything itself, but consumers who decorate `fastify` with their own helpers (e.g. via `fastify.decorate('userService', ...)`) can read those decorations through `context.fastify` from inside them. For database access, prefer closing over your own client reference as shown in the examples below.
 
 ### Common Use Cases
-
-**Access control for restricted content:**
-
-```typescript
-accessTransformer: async (entity, { request }) => {
-  const hasAccess = await checkUserPermissions(request, entity.contentLicenseId);
-  return {
-    ...entity,
-    access: {
-      metadata: true,
-      content: hasAccess,
-    },
-  };
-}
-```
 
 **Adding computed or derived fields:**
 
@@ -603,56 +646,9 @@ entityTransformers: [
 
 The API provides a separate transformer system for file responses, similar to entity transformers but specifically designed for files.
 
-### File Access Transformer (Required)
-
-The `fileAccessTransformer` parameter is **required** for security. You must explicitly choose how access control is handled for file content.
-
-**Key Difference from Entity Transformers**: File metadata (filename, size, mediaType, etc.) is always accessible. Only content access is controlled via the `access.content` field.
-
-**For fully public datasets**, use `AllPublicFileAccessTransformer`:
-
-```typescript
-import arocapi, { AllPublicAccessTransformer, AllPublicFileAccessTransformer } from 'arocapi';
-
-await server.register(arocapi, {
-  prisma,
-  opensearch,
-  accessTransformer: AllPublicAccessTransformer,
-  fileAccessTransformer: AllPublicFileAccessTransformer,
-});
-```
-
-**For restricted content**, implement a custom file access transformer:
-
-```typescript
-const fileAccessTransformer = async (file, { request }) => {
-  // Custom logic to determine file content access
-  const user = await authenticateUser(request);
-  const canAccessContent = await checkLicense(file.contentLicenseId, user);
-
-  return {
-    ...file,
-    access: {
-      content: canAccessContent,
-      contentAuthorizationUrl: canAccessContent
-        ? undefined
-        : 'https://rems.example.com/request-access',
-    },
-  };
-};
-
-await server.register(arocapi, {
-  prisma,
-  opensearch,
-  accessTransformer: AllPublicAccessTransformer,
-  fileAccessTransformer,
-});
-```
-
-> [!WARNING]
-> The `fileAccessTransformer` is required to prevent accidental exposure of
-> restricted file content. You must make an explicit choice about access control
-> for your files.
+Each file carries `access: { content, contentAuthorizationUrl? }`, taken from
+its file entity's [access](#access). A file's filename, size and media type are
+part of its Record, so they're never restricted.
 
 ### File Transformers
 
@@ -661,10 +657,7 @@ file transformers can be chained together.
 
 ```typescript
 await server.register(arocapi, {
-  prisma,
-  opensearch,
-  accessTransformer: AllPublicAccessTransformer,
-  fileAccessTransformer: AllPublicFileAccessTransformer,
+  // ...
   fileTransformers: [
     // Add computed fields
     (file) => ({
@@ -697,7 +690,7 @@ await server.register(arocapi, {
 Every file response flows through this three-stage pipeline:
 
 1. **Base file transformer** - Converts database File records to standard format
-2. **File access transformer** - Adds access control information (content only)
+2. **Access** - The library attaches the file entity's Content access as `access`
 3. **File transformers** - Optional additional transformations
 
 ### Applied Routes
@@ -726,8 +719,9 @@ This handler is responsible for:
 
 - Streaming file content from your storage backend
 - Generating redirect URLs to external storage (S3, CDN, etc.)
-- Implementing access control for file downloads
 - Supporting HTTP range requests for media streaming
+
+It is only called for visible files whose Content is accessible; see [Access](#access).
 
 ### RO-Crate Handler (Required)
 
@@ -864,44 +858,10 @@ fileHandler: {
 
 ### Authentication and Authorisation
 
-The library delegates authentication and authorisation to your transformers.
-The access transformer receives the full Fastify request context, so you can
-verify credentials and set access flags accordingly:
-
-```typescript
-accessTransformer: async (entity, { request }) => {
-  const token = request.headers.authorization;
-  const user = await verifyToken(token);
-
-  if (!user) {
-    // Unauthenticated — metadata visible but content restricted
-    return {
-      ...entity,
-      access: {
-        metadata: true,
-        content: false,
-        contentAuthorizationUrl: 'https://auth.example.com/login',
-      },
-    };
-  }
-
-  const canAccess = await checkUserLicense(user, entity.contentLicenseId);
-
-  return {
-    ...entity,
-    access: {
-      metadata: true,
-      content: canAccess,
-      contentAuthorizationUrl: canAccess
-        ? undefined
-        : 'https://rems.example.com/request-access',
-    },
-  };
-}
-```
-
-The same pattern applies to `fileAccessTransformer` for controlling file
-content downloads.
+The library leaves authentication to your application. Your visibility
+filters, [access function](#access) and `isAuthenticated` all receive the Fastify
+request, so they can read whatever your authentication sets on it. Access is
+enforced before handlers run, so handlers don't need their own checks.
 
 ### Entity Meta Field
 

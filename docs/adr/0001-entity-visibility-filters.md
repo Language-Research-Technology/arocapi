@@ -11,8 +11,8 @@ Accepted
 Consumers need to hide some entities from some users entirely: drafts and
 private crates seen only by admins, or only entities a user is entitled to,
 whether decided by their groups or by an external arbiter such as REMS. How
-visibility is decided is up to the consumer. The access transformer can only redact an entity
-after it has been fetched. It can't remove it, and removing rows after the
+visibility is decided is up to the consumer. Access is decided per entity after
+it has been fetched, so it can't remove one, and removing rows after the
 query would break totals, `limit`/`offset` pagination and search facet counts,
 which come from Prisma and OpenSearch.
 

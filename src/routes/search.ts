@@ -5,8 +5,9 @@ import type { FastifyPluginAsync } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import type { PrismaClient } from '../generated/prisma/client.js';
-import { baseEntityTransformer, resolveEntityReferences } from '../transformers/default.js';
-import type { AccessTransformer, EntityTransformer } from '../types/transformers.js';
+import { applyTransformers, authoriseEntities } from '../transformers/default.js';
+import type { AccessFunction } from '../types/access.js';
+import type { EntityTransformer } from '../types/transformers.js';
 import type { EntityVisibilityFilter, SearchVisibilityFilter } from '../types/visibility.js';
 import { createError, ERROR_CODES } from '../utils/errors.js';
 import type { OpensearchQueryBuilder } from '../utils/queryBuilder.js';
@@ -37,7 +38,7 @@ const searchParamsSchema = z.object({
 type SearchRouteOptions = {
   prisma: PrismaClient;
   opensearch: Client;
-  accessTransformer: AccessTransformer;
+  access: AccessFunction;
   entityTransformers?: EntityTransformer[];
   queryBuilder: OpensearchQueryBuilder;
   entityVisibilityFilter: EntityVisibilityFilter;
@@ -48,7 +49,7 @@ const search: FastifyPluginAsync<SearchRouteOptions> = async (fastify, opts) => 
   const {
     prisma,
     opensearch,
-    accessTransformer,
+    access,
     entityTransformers = [],
     queryBuilder,
     entityVisibilityFilter,
@@ -120,10 +121,8 @@ const search: FastifyPluginAsync<SearchRouteOptions> = async (fastify, opts) => 
         include: { file: { select: { id: true } } },
       });
 
-      const entityMap = new Map(dbEntities.map((entity) => [entity.id, entity]));
-
-      // Resolve memberOf and rootCollection references
-      const refMap = await resolveEntityReferences(dbEntities, prisma);
+      const authorisedEntities = await authoriseEntities(dbEntities, prisma, access, context);
+      const entityMap = new Map(authorisedEntities.map((entity) => [entity.id, entity]));
 
       const entities = await Promise.all(
         response.body.hits.hits.map(async (hit) => {
@@ -131,25 +130,14 @@ const search: FastifyPluginAsync<SearchRouteOptions> = async (fastify, opts) => 
             throw new Error('Missing id in search hit');
           }
 
-          const dbEntity = entityMap.get(hit._source.id);
-          if (!dbEntity) {
+          const authorisedEntity = entityMap.get(hit._source.id);
+          if (!authorisedEntity) {
             fastify.log.warn(`Entity ${hit._source.id} found in OpenSearch but missing or not visible in database`);
 
             return null;
           }
 
-          const base = baseEntityTransformer(dbEntity);
-          const standardEntity = {
-            ...base,
-            memberOf: base.memberOf ? (refMap.get(base.memberOf) ?? null) : null,
-            rootCollection: base.rootCollection ? (refMap.get(base.rootCollection) ?? null) : null,
-          };
-          const authorisedEntity = await accessTransformer(standardEntity, context);
-
-          let result = authorisedEntity;
-          for (const transformer of entityTransformers) {
-            result = await transformer(result, context);
-          }
+          const result = await applyTransformers(authorisedEntity, entityTransformers, context);
 
           // Add search-specific metadata
           return {

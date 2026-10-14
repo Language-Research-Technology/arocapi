@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { AllVisibleSearchFilter } from '../app.js';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { AllVisibleSearchFilter, LicenceAccess } from '../app.js';
 import { Prisma } from '../generated/prisma/client.js';
 import type { AuthorisedEntity, AuthorisedFile } from '../transformers/default.js';
 import type { StandardErrorResponse } from '../utils/errors.js';
@@ -680,6 +680,273 @@ describe('Integration Tests', () => {
           'http://example.com/entity/3',
           'http://example.com/entity/4',
         ]);
+      });
+    });
+  });
+
+  describe('Access', () => {
+    const entityUrl = (n: number) => encodeURIComponent(`http://example.com/entity/${n}`);
+    const restrictedFile = 'http://example.com/entity/5';
+    const restrictedMetadata = 'http://example.com/entity/2';
+    const fileHandler = {
+      get: vi.fn(async () => ({ type: 'redirect' as const, url: 'https://files.example.com/file' })),
+      head: vi.fn(async () => ({ contentType: 'audio/wav', contentLength: 2048 })),
+    };
+    const roCrateHandler = {
+      get: vi.fn(async () => ({ type: 'redirect' as const, url: 'https://files.example.com/crate' })),
+      head: vi.fn(async () => ({ contentType: 'application/ld+json', contentLength: 100 })),
+    };
+
+    let app: FastifyInstance;
+
+    beforeAll(async () => {
+      app = await buildTestApp({
+        fileHandler,
+        roCrateHandler,
+        access: (entity) => ({
+          metadata: entity.id !== restrictedMetadata,
+          content: entity.id !== restrictedFile,
+          ...(entity.id === restrictedFile && { contentAuthorizationUrl: 'https://rems.example.com/apply' }),
+        }),
+        entityTransformers: [(entity) => ({ ...entity, canDownload: entity.access.content })],
+      });
+    });
+
+    afterAll(async () => {
+      await app.close();
+    });
+
+    beforeEach(() => {
+      vi.clearAllMocks();
+    });
+
+    describe('Content', () => {
+      it('denies GET /file/:id with 403 without calling the file handler', async () => {
+        const denied = await app.inject({ method: 'GET', url: `/file/${entityUrl(5)}` });
+        const body = denied.json<StandardErrorResponse>();
+
+        expect(denied.statusCode).toBe(403);
+        expect(body.error.code).toBe('FORBIDDEN');
+        expect(fileHandler.get).not.toHaveBeenCalled();
+
+        const granted = await app.inject({ method: 'GET', url: `/file/${entityUrl(4)}` });
+
+        expect(granted.statusCode).toBe(302);
+        expect(fileHandler.get).toHaveBeenCalledOnce();
+      });
+
+      it('denies HEAD /file/:id without calling the file handler', async () => {
+        const denied = await app.inject({ method: 'HEAD', url: `/file/${entityUrl(5)}` });
+
+        expect(denied.statusCode).toBe(403);
+        expect(fileHandler.head).not.toHaveBeenCalled();
+
+        const granted = await app.inject({ method: 'HEAD', url: `/file/${entityUrl(4)}` });
+
+        expect(granted.statusCode).toBe(200);
+        expect(fileHandler.head).toHaveBeenCalledOnce();
+      });
+
+      it('denies the noRedirect variant without revealing the location', async () => {
+        const denied = await app.inject({ method: 'GET', url: `/file/${entityUrl(5)}?noRedirect=true` });
+
+        expect(denied.statusCode).toBe(403);
+        expect(denied.body).not.toContain('files.example.com');
+        expect(fileHandler.get).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('Metadata', () => {
+      it.each([
+        ['GET', 'get', 302],
+        ['HEAD', 'head', 200],
+      ] as const)(
+        'denies %s /entity/:id/metadata without calling the RO-Crate handler',
+        async (method, handler, grantedStatus) => {
+          const denied = await app.inject({ method, url: `/entity/${entityUrl(2)}/metadata` });
+
+          expect(denied.statusCode).toBe(403);
+          expect(roCrateHandler[handler]).not.toHaveBeenCalled();
+
+          const granted = await app.inject({ method, url: `/entity/${entityUrl(1)}/metadata` });
+
+          expect(granted.statusCode).toBe(grantedStatus);
+          expect(roCrateHandler[handler]).toHaveBeenCalledOnce();
+        },
+      );
+    });
+
+    describe('access signal', () => {
+      const restrictedFileAccess = {
+        metadata: true,
+        content: false,
+        contentAuthorizationUrl: 'https://rems.example.com/apply',
+      };
+
+      it('attaches access to /entity/:id before entity transformers run', async () => {
+        const response = await app.inject({ method: 'GET', url: `/entity/${entityUrl(5)}` });
+        const body = response.json<AuthorisedEntity & { canDownload: boolean }>();
+
+        expect(body.access).toEqual(restrictedFileAccess);
+        expect(body.canDownload).toBe(false);
+      });
+
+      it('attaches access to every entity in /entities and /search', async () => {
+        const listing = await app.inject({ method: 'GET', url: '/entities' });
+        const search = await app.inject({ method: 'POST', url: '/search', payload: { query: '' } });
+
+        for (const response of [listing, search]) {
+          const { entities } = response.json<{ entities: AuthorisedEntity[] }>();
+          const byId = new Map(entities.map((e) => [e.id, e.access]));
+
+          expect(byId.get('http://example.com/entity/1')).toEqual({ metadata: true, content: true });
+          expect(byId.get(restrictedMetadata)).toEqual({ metadata: false, content: true });
+          expect(byId.get(restrictedFile)).toEqual(restrictedFileAccess);
+        }
+      });
+
+      it("gives each file in /files its file entity's content access", async () => {
+        const response = await app.inject({ method: 'GET', url: '/files' });
+        const { files } = response.json<{ files: AuthorisedFile[] }>();
+        const byId = new Map(files.map((f) => [f.id, f.access]));
+
+        expect(byId.get('http://example.com/entity/4')).toEqual({ content: true });
+        expect(byId.get(restrictedFile)).toEqual({
+          content: false,
+          contentAuthorizationUrl: 'https://rems.example.com/apply',
+        });
+      });
+
+      it('ignores anything but access returned by the access function', async () => {
+        const leakyApp = await buildTestApp({
+          access: (entity) => ({ ...entity, name: 'Redacted', metadata: true, content: true }),
+        });
+
+        const response = await leakyApp.inject({ method: 'GET', url: `/entity/${entityUrl(1)}` });
+        await leakyApp.close();
+        const body = response.json<AuthorisedEntity>();
+
+        expect(body.name).toBe('Test Collection');
+        expect(body.access).toEqual({ metadata: true, content: true });
+      });
+    });
+
+    describe('licence access', () => {
+      const licence = 'https://creativecommons.org/licenses/by/4.0/';
+      const restrictedLicence = 'https://example.com/licences/restricted';
+      const hasLicence = vi.fn();
+      let licenceApp: FastifyInstance;
+
+      beforeAll(async () => {
+        licenceApp = await buildTestApp({
+          access: LicenceAccess({
+            hasLicence,
+            authorisationUrl: (licenceId) => `https://rems.example.com/apply?licence=${encodeURIComponent(licenceId)}`,
+          }),
+        });
+      });
+
+      afterAll(async () => {
+        await licenceApp.close();
+      });
+
+      it('checks each licence once per request across a listing', async () => {
+        hasLicence.mockImplementation(async (licenceId: string) => licenceId === licence);
+
+        const first = await licenceApp.inject({ method: 'GET', url: '/entities' });
+        const second = await licenceApp.inject({ method: 'GET', url: '/entities' });
+        const byId = new Map(first.json<{ entities: AuthorisedEntity[] }>().entities.map((e) => [e.id, e.access]));
+
+        expect(byId.size).toBe(5);
+        expect(byId.get('http://example.com/entity/4')).toMatchObject({ metadata: true, content: false });
+        expect(byId.get('http://example.com/entity/5')).toMatchObject({ metadata: true, content: true });
+        expect(second.statusCode).toBe(200);
+        expect(hasLicence).toHaveBeenCalledTimes(4);
+        expect(hasLicence).toHaveBeenCalledWith(licence, expect.objectContaining({ request: expect.anything() }));
+        expect(hasLicence).toHaveBeenCalledWith(restrictedLicence, expect.anything());
+      });
+
+      it('grants access without authorisation URLs when the licence is held', async () => {
+        hasLicence.mockReturnValue(true);
+
+        const response = await licenceApp.inject({ method: 'GET', url: `/entity/${entityUrl(1)}` });
+
+        expect(response.json<AuthorisedEntity>().access).toEqual({ metadata: true, content: true });
+      });
+
+      it('denies access with authorisation URLs when the licence is not held', async () => {
+        hasLicence.mockResolvedValue(false);
+        const applyUrl = (licenceId: string) =>
+          `https://rems.example.com/apply?licence=${encodeURIComponent(licenceId)}`;
+
+        const entity = await licenceApp.inject({ method: 'GET', url: `/entity/${entityUrl(4)}` });
+        const content = await licenceApp.inject({ method: 'GET', url: `/file/${entityUrl(4)}` });
+
+        expect(entity.json<AuthorisedEntity>().access).toEqual({
+          metadata: false,
+          content: false,
+          metadataAuthorizationUrl: applyUrl(licence),
+          contentAuthorizationUrl: applyUrl(restrictedLicence),
+        });
+        expect(content.statusCode).toBe(403);
+      });
+
+      it('omits authorisation URLs when no builder is given', async () => {
+        const bareApp = await buildTestApp({ access: LicenceAccess({ hasLicence: () => false }) });
+
+        const response = await bareApp.inject({ method: 'GET', url: `/entity/${entityUrl(1)}` });
+        await bareApp.close();
+
+        expect(response.json<AuthorisedEntity>().access).toEqual({ metadata: false, content: false });
+      });
+    });
+
+    describe('denied requests', () => {
+      const signedIn = { 'x-user': 'alice' };
+      let deniedApp: FastifyInstance;
+
+      beforeAll(async () => {
+        deniedApp = await buildTestApp({
+          fileHandler,
+          roCrateHandler,
+          entityVisibilityFilter: () => ({ id: { not: 'http://example.com/entity/3' } }),
+          access: () => ({ metadata: false, content: false }),
+          isAuthenticated: ({ request }) => request.headers['x-user'] !== undefined,
+        });
+      });
+
+      afterAll(async () => {
+        await deniedApp.close();
+      });
+
+      it.each([
+        ['an anonymous', {}, 401, 'UNAUTHORIZED'],
+        ['an authenticated', signedIn, 403, 'FORBIDDEN'],
+      ])('refuses %s request', async (_who, headers, status, code) => {
+        const metadata = await deniedApp.inject({ method: 'GET', url: `/entity/${entityUrl(1)}/metadata`, headers });
+        const content = await deniedApp.inject({ method: 'GET', url: `/file/${entityUrl(4)}`, headers });
+
+        expect(metadata.statusCode).toBe(status);
+        expect(metadata.json<StandardErrorResponse>().error.code).toBe(code);
+        expect(content.statusCode).toBe(status);
+        expect(content.json<StandardErrorResponse>().error.code).toBe(code);
+      });
+
+      it('refuses with 403 when the repository has no logins', async () => {
+        const noLoginApp = await buildTestApp({ roCrateHandler, access: () => ({ metadata: false, content: false }) });
+
+        const response = await noLoginApp.inject({ method: 'GET', url: `/entity/${entityUrl(1)}/metadata` });
+        await noLoginApp.close();
+
+        expect(response.statusCode).toBe(403);
+      });
+
+      it('gives hidden and missing entities 404, not a denied response', async () => {
+        const hidden = await deniedApp.inject({ method: 'GET', url: `/entity/${entityUrl(3)}/metadata` });
+        const missing = await deniedApp.inject({ method: 'GET', url: `/file/${entityUrl(99)}` });
+
+        expect(hidden.statusCode).toBe(404);
+        expect(missing.statusCode).toBe(404);
       });
     });
   });

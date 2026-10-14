@@ -1,13 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import app, {
-  AllPublicFileAccessTransformer,
-  AllVisibleEntityFilter,
-  AllVisibleSearchFilter,
-  type Options,
-} from '../app.js';
+import app, { AllPublicAccess, AllVisibleEntityFilter, AllVisibleSearchFilter, type Options } from '../app.js';
 import { fastify, fastifyAfter, fastifyBefore, opensearch, prisma } from '../test/helpers/fastify.js';
-import { AllPublicAccessTransformer } from '../transformers/default.js';
 import { OpensearchQueryBuilder, type SearchCapability } from '../utils/queryBuilder.js';
 
 const registerApp = async (options: Partial<Options> = {}) => {
@@ -15,8 +9,7 @@ const registerApp = async (options: Partial<Options> = {}) => {
   await fastify.register(app, {
     prisma,
     opensearch,
-    accessTransformer: AllPublicAccessTransformer,
-    fileAccessTransformer: AllPublicFileAccessTransformer,
+    access: AllPublicAccess,
     fileHandler: { get: vi.fn(), head: vi.fn() },
     roCrateHandler: { get: vi.fn(), head: vi.fn() },
     entityVisibilityFilter: AllVisibleEntityFilter,
@@ -93,17 +86,17 @@ describe('Capabilities Route', () => {
       expect(body.search).toEqual(labelled);
     });
 
-    it('should not run the access transformer', async () => {
-      const accessTransformer = vi.fn(() => {
+    it('should not run the access function', async () => {
+      const access = vi.fn(() => {
         throw new Error('Unauthorised');
       });
 
-      await registerApp({ accessTransformer });
+      await registerApp({ access });
 
       const { statusCode } = await getCapabilities();
 
       expect(statusCode).toBe(200);
-      expect(accessTransformer).not.toHaveBeenCalled();
+      expect(access).not.toHaveBeenCalled();
     });
   });
 });

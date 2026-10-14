@@ -1,10 +1,13 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { describe, expect, it } from 'vitest';
+import { prisma } from '../test/helpers/fastify.js';
+import type { AccessFunction } from '../types/access.js';
 import type { RequestContext } from '../types/context.js';
-import type { AccessTransformer, EntityTransformer } from '../types/transformers.js';
+import type { EntityTransformer } from '../types/transformers.js';
 import {
-  AllPublicAccessTransformer,
   type AuthorisedEntity,
+  applyTransformers,
+  authoriseEntities,
   type BaseEntity,
   baseEntityTransformer,
   type StandardEntity,
@@ -67,28 +70,6 @@ describe('Entity Transformers', () => {
       };
 
       expect(result).toEqual(expectedBaseEntity);
-    });
-  });
-
-  describe('AllPublicAccessTransformer', () => {
-    it('should add full access to standard entity', () => {
-      const result = AllPublicAccessTransformer(mockStandardEntity);
-
-      expect(result).toEqual({
-        ...mockStandardEntity,
-        access: {
-          metadata: true,
-          content: true,
-        },
-      });
-    });
-
-    it('should grant metadata and content access', () => {
-      const result = AllPublicAccessTransformer(mockStandardEntity);
-
-      expect(result.access.metadata).toBe(true);
-      expect(result.access.content).toBe(true);
-      expect(result.access.contentAuthorizationUrl).toBeUndefined();
     });
   });
 
@@ -209,13 +190,10 @@ describe('Entity Transformers', () => {
         updatedAt: new Date(),
       };
 
-      const customAccessTransformer: AccessTransformer = (entity) => ({
-        ...entity,
-        access: {
-          metadata: true,
-          content: false,
-          contentAuthorizationUrl: 'https://example.com/auth',
-        },
+      const access: AccessFunction = () => ({
+        metadata: true,
+        content: false,
+        contentAuthorizationUrl: 'https://example.com/auth',
       });
 
       const addMetadata: EntityTransformer<AuthorisedEntity, AuthorisedEntity & { processed: boolean }> = (entity) => ({
@@ -223,18 +201,13 @@ describe('Entity Transformers', () => {
         processed: true,
       });
 
-      // Full pipeline: base -> resolve references -> access -> custom
-      const base = baseEntityTransformer(rawEntity);
+      prisma.entity.findMany.mockResolvedValue([
+        { ...rawEntity, id: 'http://example.com/collection', name: 'Parent Collection' },
+        { ...rawEntity, id: 'http://example.com/root', name: 'Root Collection' },
+      ]);
 
-      // Simulate reference resolution (in real code, this uses resolveEntityReferences)
-      const standard: StandardEntity = {
-        ...base,
-        memberOf: base.memberOf ? { id: base.memberOf, name: 'Parent Collection' } : null,
-        rootCollection: base.rootCollection ? { id: base.rootCollection, name: 'Root Collection' } : null,
-      };
-
-      const authorised = await customAccessTransformer(standard, mockContext);
-      const final = await addMetadata(authorised, mockContext);
+      const [authorised] = await authoriseEntities([rawEntity], prisma, access, mockContext);
+      const final = await applyTransformers(authorised, [addMetadata], mockContext);
 
       expect(final).toMatchObject({
         id: 'http://example.com/entity/123',

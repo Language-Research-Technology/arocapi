@@ -2,8 +2,9 @@ import type { FastifyPluginAsync } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import type { PrismaClient } from '../generated/prisma/client.js';
-import { baseEntityTransformer, resolveEntityReferences } from '../transformers/default.js';
-import type { AccessTransformer, EntityTransformer } from '../types/transformers.js';
+import { applyTransformers, authoriseEntities } from '../transformers/default.js';
+import type { AccessFunction } from '../types/access.js';
+import type { EntityTransformer } from '../types/transformers.js';
 import type { EntityVisibilityFilter } from '../types/visibility.js';
 
 const querySchema = z.object({
@@ -25,13 +26,13 @@ const querySchema = z.object({
 
 type EntitiesRouteOptions = {
   prisma: PrismaClient;
-  accessTransformer: AccessTransformer;
+  access: AccessFunction;
   entityTransformers?: EntityTransformer[];
   entityVisibilityFilter: EntityVisibilityFilter;
 };
 
 const entities: FastifyPluginAsync<EntitiesRouteOptions> = async (fastify, opts) => {
-  const { prisma, accessTransformer, entityTransformers = [], entityVisibilityFilter } = opts;
+  const { prisma, access, entityTransformers = [], entityVisibilityFilter } = opts;
   fastify.withTypeProvider<ZodTypeProvider>().get(
     '/entities',
     {
@@ -71,27 +72,9 @@ const entities: FastifyPluginAsync<EntitiesRouteOptions> = async (fastify, opts)
         prisma.entity.count({ where: visibleWhere }),
       ]);
 
-      // Resolve memberOf and rootCollection references
-      const refMap = await resolveEntityReferences(dbEntities, prisma);
-
-      // Apply transformers to each entity: base -> access -> additional
+      const authorisedEntities = await authoriseEntities(dbEntities, prisma, access, context);
       const entities = await Promise.all(
-        dbEntities.map(async (dbEntity) => {
-          const base = baseEntityTransformer(dbEntity);
-          const standardEntity = {
-            ...base,
-            memberOf: base.memberOf ? (refMap.get(base.memberOf) ?? null) : null,
-            rootCollection: base.rootCollection ? (refMap.get(base.rootCollection) ?? null) : null,
-          };
-          const authorisedEntity = await accessTransformer(standardEntity, context);
-
-          let result = authorisedEntity;
-          for (const transformer of entityTransformers) {
-            result = await transformer(result, context);
-          }
-
-          return result;
-        }),
+        authorisedEntities.map((entity) => applyTransformers(entity, entityTransformers, context)),
       );
 
       return {

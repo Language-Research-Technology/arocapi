@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { fastify, fastifyAfter, fastifyBefore, prisma } from '../test/helpers/fastify.js';
-import { AllPublicAccessTransformer } from '../transformers/default.js';
+import { AllPublicAccess } from '../utils/access.js';
 import type { StandardErrorResponse } from '../utils/errors.js';
 import { AllVisibleEntityFilter } from '../utils/visibility.js';
 import entityRoute from './entity.js';
@@ -13,7 +13,7 @@ describe('Entity Route', () => {
       entityVisibilityFilter: AllVisibleEntityFilter,
       refusal: { promptLoginForHidden: false },
       prisma,
-      accessTransformer: AllPublicAccessTransformer,
+      access: AllPublicAccess,
     });
   });
 
@@ -103,7 +103,7 @@ describe('Entity Route', () => {
         entityVisibilityFilter: AllVisibleEntityFilter,
         refusal: { promptLoginForHidden: false },
         prisma,
-        accessTransformer: AllPublicAccessTransformer,
+        access: AllPublicAccess,
         entityTransformers: [customTransformer],
       });
 

@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { fastify, fastifyAfter, fastifyBefore, opensearch, prisma } from '../test/helpers/fastify.js';
-import { AllPublicAccessTransformer } from '../transformers/default.js';
+import { AllPublicAccess } from '../utils/access.js';
 import type { StandardErrorResponse } from '../utils/errors.js';
 import { OpensearchQueryBuilder } from '../utils/queryBuilder.js';
 import { AllVisibleEntityFilter, AllVisibleSearchFilter } from '../utils/visibility.js';
@@ -15,7 +15,7 @@ describe('Search Route', () => {
       searchVisibilityFilter: AllVisibleSearchFilter,
       prisma,
       opensearch,
-      accessTransformer: AllPublicAccessTransformer,
+      access: AllPublicAccess,
       queryBuilder: new OpensearchQueryBuilder(),
     });
   });
@@ -668,7 +668,7 @@ describe('Search Route', () => {
         searchVisibilityFilter: AllVisibleSearchFilter,
         prisma,
         opensearch,
-        accessTransformer: AllPublicAccessTransformer,
+        access: AllPublicAccess,
         entityTransformers: [customTransformer],
         queryBuilder: new OpensearchQueryBuilder(),
       });

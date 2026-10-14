@@ -9,22 +9,24 @@ import file from './routes/file.js';
 import files from './routes/files.js';
 import metadata from './routes/metadata.js';
 import search from './routes/search.js';
+import type { AccessFunction } from './types/access.js';
 import type { IsAuthenticated } from './types/context.js';
 import type { FileHandler, RoCrateHandler } from './types/fileHandlers.js';
-import type {
-  AccessTransformer,
-  EntityTransformer,
-  FileAccessTransformer,
-  FileTransformer,
-} from './types/transformers.js';
+import type { EntityTransformer, FileTransformer } from './types/transformers.js';
 import type { EntityVisibilityFilter, SearchVisibilityFilter } from './types/visibility.js';
 import { notFoundHandler } from './utils/errors.js';
 import type { FacetCapability, FilterCapability, QueryBuilderOptions, SearchCapability } from './utils/queryBuilder.js';
 import { OpensearchQueryBuilder } from './utils/queryBuilder.js';
 import { setupValidation } from './utils/validation.js';
 
-export type { AuthorisedEntity, AuthorisedFile, StandardEntity, StandardFile } from './transformers/default.js';
-export { AllPublicAccessTransformer, AllPublicFileAccessTransformer } from './transformers/default.js';
+export type {
+  AuthorisedEntity,
+  AuthorisedFile,
+  BaseEntity,
+  StandardEntity,
+  StandardFile,
+} from './transformers/default.js';
+export type { AccessFunction, AccessInfo } from './types/access.js';
 export type { IsAuthenticated, RequestContext } from './types/context.js';
 export type {
   FileHandler,
@@ -39,13 +41,10 @@ export type {
   HeadRoCrateHandler,
   RoCrateHandler,
 } from './types/fileHandlers.js';
-export type {
-  AccessTransformer,
-  EntityTransformer,
-  FileAccessTransformer,
-  FileTransformer,
-} from './types/transformers.js';
+export type { EntityTransformer, FileTransformer } from './types/transformers.js';
 export type { EntityVisibilityFilter, SearchVisibilityFilter } from './types/visibility.js';
+export type { LicenceAccessOptions } from './utils/access.js';
+export { AllPublicAccess, LicenceAccess } from './utils/access.js';
 export type { ErrorCode, StandardErrorResponse } from './utils/errors.js';
 export {
   createAuthenticationRequiredError,
@@ -63,6 +62,8 @@ export type { FacetCapability, FilterCapability, QueryBuilderOptions, SearchCapa
 export { OpensearchQueryBuilder };
 
 const REMOVED_OPTIONS: Record<string, string> = {
+  accessTransformer: 'access',
+  fileAccessTransformer: 'access',
   hiddenResponse: 'promptLoginForHidden and isAuthenticated',
 };
 
@@ -71,9 +72,8 @@ export type Options = {
   opensearch: Client;
   queryBuilderClass?: typeof OpensearchQueryBuilder;
   queryBuilderOptions?: QueryBuilderOptions;
-  accessTransformer: AccessTransformer;
+  access: AccessFunction;
   entityTransformers?: EntityTransformer[];
-  fileAccessTransformer: FileAccessTransformer;
   fileTransformers?: FileTransformer[];
   fileHandler: FileHandler;
   roCrateHandler: RoCrateHandler;
@@ -88,9 +88,8 @@ const app: FastifyPluginAsync<Options> = async (fastify, options) => {
     opensearch,
     queryBuilderClass,
     queryBuilderOptions,
-    accessTransformer,
+    access,
     entityTransformers,
-    fileAccessTransformer,
     fileTransformers,
     fileHandler,
     roCrateHandler,
@@ -114,12 +113,8 @@ const app: FastifyPluginAsync<Options> = async (fastify, options) => {
     }
   }
 
-  if (!accessTransformer) {
-    throw new Error('accessTransformer is required');
-  }
-
-  if (!fileAccessTransformer) {
-    throw new Error('fileAccessTransformer is required');
+  if (!access) {
+    throw new Error('access is required');
   }
 
   if (!fileHandler) {
@@ -156,15 +151,15 @@ const app: FastifyPluginAsync<Options> = async (fastify, options) => {
   const queryBuilder = new (queryBuilderClass ?? OpensearchQueryBuilder)(queryBuilderOptions);
 
   fastify.register(capabilities, { queryBuilder });
-  fastify.register(entities, { prisma, accessTransformer, entityTransformers, entityVisibilityFilter });
-  fastify.register(entity, { prisma, accessTransformer, entityTransformers, entityVisibilityFilter, refusal });
-  fastify.register(files, { prisma, fileAccessTransformer, fileTransformers, entityVisibilityFilter });
-  fastify.register(file, { prisma, fileHandler, entityVisibilityFilter, refusal });
-  fastify.register(metadata, { prisma, roCrateHandler, entityVisibilityFilter, refusal });
+  fastify.register(entities, { prisma, access, entityTransformers, entityVisibilityFilter });
+  fastify.register(entity, { prisma, access, entityTransformers, entityVisibilityFilter, refusal });
+  fastify.register(files, { prisma, access, fileTransformers, entityVisibilityFilter });
+  fastify.register(file, { prisma, fileHandler, access, entityVisibilityFilter, refusal });
+  fastify.register(metadata, { prisma, roCrateHandler, access, entityVisibilityFilter, refusal });
   fastify.register(search, {
     prisma,
     opensearch,
-    accessTransformer,
+    access,
     entityTransformers,
     queryBuilder,
     entityVisibilityFilter,
