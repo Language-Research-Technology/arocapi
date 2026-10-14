@@ -79,7 +79,7 @@ export const errorHandler = (error: unknown, request: FastifyRequest, reply: Fas
     FastifyError & { status: number; headers: Record<string, string>; expose: boolean }
   >;
   const httpStatus = statusCode ?? status;
-  const trusted = expose === true || code?.startsWith('FST_');
+  const trusted = expose === true || (typeof code === 'string' && code.startsWith('FST_'));
   if (trusted && httpStatus && httpStatus >= 400 && httpStatus < 500) {
     const errorCode = ERROR_CODE_BY_STATUS[httpStatus] ?? ERROR_CODES.VALIDATION_ERROR;
 

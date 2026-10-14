@@ -172,6 +172,18 @@ describe('Error handling for consumer routes', () => {
     expect(response.json()).toEqual({ error: { code: 'NOT_FOUND', message: '' } });
   });
 
+  it('hides an error with a non-string code behind a generic 500', async () => {
+    const { fastify } = buildConsumer();
+    fastify.get('/fail', async () => {
+      throw Object.assign(new Error(message), { code: 14, statusCode: 400 });
+    });
+
+    const response = await fastify.inject({ method: 'GET', url: '/fail' });
+
+    expect(response.statusCode).toBe(500);
+    expect(response.json()).toEqual(internalErrorBody);
+  });
+
   it('hides a thrown plain object with a status behind a generic 500', async () => {
     const { fastify } = buildConsumer();
     fastify.get('/fail', async () => {
