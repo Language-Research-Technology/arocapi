@@ -1,7 +1,6 @@
 import sensible from '@fastify/sensible';
 import type { Client } from '@opensearch-project/opensearch';
-import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
-import { serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod';
+import type { FastifyPluginAsync } from 'fastify';
 import type { PrismaClient } from './generated/prisma/client.js';
 import capabilities from './routes/capabilities.js';
 import entities from './routes/entities.js';
@@ -23,9 +22,10 @@ import type {
   HiddenResponse,
   SearchVisibilityFilter,
 } from './types/visibility.js';
-import { errorHandler, notFoundHandler } from './utils/errors.js';
+import { notFoundHandler } from './utils/errors.js';
 import type { FacetCapability, FilterCapability, QueryBuilderOptions, SearchCapability } from './utils/queryBuilder.js';
 import { OpensearchQueryBuilder } from './utils/queryBuilder.js';
+import { setupValidation } from './utils/validation.js';
 
 export type { AuthorisedEntity, AuthorisedFile, StandardEntity, StandardFile } from './transformers/default.js';
 export { AllPublicAccessTransformer, AllPublicFileAccessTransformer } from './transformers/default.js';
@@ -71,13 +71,6 @@ export {
 export { AllVisibleEntityFilter, AllVisibleSearchFilter } from './utils/visibility.js';
 export type { FacetCapability, FilterCapability, QueryBuilderOptions, SearchCapability };
 export { OpensearchQueryBuilder };
-
-const setupValidation = (fastify: FastifyInstance) => {
-  fastify.setValidatorCompiler(validatorCompiler);
-  fastify.setSerializerCompiler(serializerCompiler);
-
-  fastify.setErrorHandler(errorHandler);
-};
 
 const HIDDEN_REASONS: string[] = ['notFound', 'authenticationRequired', 'forbidden'] satisfies HiddenReason[];
 

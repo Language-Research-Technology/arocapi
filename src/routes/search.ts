@@ -96,12 +96,12 @@ const search: FastifyPluginAsync<SearchRouteOptions> = async (fastify, opts) => 
       try {
         response = await opensearch.search(opensearchQuery);
       } catch (error) {
+        const { statusCode, message } = error as Error & { statusCode?: number };
         // OpenSearch returns 400 for malformed queries (e.g. invalid query_string syntax)
-        if ((error as { statusCode?: number }).statusCode !== 400) {
+        if (statusCode !== 400) {
           throw error;
         }
 
-        const { message } = error as Error;
         fastify.log.warn(`Invalid search query: ${message}`);
 
         return reply.code(422).send(createError(ERROR_CODES.VALIDATION_ERROR, message));

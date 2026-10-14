@@ -6,7 +6,7 @@ import type { PrismaClient } from '../generated/prisma/client.js';
 import type { FileHandler, FileMetadata } from '../types/fileHandlers.js';
 import type { TransformerContext } from '../types/transformers.js';
 import type { EntityVisibilityFilter, HiddenResponse } from '../types/visibility.js';
-import { createInternalError, createNotFoundError } from '../utils/errors.js';
+import { createNotFoundError } from '../utils/errors.js';
 import { setFileHeaders } from '../utils/headers.js';
 import { createNotVisibleResponder } from '../utils/visibility.js';
 
@@ -121,11 +121,8 @@ const file: FastifyPluginAsync<FileRouteOptions> = async (fastify, opts) => {
       }
 
       // Exhaustiveness check - should never reach here with proper types
-      console.error(`Unexpected file result type: ${(result as { type: string }).type}`);
       reply.removeHeader('Content-Disposition');
-      reply.removeHeader('Content-Type');
-      reply.removeHeader('Content-Length');
-      return reply.code(500).send(createInternalError());
+      throw new Error(`Unexpected file result type: ${(result as { type: string }).type}`);
     },
   );
 };

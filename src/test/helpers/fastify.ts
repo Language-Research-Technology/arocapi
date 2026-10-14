@@ -1,11 +1,10 @@
 import type { Client } from '@opensearch-project/opensearch';
 import type { FastifyInstance } from 'fastify';
 import Fastify from 'fastify';
-import { serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod';
 import { mockDeep, mockReset } from 'vitest-mock-extended';
 
 import type { PrismaClient } from '../../generated/prisma/client.js';
-import { errorHandler } from '../../utils/errors.js';
+import { setupValidation } from '../../utils/validation.js';
 
 export let fastify: FastifyInstance;
 export const prisma = mockDeep<PrismaClient>();
@@ -17,9 +16,7 @@ export const fastifyBefore = async () => {
 
   fastify = Fastify({ logger: false });
 
-  fastify.setValidatorCompiler(validatorCompiler);
-  fastify.setSerializerCompiler(serializerCompiler);
-  fastify.setErrorHandler(errorHandler);
+  setupValidation(fastify);
 
   return fastify;
 };

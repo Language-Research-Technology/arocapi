@@ -396,6 +396,8 @@ describe('File Route', () => {
 
       expect(response.statusCode).toBe(500);
       expect(body.error.code).toBe('INTERNAL_ERROR');
+      expect(response.headers['content-disposition']).toBeUndefined();
+      expect(response.headers['content-type']).toContain('application/json');
     });
   });
 });
