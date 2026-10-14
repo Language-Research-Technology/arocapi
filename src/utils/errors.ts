@@ -75,17 +75,18 @@ export const errorHandler = (error: unknown, request: FastifyRequest, reply: Fas
     return reply.code(400).send(createValidationError('The request parameters are invalid', violations));
   }
 
-  const { statusCode, status, message, headers } = (error ?? {}) as Partial<
-    FastifyError & { status: number; headers: Record<string, string> }
+  const { statusCode, status, message, headers, expose, code } = (error ?? {}) as Partial<
+    FastifyError & { status: number; headers: Record<string, string>; expose: boolean }
   >;
   const httpStatus = statusCode ?? status;
-  if (httpStatus && httpStatus >= 400 && httpStatus < 500) {
-    const code = ERROR_CODE_BY_STATUS[httpStatus] ?? ERROR_CODES.VALIDATION_ERROR;
+  const trusted = expose === true || code?.startsWith('FST_');
+  if (trusted && httpStatus && httpStatus >= 400 && httpStatus < 500) {
+    const errorCode = ERROR_CODE_BY_STATUS[httpStatus] ?? ERROR_CODES.VALIDATION_ERROR;
 
     return reply
       .code(httpStatus)
       .headers(headers ?? {})
-      .send(createError(code, message ?? ''));
+      .send(createError(errorCode, message ?? ''));
   }
 
   request.log.error({ err: error });

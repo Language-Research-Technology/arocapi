@@ -285,7 +285,7 @@ describe('Crate Route', () => {
       const body = JSON.parse(response.body) as StandardErrorResponse;
 
       expect(response.statusCode).toBe(400);
-      expect(body.error).toBe('Bad Request');
+      expect(body.error.code).toBe('VALIDATION_ERROR');
     });
   });
 

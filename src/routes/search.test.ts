@@ -450,6 +450,24 @@ describe('Search Route', () => {
       expect(body).toMatchSnapshot();
     });
 
+    it('should hide opensearch errors with other client statuses behind a generic 500', async () => {
+      const opensearchError = Object.assign(new Error('index_not_found_exception: no such index [entities]'), {
+        statusCode: 404,
+      });
+      opensearch.search.mockRejectedValue(opensearchError);
+
+      const response = await fastify.inject({
+        method: 'POST',
+        url: '/search',
+        payload: {
+          query: 'test',
+        },
+      });
+
+      expect(response.statusCode).toBe(500);
+      expect(response.json()).toEqual({ error: { code: 'INTERNAL_ERROR', message: 'Internal server error' } });
+    });
+
     it('should return 422 for malformed opensearch query', async () => {
       const error = new Error('parsing_exception') as Error & { statusCode: number };
       error.statusCode = 400;
@@ -634,7 +652,7 @@ describe('Search Route', () => {
       expect(response.statusCode).toBe(500);
       const body = JSON.parse(response.body) as { error: { code: string; message: string } };
       expect(body.error.code).toBe('INTERNAL_ERROR');
-      expect(body.error.message).toBe('Search failed');
+      expect(body.error.message).toBe('Internal server error');
     });
 
     it('should apply custom entity transformers', async () => {

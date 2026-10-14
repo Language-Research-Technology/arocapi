@@ -32,7 +32,7 @@ exports[`Search Route > POST /search > should handle id explicitly set to undefi
 {
   "error": {
     "code": "INTERNAL_ERROR",
-    "message": "Search failed",
+    "message": "Internal server error",
   },
 }
 `;
@@ -41,7 +41,7 @@ exports[`Search Route > POST /search > should handle opensearch errors 1`] = `
 {
   "error": {
     "code": "INTERNAL_ERROR",
-    "message": "Search failed",
+    "message": "Internal server error",
   },
 }
 `;

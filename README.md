@@ -179,12 +179,27 @@ fastify.register(arocapi, { /* ... */ });
 `errorHandler` answers:
 
 - Zod validation errors with 400 `VALIDATION_ERROR` and `details.violations`
-- errors with a 4xx `statusCode` (e.g. from `@fastify/sensible`) with that
-  status and message, and the matching code: 401 `UNAUTHORIZED`, 403
-  `FORBIDDEN`, 404 `NOT_FOUND`, 409 `CONFLICT`, 416 `RANGE_NOT_SATISFIABLE`,
-  429 `RATE_LIMIT_EXCEEDED`, otherwise `VALIDATION_ERROR`
+- client errors with a 4xx `statusCode` (or `status`) with that status and
+  message, and the matching code: 401 `UNAUTHORIZED`, 403 `FORBIDDEN`, 404
+  `NOT_FOUND`, 409 `CONFLICT`, 416 `RANGE_NOT_SATISFIABLE`, 429
+  `RATE_LIMIT_EXCEEDED`, otherwise `VALIDATION_ERROR`
 - anything else with 500 `INTERNAL_ERROR` and a generic message, logging the
   real error
+
+A 4xx error only counts as a client error when it is safe to show: it has
+`expose: true` (as errors from `fastify.httpErrors` / `http-errors` do), or it
+is one of Fastify's own errors (a `code` starting with `FST_`, e.g. invalid
+JSON or a body that is too large). Other errors that carry a 4xx status, such
+as an OpenSearch `ResponseError` escaping your route, answer 500 so their
+internals don't reach clients. To throw your own error class as a client
+error, set `expose`:
+
+```typescript
+class DepositFinalisedError extends Error {
+  statusCode = 409;
+  expose = true;
+}
+```
 
 In your routes, build error bodies with the same helpers arocapi uses, so the
 code moves into arocapi unchanged:

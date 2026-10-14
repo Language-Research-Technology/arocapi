@@ -269,7 +269,7 @@ describe('File Route', () => {
       const body = JSON.parse(response.body) as StandardErrorResponse;
 
       expect(response.statusCode).toBe(400);
-      expect(body.error).toBe('Bad Request');
+      expect(body.error.code).toBe('VALIDATION_ERROR');
     });
 
     it('should validate disposition parameter', async () => {
@@ -282,7 +282,7 @@ describe('File Route', () => {
       const body = JSON.parse(response.body) as StandardErrorResponse;
 
       expect(response.statusCode).toBe(400);
-      expect(body.error).toBe('Bad Request');
+      expect(body.error.code).toBe('VALIDATION_ERROR');
     });
 
     it('should return 404 when get handler returns false', async () => {

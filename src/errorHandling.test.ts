@@ -100,7 +100,55 @@ describe('Error handling for consumer routes', () => {
     expect(response.headers['www-authenticate']).toBe('Bearer');
   });
 
-  it('maps errors that carry only a status', async () => {
+  it('hides a library error with a 4xx status behind a generic 500 and logs it with its stack', async () => {
+    const { fastify, logs } = buildConsumer();
+    const raw = 'index_not_found_exception: no such index [items-v2]';
+    fastify.get('/fail', async () => {
+      throw Object.assign(new Error(raw), { name: 'ResponseError', statusCode: 404, meta: { statusCode: 404 } });
+    });
+
+    const response = await fastify.inject({ method: 'GET', url: '/fail' });
+
+    expect(response.statusCode).toBe(500);
+    expect(response.json()).toEqual(internalErrorBody);
+    expect(response.body).not.toContain('items-v2');
+    const logged = logs.find((l) => l.level === 50)?.err as { message: string; stack: string } | undefined;
+    expect(logged?.message).toBe(raw);
+    expect(logged?.stack).toContain(raw);
+  });
+
+  it('keeps the status and message of a custom error marked expose', async () => {
+    class ConflictError extends Error {
+      statusCode = 409;
+      expose = true;
+    }
+    const { fastify } = buildConsumer();
+    fastify.get('/fail', async () => {
+      throw new ConflictError(message);
+    });
+
+    const response = await fastify.inject({ method: 'GET', url: '/fail' });
+
+    expect(response.statusCode).toBe(409);
+    expect(response.json()).toEqual({ error: { code: 'CONFLICT', message } });
+  });
+
+  it.each([
+    ['an invalid JSON body', { 'content-type': 'application/json' }, '{"broken', 400],
+    ['an oversized body', { 'content-type': 'application/json' }, JSON.stringify({ big: 'x'.repeat(200) }), 413],
+    ['an unsupported media type', { 'content-type': 'application/x-unknown' }, 'whatever', 415],
+  ])("keeps Fastify's own client error for %s", async (_label, headers, payload, status) => {
+    const { fastify } = buildConsumer();
+    fastify.post('/things', { bodyLimit: 100 }, async () => ({}));
+
+    const response = await fastify.inject({ method: 'POST', url: '/things', headers, payload });
+
+    expect(response.statusCode).toBe(status);
+    expect(response.json().error.code).toBe('VALIDATION_ERROR');
+    expect(response.json().error.message).not.toBe('');
+  });
+
+  it('hides errors that carry only a status behind a generic 500', async () => {
     const { fastify } = buildConsumer();
     fastify.get('/fail', async () => {
       throw Object.assign(new Error(message), { status: 403 });
@@ -108,11 +156,23 @@ describe('Error handling for consumer routes', () => {
 
     const response = await fastify.inject({ method: 'GET', url: '/fail' });
 
-    expect(response.statusCode).toBe(403);
-    expect(response.json()).toEqual({ error: { code: 'FORBIDDEN', message } });
+    expect(response.statusCode).toBe(500);
+    expect(response.json()).toEqual(internalErrorBody);
   });
 
-  it('maps a thrown plain object with a status and no message', async () => {
+  it('maps a thrown plain object marked expose with no message', async () => {
+    const { fastify } = buildConsumer();
+    fastify.get('/fail', async () => {
+      throw { statusCode: 404, expose: true };
+    });
+
+    const response = await fastify.inject({ method: 'GET', url: '/fail' });
+
+    expect(response.statusCode).toBe(404);
+    expect(response.json()).toEqual({ error: { code: 'NOT_FOUND', message: '' } });
+  });
+
+  it('hides a thrown plain object with a status behind a generic 500', async () => {
     const { fastify } = buildConsumer();
     fastify.get('/fail', async () => {
       throw { statusCode: 404 };
@@ -120,8 +180,8 @@ describe('Error handling for consumer routes', () => {
 
     const response = await fastify.inject({ method: 'GET', url: '/fail' });
 
-    expect(response.statusCode).toBe(404);
-    expect(response.json()).toEqual({ error: { code: 'NOT_FOUND', message: '' } });
+    expect(response.statusCode).toBe(500);
+    expect(response.json()).toEqual(internalErrorBody);
   });
 
   it.each([null, undefined])('answers a thrown %s with a generic 500', async (thrown) => {

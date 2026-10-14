@@ -49,29 +49,22 @@ const file: FastifyPluginAsync<FileRouteOptions> = async (fastify, opts) => {
     async (request, reply) => {
       const { id } = request.params;
 
-      try {
-        const context = { request, fastify };
-        const file = await findVisibleFile(id, context);
+      const context = { request, fastify };
+      const file = await findVisibleFile(id, context);
 
-        if (!file) {
-          return sendFileNotVisible(reply, id, context);
-        }
-
-        const metadata: FileMetadata | false = await fileHandler.head(file, context);
-
-        if (!metadata) {
-          return reply.code(404).send(createNotFoundError('The requested file metadata was not found', id));
-        }
-
-        setFileHeaders(reply, metadata);
-
-        return reply.code(200).send();
-      } catch (error) {
-        const err = error as Error;
-        fastify.log.error(`File metadata retrieval error: ${err.message}`);
-
-        return reply.code(500).send(createInternalError());
+      if (!file) {
+        return sendFileNotVisible(reply, id, context);
       }
+
+      const metadata: FileMetadata | false = await fileHandler.head(file, context);
+
+      if (!metadata) {
+        return reply.code(404).send(createNotFoundError('The requested file metadata was not found', id));
+      }
+
+      setFileHeaders(reply, metadata);
+
+      return reply.code(200).send();
     },
   );
 
@@ -86,60 +79,53 @@ const file: FastifyPluginAsync<FileRouteOptions> = async (fastify, opts) => {
     async (request, reply) => {
       const { id } = request.params;
 
-      try {
-        const context = { request, fastify };
-        const file = await findVisibleFile(id, context);
+      const context = { request, fastify };
+      const file = await findVisibleFile(id, context);
 
-        if (!file) {
-          return sendFileNotVisible(reply, id, context);
-        }
-
-        const result = await fileHandler.get(file, context);
-
-        if (!result) {
-          return reply.code(404).send(createNotFoundError('The requested file could not be retrieved', id));
-        }
-
-        if (result.type === 'redirect') {
-          if (request.query.noRedirect) {
-            return reply.code(200).send({ location: result.url });
-          }
-
-          return reply.code(302).redirect(result.url);
-        }
-
-        const { disposition, filename: customFilename } = request.query;
-        const filename = customFilename || file.filename;
-        setFileHeaders(reply, result.metadata);
-        reply.header('Content-Disposition', `${disposition}; filename="${filename}"`);
-
-        // Handle stream response
-        if (result.type === 'stream') {
-          return reply.code(200).send(result.stream);
-        }
-
-        if (result.type === 'file') {
-          if (result.accelPath) {
-            reply.header('X-Accel-Redirect', result.accelPath);
-            return reply.code(200).send();
-          }
-
-          const stream = createReadStream(result.path);
-          return reply.code(200).send(stream);
-        }
-
-        // Exhaustiveness check - should never reach here with proper types
-        console.error(`Unexpected file result type: ${(result as { type: string }).type}`);
-        reply.removeHeader('Content-Disposition');
-        reply.removeHeader('Content-Type');
-        reply.removeHeader('Content-Length');
-        return reply.code(500).send(createInternalError());
-      } catch (error) {
-        const err = error as Error;
-        fastify.log.error(`File retrieval error: ${err}`);
-
-        return reply.code(500).send(createInternalError());
+      if (!file) {
+        return sendFileNotVisible(reply, id, context);
       }
+
+      const result = await fileHandler.get(file, context);
+
+      if (!result) {
+        return reply.code(404).send(createNotFoundError('The requested file could not be retrieved', id));
+      }
+
+      if (result.type === 'redirect') {
+        if (request.query.noRedirect) {
+          return reply.code(200).send({ location: result.url });
+        }
+
+        return reply.code(302).redirect(result.url);
+      }
+
+      const { disposition, filename: customFilename } = request.query;
+      const filename = customFilename || file.filename;
+      setFileHeaders(reply, result.metadata);
+      reply.header('Content-Disposition', `${disposition}; filename="${filename}"`);
+
+      // Handle stream response
+      if (result.type === 'stream') {
+        return reply.code(200).send(result.stream);
+      }
+
+      if (result.type === 'file') {
+        if (result.accelPath) {
+          reply.header('X-Accel-Redirect', result.accelPath);
+          return reply.code(200).send();
+        }
+
+        const stream = createReadStream(result.path);
+        return reply.code(200).send(stream);
+      }
+
+      // Exhaustiveness check - should never reach here with proper types
+      console.error(`Unexpected file result type: ${(result as { type: string }).type}`);
+      reply.removeHeader('Content-Disposition');
+      reply.removeHeader('Content-Type');
+      reply.removeHeader('Content-Length');
+      return reply.code(500).send(createInternalError());
     },
   );
 };

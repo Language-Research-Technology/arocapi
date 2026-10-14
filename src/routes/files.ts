@@ -5,7 +5,6 @@ import type { PrismaClient } from '../generated/prisma/client.js';
 import { baseFileTransformer } from '../transformers/default.js';
 import type { FileAccessTransformer, FileTransformer } from '../types/transformers.js';
 import type { EntityVisibilityFilter } from '../types/visibility.js';
-import { createInternalError } from '../utils/errors.js';
 
 const querySchema = z.object({
   memberOf: z.url().optional(),
@@ -32,51 +31,44 @@ const files: FastifyPluginAsync<FilesRouteOptions> = async (fastify, opts) => {
         querystring: querySchema,
       },
     },
-    async (request, reply) => {
+    async (request) => {
       const { memberOf, limit, offset, sort, order } = request.query;
 
-      try {
-        const context = { request, fastify };
-        const visibilityWhere = await entityVisibilityFilter(context);
-        const where = { entity: { AND: [{ memberOf }, visibilityWhere] } };
+      const context = { request, fastify };
+      const visibilityWhere = await entityVisibilityFilter(context);
+      const where = { entity: { AND: [{ memberOf }, visibilityWhere] } };
 
-        const [dbFiles, total] = await Promise.all([
-          prisma.file.findMany({
-            where,
-            orderBy: {
-              [sort]: order,
-            },
-            skip: offset,
-            take: limit,
-          }),
-          prisma.file.count({ where }),
-        ]);
+      const [dbFiles, total] = await Promise.all([
+        prisma.file.findMany({
+          where,
+          orderBy: {
+            [sort]: order,
+          },
+          skip: offset,
+          take: limit,
+        }),
+        prisma.file.count({ where }),
+      ]);
 
-        // Apply transformers to each entity: base -> access -> additional
-        const filesWithAccess = await Promise.all(
-          dbFiles.map(async (dbFile) => {
-            const standardFile = baseFileTransformer(dbFile);
-            const authorisedFile = await fileAccessTransformer(standardFile, context);
+      // Apply transformers to each entity: base -> access -> additional
+      const filesWithAccess = await Promise.all(
+        dbFiles.map(async (dbFile) => {
+          const standardFile = baseFileTransformer(dbFile);
+          const authorisedFile = await fileAccessTransformer(standardFile, context);
 
-            let result = authorisedFile;
-            for (const transformer of fileTransformers) {
-              result = await transformer(result, context);
-            }
+          let result = authorisedFile;
+          for (const transformer of fileTransformers) {
+            result = await transformer(result, context);
+          }
 
-            return result;
-          }),
-        );
+          return result;
+        }),
+      );
 
-        return {
-          total,
-          files: filesWithAccess,
-        };
-      } catch (error) {
-        const err = error as Error;
-        fastify.log.error(`Database error: ${err.message}`);
-
-        return reply.code(500).send(createInternalError());
-      }
+      return {
+        total,
+        files: filesWithAccess,
+      };
     },
   );
 };

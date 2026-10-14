@@ -5,6 +5,7 @@ import { serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod
 import { mockDeep, mockReset } from 'vitest-mock-extended';
 
 import type { PrismaClient } from '../../generated/prisma/client.js';
+import { errorHandler } from '../../utils/errors.js';
 
 export let fastify: FastifyInstance;
 export const prisma = mockDeep<PrismaClient>();
@@ -18,6 +19,7 @@ export const fastifyBefore = async () => {
 
   fastify.setValidatorCompiler(validatorCompiler);
   fastify.setSerializerCompiler(serializerCompiler);
+  fastify.setErrorHandler(errorHandler);
 
   return fastify;
 };
