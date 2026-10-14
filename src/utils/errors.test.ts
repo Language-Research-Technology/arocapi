@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createInternalError, createNotFoundError } from './errors.js';
+import { createForbiddenError, createInternalError, createNotFoundError } from './errors.js';
 
 describe('Error Utilities', () => {
   describe('createInternalError', () => {
@@ -24,6 +24,21 @@ describe('Error Utilities', () => {
           code: 'INTERNAL_ERROR',
           message: customMessage,
           details: undefined,
+        },
+      });
+    });
+  });
+
+  describe('createForbiddenError', () => {
+    it('should create a forbidden error with message and entityId', () => {
+      const entityId = 'http://example.com/entity/123';
+      const error = createForbiddenError('No access', entityId);
+
+      expect(error).toEqual({
+        error: {
+          code: 'FORBIDDEN',
+          message: 'No access',
+          details: { entityId },
         },
       });
     });

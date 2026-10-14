@@ -34,9 +34,11 @@ which come from Prisma and OpenSearch.
   entity filter too, so a mismatch gives a short page rather than a leak.
 - Both filters are required, with no default. Public repositories opt in
   explicitly with `AllVisibleEntityFilter` and `AllVisibleSearchFilter`.
-- Direct requests for a hidden entity get the consumer's `hiddenResponse`
-  (`notFound`, `authenticationRequired` or `forbidden`), chosen per request,
-  defaulting to `notFound`. Missing entities always get 404.
+- Direct requests for a hidden entity get a 404, the same as a missing entity.
+  With `promptLoginForHidden`, an anonymous request (per the consumer's
+  `isAuthenticated`) for a hidden entity gets a 401 so the client can prompt a
+  login. A hidden entity never gets a 403: that would reveal an entity the
+  request can't see. Missing entities always get 404.
 - Visibility never cascades from collections; consumers who want that filter
   on `rootCollection`.
 

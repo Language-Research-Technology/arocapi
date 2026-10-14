@@ -1,6 +1,5 @@
 import type { FastifyInstance } from 'fastify';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import type { HiddenReason } from '../app.js';
 import { AllVisibleSearchFilter } from '../app.js';
 import { Prisma } from '../generated/prisma/client.js';
 import type { AuthorisedEntity, AuthorisedFile } from '../transformers/default.js';
@@ -512,7 +511,8 @@ describe('Integration Tests', () => {
         ...stubHandlers,
         entityVisibilityFilter: () => hideDrafts,
         searchVisibilityFilter: () => hideDraftsSearch,
-        hiddenResponse: ({ request }) => (request.headers['x-hidden-response'] as HiddenReason) ?? 'notFound',
+        isAuthenticated: ({ request }) => request.headers['x-user'] !== undefined,
+        promptLoginForHidden: true,
         queryBuilderOptions: { aggregations: entityTypeFacet },
       });
     });
@@ -522,11 +522,12 @@ describe('Integration Tests', () => {
     });
 
     const ids = (entities: Array<{ id: string }>) => entities.map((e) => e.id).sort();
+    const signedIn = { 'x-user': 'alice' };
 
     describe('single entity routes', () => {
-      it('treats a hidden entity like a missing one by default', async () => {
-        const hidden = await app.inject({ method: 'GET', url: `/entity/${entityUrl(2)}` });
-        const missing = await app.inject({ method: 'GET', url: `/entity/${entityUrl(99)}` });
+      it('treats a hidden entity like a missing one for an authenticated request', async () => {
+        const hidden = await app.inject({ method: 'GET', url: `/entity/${entityUrl(2)}`, headers: signedIn });
+        const missing = await app.inject({ method: 'GET', url: `/entity/${entityUrl(99)}`, headers: signedIn });
 
         expect(hidden.statusCode).toBe(404);
         expect(missing.statusCode).toBe(404);
@@ -536,27 +537,15 @@ describe('Integration Tests', () => {
         expect(hiddenError.message).toBe(missingError.message);
       });
 
-      it.each([
-        ['authenticationRequired', 401, 'UNAUTHORIZED'],
-        ['forbidden', 403, 'FORBIDDEN'],
-      ])('returns the %s response for a hidden entity', async (reason, status, code) => {
-        const response = await app.inject({
-          method: 'GET',
-          url: `/entity/${entityUrl(2)}`,
-          headers: { 'x-hidden-response': reason },
-        });
-        const body = JSON.parse(response.body) as StandardErrorResponse;
+      it('prompts an anonymous request for a hidden entity to log in', async () => {
+        const response = await app.inject({ method: 'GET', url: `/entity/${entityUrl(2)}` });
 
-        expect(response.statusCode).toBe(status);
-        expect(body.error.code).toBe(code);
+        expect(response.statusCode).toBe(401);
+        expect(response.json<StandardErrorResponse>().error.code).toBe('UNAUTHORIZED');
       });
 
-      it('still returns 404 for a missing entity whatever the hidden response', async () => {
-        const response = await app.inject({
-          method: 'GET',
-          url: `/entity/${entityUrl(99)}`,
-          headers: { 'x-hidden-response': 'forbidden' },
-        });
+      it('still returns 404 for a missing entity to an anonymous request', async () => {
+        const response = await app.inject({ method: 'GET', url: `/entity/${entityUrl(99)}` });
 
         expect(response.statusCode).toBe(404);
       });
@@ -570,29 +559,26 @@ describe('Integration Tests', () => {
         expect(body.rootCollection).toEqual({ id: 'http://example.com/entity/1', name: 'Test Collection' });
       });
 
-      it.each(['GET', 'HEAD'] as const)('applies the hidden response to %s /entity/:id/metadata', async (method) => {
-        const hidden = await app.inject({
-          method,
-          url: `/entity/${entityUrl(2)}/metadata`,
-          headers: { 'x-hidden-response': 'forbidden' },
-        });
-        const visible = await app.inject({ method, url: `/entity/${entityUrl(1)}/metadata` });
+      it.each(['GET', 'HEAD'] as const)(
+        'prompts login for a hidden entity on %s /entity/:id/metadata',
+        async (method) => {
+          const hidden = await app.inject({ method, url: `/entity/${entityUrl(2)}/metadata` });
+          const signedInHidden = await app.inject({
+            method,
+            url: `/entity/${entityUrl(2)}/metadata`,
+            headers: signedIn,
+          });
+          const visible = await app.inject({ method, url: `/entity/${entityUrl(1)}/metadata` });
 
-        expect(hidden.statusCode).toBe(403);
-        expect(visible.statusCode).toBe(method === 'GET' ? 302 : 200);
-      });
+          expect(hidden.statusCode).toBe(401);
+          expect(signedInHidden.statusCode).toBe(404);
+          expect(visible.statusCode).toBe(method === 'GET' ? 302 : 200);
+        },
+      );
 
-      it.each(['GET', 'HEAD'] as const)('applies the hidden response to %s /file/:id', async (method) => {
-        const hidden = await app.inject({
-          method,
-          url: `/file/${entityUrl(5)}`,
-          headers: { 'x-hidden-response': 'authenticationRequired' },
-        });
-        const missing = await app.inject({
-          method,
-          url: `/file/${entityUrl(99)}`,
-          headers: { 'x-hidden-response': 'authenticationRequired' },
-        });
+      it.each(['GET', 'HEAD'] as const)('prompts login for a hidden file on %s /file/:id', async (method) => {
+        const hidden = await app.inject({ method, url: `/file/${entityUrl(5)}` });
+        const missing = await app.inject({ method, url: `/file/${entityUrl(99)}` });
         const visible = await app.inject({ method, url: `/file/${entityUrl(4)}` });
 
         expect(hidden.statusCode).toBe(401);
@@ -600,18 +586,16 @@ describe('Integration Tests', () => {
         expect(visible.statusCode).toBe(method === 'GET' ? 302 : 200);
       });
 
-      it.each([
-        [undefined, 404],
-        ['forbidden', 403],
-      ] as const)('applies a fixed hidden response of %s', async (hiddenResponse, status) => {
-        const fixedApp = await buildTestApp({ entityVisibilityFilter: () => hideDrafts, hiddenResponse });
+      it('returns 404 for a hidden entity to anonymous requests without the login prompt', async () => {
+        const defaultApp = await buildTestApp({
+          entityVisibilityFilter: () => hideDrafts,
+          isAuthenticated: () => false,
+        });
 
-        const hidden = await fixedApp.inject({ method: 'GET', url: `/entity/${entityUrl(2)}` });
-        const missing = await fixedApp.inject({ method: 'GET', url: `/entity/${entityUrl(99)}` });
-        await fixedApp.close();
+        const hidden = await defaultApp.inject({ method: 'GET', url: `/entity/${entityUrl(2)}` });
+        await defaultApp.close();
 
-        expect(hidden.statusCode).toBe(status);
-        expect(missing.statusCode).toBe(404);
+        expect(hidden.statusCode).toBe(404);
       });
     });
 

@@ -4,8 +4,8 @@ import { z } from 'zod';
 import type { PrismaClient } from '../generated/prisma/client.js';
 import { baseEntityTransformer, resolveEntityReferences } from '../transformers/default.js';
 import type { AccessTransformer, EntityTransformer } from '../types/transformers.js';
-import type { EntityVisibilityFilter, HiddenResponse } from '../types/visibility.js';
-import { createEntityNotVisibleResponder } from '../utils/visibility.js';
+import type { EntityVisibilityFilter } from '../types/visibility.js';
+import { createEntityNotVisibleResponder, type RefusalOptions } from '../utils/visibility.js';
 
 const paramsSchema = z.object({
   id: z.url(),
@@ -16,12 +16,12 @@ type EntityRouteOptions = {
   accessTransformer: AccessTransformer;
   entityTransformers?: EntityTransformer[];
   entityVisibilityFilter: EntityVisibilityFilter;
-  hiddenResponse: HiddenResponse;
+  refusal: RefusalOptions;
 };
 
 const entity: FastifyPluginAsync<EntityRouteOptions> = async (fastify, opts) => {
-  const { prisma, accessTransformer, entityTransformers = [], entityVisibilityFilter, hiddenResponse } = opts;
-  const sendEntityNotVisible = createEntityNotVisibleResponder(prisma, hiddenResponse);
+  const { prisma, accessTransformer, entityTransformers = [], entityVisibilityFilter, refusal } = opts;
+  const sendEntityNotVisible = createEntityNotVisibleResponder(prisma, refusal);
 
   fastify.withTypeProvider<ZodTypeProvider>().get(
     '/entity/:id',

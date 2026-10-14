@@ -2,6 +2,7 @@ import Fastify from 'fastify';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { mockReset } from 'vitest-mock-extended';
 
+import type { Options } from './app.js';
 import app, {
   AllPublicAccessTransformer,
   AllPublicFileAccessTransformer,
@@ -130,23 +131,43 @@ describe('Entity Route', () => {
       await expect(() => fastify.ready()).rejects.toThrowError('searchVisibilityFilter is required');
     });
 
-    it('should reject an unknown hiddenResponse', async () => {
+    const requiredOptions = () => ({
+      prisma,
+      opensearch,
+      accessTransformer: AllPublicAccessTransformer,
+      fileAccessTransformer: AllPublicFileAccessTransformer,
+      fileHandler: { get: vi.fn(), head: vi.fn() },
+      roCrateHandler: { get: vi.fn(), head: vi.fn() },
+      entityVisibilityFilter: AllVisibleEntityFilter,
+      searchVisibilityFilter: AllVisibleSearchFilter,
+    });
+
+    it('should reject the removed hiddenResponse option', async () => {
       const fastify = Fastify({ logger: false });
 
-      fastify.register(app, {
-        prisma,
-        opensearch,
-        accessTransformer: AllPublicAccessTransformer,
-        fileAccessTransformer: AllPublicFileAccessTransformer,
-        fileHandler: { get: vi.fn(), head: vi.fn() },
-        roCrateHandler: { get: vi.fn(), head: vi.fn() },
-        entityVisibilityFilter: AllVisibleEntityFilter,
-        searchVisibilityFilter: AllVisibleSearchFilter,
-        // @ts-expect-error we are testing an invalid option
-        hiddenResponse: 'not_found',
-      });
+      fastify.register(app, { ...requiredOptions(), hiddenResponse: 'notFound' } as Options);
 
-      await expect(() => fastify.ready()).rejects.toThrowError('hiddenResponse must be a function or one of');
+      await expect(() => fastify.ready()).rejects.toThrowError(
+        'hiddenResponse has been replaced by promptLoginForHidden and isAuthenticated',
+      );
+    });
+
+    it('should ignore a removed option left undefined', async () => {
+      const fastify = Fastify({ logger: false });
+
+      await fastify.register(app, { ...requiredOptions(), hiddenResponse: undefined } as Options);
+
+      await expect(fastify.ready()).resolves.toBeDefined();
+
+      await fastify.close();
+    });
+
+    it('should reject promptLoginForHidden without isAuthenticated', async () => {
+      const fastify = Fastify({ logger: false });
+
+      fastify.register(app, { ...requiredOptions(), promptLoginForHidden: true });
+
+      await expect(() => fastify.ready()).rejects.toThrowError('promptLoginForHidden requires isAuthenticated');
     });
 
     it('should register successfully with all required options', async () => {

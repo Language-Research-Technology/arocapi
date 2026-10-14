@@ -21,7 +21,7 @@ describe('File Route', () => {
     await fastifyBefore();
     await fastify.register(fileRoute, {
       entityVisibilityFilter: AllVisibleEntityFilter,
-      hiddenResponse: 'notFound',
+      refusal: { promptLoginForHidden: false },
       prisma,
       fileHandler: mockFileHandler,
     });

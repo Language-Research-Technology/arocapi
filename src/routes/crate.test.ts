@@ -21,7 +21,7 @@ describe('Crate Route', () => {
     await fastifyBefore();
     await fastify.register(metadataRoute, {
       entityVisibilityFilter: AllVisibleEntityFilter,
-      hiddenResponse: 'notFound',
+      refusal: { promptLoginForHidden: false },
       prisma,
       roCrateHandler: mockRoCrateHandler,
     });

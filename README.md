@@ -326,8 +326,8 @@ Each request runs through two layers:
 
 1. **Visibility** decides whether an entity exists for this request. A
    **hidden** entity is left out of `/entities`, `/files` and `/search`,
-   including their totals and facet counts, and direct requests for it get the
-   [hidden response](#hidden-response-optional).
+   including their totals and facet counts, and direct requests for it get a
+   [404](#hidden-entities).
 2. **Access** decides what a visible entity's user can do with it, via the
    [access transformers](#customising-entity-responses).
 
@@ -446,26 +446,23 @@ is only hidden if your filter hides it, for example by also filtering on
 If the two filters disagree, `/search` drops any hit the entity filter hides
 and logs a warning, so the page can be shorter than `limit`.
 
-### Hidden Response (Optional)
+### Hidden Entities
 
-`hiddenResponse` controls how `/entity/:id`, `/entity/:id/metadata` and
-`/file/:id` respond to a hidden entity:
+Direct requests (`/entity/:id`, `/entity/:id/metadata` and `/file/:id`) for a
+hidden entity get a 404 `NOT_FOUND`, the same as a missing entity, so nothing
+hidden is revealed.
 
-| Value                    | Status | Error code                |
-| ------------------------ | ------ | ------------------------- |
-| `notFound` (default)     | 404    | `NOT_FOUND`               |
-| `authenticationRequired` | 401    | `UNAUTHORIZED`            |
-| `forbidden`              | 403    | `FORBIDDEN`               |
-
-`notFound` is the same response as for a missing entity, so nothing hidden is
-revealed. Pass a function to decide for each request, e.g. to prompt anonymous
-users to log in while logged-in users get a 404:
+`isAuthenticated` (optional) tells the library whether a request carries valid
+credentials:
 
 ```typescript
-hiddenResponse: ({ request }) => (request.user ? 'notFound' : 'authenticationRequired'),
+isAuthenticated: ({ request }) => Boolean(request.user),
 ```
 
-Missing entities always get a 404.
+`promptLoginForHidden: true` then gives an anonymous request for a hidden
+entity a 401 `UNAUTHORIZED`, in case logging in makes it visible.
+Authenticated requests still get a 404, and missing entities always do. A
+hidden entity never gets a 403.
 
 ## Customising Entity Responses
 

@@ -1,8 +1,8 @@
 import type { FastifyReply } from 'fastify';
 import type { PrismaClient } from '../generated/prisma/client.js';
-import type { RequestContext } from '../types/context.js';
-import type { EntityVisibilityFilter, HiddenResponse, SearchVisibilityFilter } from '../types/visibility.js';
-import { createAuthenticationRequiredError, createForbiddenError, createNotFoundError } from './errors.js';
+import type { IsAuthenticated, RequestContext } from '../types/context.js';
+import type { EntityVisibilityFilter, SearchVisibilityFilter } from '../types/visibility.js';
+import { createAuthenticationRequiredError, createNotFoundError } from './errors.js';
 
 /**
  * All Visible Entity Filter - every entity is visible to every request
@@ -18,39 +18,35 @@ export const AllVisibleEntityFilter: EntityVisibilityFilter = () => ({});
  */
 export const AllVisibleSearchFilter: SearchVisibilityFilter = () => ({ match_all: {} });
 
-type NotVisibleResponderOptions = {
-  hiddenResponse: HiddenResponse;
+export type RefusalOptions = {
+  promptLoginForHidden: boolean;
+  isAuthenticated?: IsAuthenticated;
+};
+
+type NotVisibleResponderOptions = RefusalOptions & {
   notFoundMessage: string;
   exists: (id: string) => Promise<boolean>;
 };
 
 /**
- * Build a reply for a resource that is missing or hidden from this request.
- * Only a hidden resource gets the configured hidden response; a missing one, or an unknown reason, is 404.
+ * Build a reply for a resource that is missing or hidden from this request: 404, except that with the login
+ * prompt an anonymous request for a hidden resource gets 401
  */
 export const createNotVisibleResponder =
-  ({ hiddenResponse, notFoundMessage, exists }: NotVisibleResponderOptions) =>
+  ({ promptLoginForHidden, isAuthenticated, notFoundMessage, exists }: NotVisibleResponderOptions) =>
   async (reply: FastifyReply, id: string, context: RequestContext) => {
-    if (hiddenResponse !== 'notFound' && (await exists(id))) {
-      const reason = typeof hiddenResponse === 'function' ? await hiddenResponse(context) : hiddenResponse;
-
-      if (reason === 'authenticationRequired') {
-        return reply
-          .code(401)
-          .send(createAuthenticationRequiredError('Authentication is required to access this resource', id));
-      }
-
-      if (reason === 'forbidden') {
-        return reply.code(403).send(createForbiddenError('You do not have permission to access this resource', id));
-      }
+    if (promptLoginForHidden && !(await isAuthenticated?.(context)) && (await exists(id))) {
+      return reply
+        .code(401)
+        .send(createAuthenticationRequiredError('Authentication is required to access this resource', id));
     }
 
     return reply.code(404).send(createNotFoundError(notFoundMessage, id));
   };
 
-export const createEntityNotVisibleResponder = (prisma: PrismaClient, hiddenResponse: HiddenResponse) =>
+export const createEntityNotVisibleResponder = (prisma: PrismaClient, refusal: RefusalOptions) =>
   createNotVisibleResponder({
-    hiddenResponse,
+    ...refusal,
     notFoundMessage: 'The requested entity was not found',
     exists: async (id) => (await prisma.entity.count({ where: { id } })) > 0,
   });

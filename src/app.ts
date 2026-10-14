@@ -9,6 +9,7 @@ import file from './routes/file.js';
 import files from './routes/files.js';
 import metadata from './routes/metadata.js';
 import search from './routes/search.js';
+import type { IsAuthenticated } from './types/context.js';
 import type { FileHandler, RoCrateHandler } from './types/fileHandlers.js';
 import type {
   AccessTransformer,
@@ -16,12 +17,7 @@ import type {
   FileAccessTransformer,
   FileTransformer,
 } from './types/transformers.js';
-import type {
-  EntityVisibilityFilter,
-  HiddenReason,
-  HiddenResponse,
-  SearchVisibilityFilter,
-} from './types/visibility.js';
+import type { EntityVisibilityFilter, SearchVisibilityFilter } from './types/visibility.js';
 import { notFoundHandler } from './utils/errors.js';
 import type { FacetCapability, FilterCapability, QueryBuilderOptions, SearchCapability } from './utils/queryBuilder.js';
 import { OpensearchQueryBuilder } from './utils/queryBuilder.js';
@@ -29,7 +25,7 @@ import { setupValidation } from './utils/validation.js';
 
 export type { AuthorisedEntity, AuthorisedFile, StandardEntity, StandardFile } from './transformers/default.js';
 export { AllPublicAccessTransformer, AllPublicFileAccessTransformer } from './transformers/default.js';
-export type { RequestContext } from './types/context.js';
+export type { IsAuthenticated, RequestContext } from './types/context.js';
 export type {
   FileHandler,
   FileMetadata,
@@ -49,12 +45,7 @@ export type {
   FileAccessTransformer,
   FileTransformer,
 } from './types/transformers.js';
-export type {
-  EntityVisibilityFilter,
-  HiddenReason,
-  HiddenResponse,
-  SearchVisibilityFilter,
-} from './types/visibility.js';
+export type { EntityVisibilityFilter, SearchVisibilityFilter } from './types/visibility.js';
 export type { ErrorCode, StandardErrorResponse } from './utils/errors.js';
 export {
   createAuthenticationRequiredError,
@@ -71,7 +62,9 @@ export { AllVisibleEntityFilter, AllVisibleSearchFilter } from './utils/visibili
 export type { FacetCapability, FilterCapability, QueryBuilderOptions, SearchCapability };
 export { OpensearchQueryBuilder };
 
-const HIDDEN_REASONS: string[] = ['notFound', 'authenticationRequired', 'forbidden'] satisfies HiddenReason[];
+const REMOVED_OPTIONS: Record<string, string> = {
+  hiddenResponse: 'promptLoginForHidden and isAuthenticated',
+};
 
 export type Options = {
   prisma: PrismaClient;
@@ -86,7 +79,8 @@ export type Options = {
   roCrateHandler: RoCrateHandler;
   entityVisibilityFilter: EntityVisibilityFilter;
   searchVisibilityFilter: SearchVisibilityFilter;
-  hiddenResponse?: HiddenResponse;
+  isAuthenticated?: IsAuthenticated;
+  promptLoginForHidden?: boolean;
 };
 const app: FastifyPluginAsync<Options> = async (fastify, options) => {
   const {
@@ -102,7 +96,8 @@ const app: FastifyPluginAsync<Options> = async (fastify, options) => {
     roCrateHandler,
     entityVisibilityFilter,
     searchVisibilityFilter,
-    hiddenResponse = 'notFound',
+    isAuthenticated,
+    promptLoginForHidden = false,
   } = options;
 
   if (!prisma) {
@@ -111,6 +106,12 @@ const app: FastifyPluginAsync<Options> = async (fastify, options) => {
 
   if (!opensearch) {
     throw new Error('OpenSearch client is required');
+  }
+
+  for (const [removed, replacement] of Object.entries(REMOVED_OPTIONS)) {
+    if ((options as Record<string, unknown>)[removed] !== undefined) {
+      throw new Error(`${removed} has been replaced by ${replacement}, see the README`);
+    }
   }
 
   if (!accessTransformer) {
@@ -137,9 +138,11 @@ const app: FastifyPluginAsync<Options> = async (fastify, options) => {
     throw new Error('searchVisibilityFilter is required');
   }
 
-  if (typeof hiddenResponse === 'string' && !HIDDEN_REASONS.includes(hiddenResponse)) {
-    throw new Error(`hiddenResponse must be a function or one of: ${HIDDEN_REASONS.join(', ')}`);
+  if (promptLoginForHidden && !isAuthenticated) {
+    throw new Error('promptLoginForHidden requires isAuthenticated');
   }
+
+  const refusal = { isAuthenticated, promptLoginForHidden };
 
   fastify.register(sensible);
   setupValidation(fastify);
@@ -154,10 +157,10 @@ const app: FastifyPluginAsync<Options> = async (fastify, options) => {
 
   fastify.register(capabilities, { queryBuilder });
   fastify.register(entities, { prisma, accessTransformer, entityTransformers, entityVisibilityFilter });
-  fastify.register(entity, { prisma, accessTransformer, entityTransformers, entityVisibilityFilter, hiddenResponse });
+  fastify.register(entity, { prisma, accessTransformer, entityTransformers, entityVisibilityFilter, refusal });
   fastify.register(files, { prisma, fileAccessTransformer, fileTransformers, entityVisibilityFilter });
-  fastify.register(file, { prisma, fileHandler, entityVisibilityFilter, hiddenResponse });
-  fastify.register(metadata, { prisma, roCrateHandler, entityVisibilityFilter, hiddenResponse });
+  fastify.register(file, { prisma, fileHandler, entityVisibilityFilter, refusal });
+  fastify.register(metadata, { prisma, roCrateHandler, entityVisibilityFilter, refusal });
   fastify.register(search, {
     prisma,
     opensearch,

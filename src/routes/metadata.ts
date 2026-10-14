@@ -5,10 +5,10 @@ import { z } from 'zod';
 import type { PrismaClient } from '../generated/prisma/client.js';
 import type { RequestContext } from '../types/context.js';
 import type { FileMetadata, RoCrateHandler } from '../types/fileHandlers.js';
-import type { EntityVisibilityFilter, HiddenResponse } from '../types/visibility.js';
+import type { EntityVisibilityFilter } from '../types/visibility.js';
 import { createNotFoundError } from '../utils/errors.js';
 import { setFileHeaders } from '../utils/headers.js';
-import { createEntityNotVisibleResponder } from '../utils/visibility.js';
+import { createEntityNotVisibleResponder, type RefusalOptions } from '../utils/visibility.js';
 
 const paramsSchema = z.object({
   id: z.url(),
@@ -18,16 +18,16 @@ type CrateRouteOptions = {
   prisma: PrismaClient;
   roCrateHandler: RoCrateHandler;
   entityVisibilityFilter: EntityVisibilityFilter;
-  hiddenResponse: HiddenResponse;
+  refusal: RefusalOptions;
 };
 
 const crate: FastifyPluginAsync<CrateRouteOptions> = async (fastify, opts) => {
-  const { prisma, roCrateHandler, entityVisibilityFilter, hiddenResponse } = opts;
+  const { prisma, roCrateHandler, entityVisibilityFilter, refusal } = opts;
 
   const findVisibleEntity = async (id: string, context: RequestContext) =>
     prisma.entity.findFirst({ where: { AND: [{ id }, await entityVisibilityFilter(context)] } });
 
-  const sendEntityNotVisible = createEntityNotVisibleResponder(prisma, hiddenResponse);
+  const sendEntityNotVisible = createEntityNotVisibleResponder(prisma, refusal);
 
   fastify.withTypeProvider<ZodTypeProvider>().head(
     '/entity/:id/metadata',

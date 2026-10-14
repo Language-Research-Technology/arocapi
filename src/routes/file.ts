@@ -5,10 +5,10 @@ import { z } from 'zod';
 import type { PrismaClient } from '../generated/prisma/client.js';
 import type { RequestContext } from '../types/context.js';
 import type { FileHandler, FileMetadata } from '../types/fileHandlers.js';
-import type { EntityVisibilityFilter, HiddenResponse } from '../types/visibility.js';
+import type { EntityVisibilityFilter } from '../types/visibility.js';
 import { createNotFoundError } from '../utils/errors.js';
 import { setFileHeaders } from '../utils/headers.js';
-import { createNotVisibleResponder } from '../utils/visibility.js';
+import { createNotVisibleResponder, type RefusalOptions } from '../utils/visibility.js';
 
 const paramsSchema = z.object({
   id: z.url(),
@@ -24,17 +24,17 @@ type FileRouteOptions = {
   prisma: PrismaClient;
   fileHandler: FileHandler;
   entityVisibilityFilter: EntityVisibilityFilter;
-  hiddenResponse: HiddenResponse;
+  refusal: RefusalOptions;
 };
 
 const file: FastifyPluginAsync<FileRouteOptions> = async (fastify, opts) => {
-  const { prisma, fileHandler, entityVisibilityFilter, hiddenResponse } = opts;
+  const { prisma, fileHandler, entityVisibilityFilter, refusal } = opts;
 
   const findVisibleFile = async (id: string, context: RequestContext) =>
     prisma.file.findFirst({ where: { id, entity: await entityVisibilityFilter(context) } });
 
   const sendFileNotVisible = createNotVisibleResponder({
-    hiddenResponse,
+    ...refusal,
     notFoundMessage: 'The requested file was not found',
     exists: async (id) => (await prisma.file.count({ where: { id } })) > 0,
   });

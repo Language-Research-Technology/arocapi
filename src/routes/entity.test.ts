@@ -11,7 +11,7 @@ describe('Entity Route', () => {
     await fastifyBefore();
     await fastify.register(entityRoute, {
       entityVisibilityFilter: AllVisibleEntityFilter,
-      hiddenResponse: 'notFound',
+      refusal: { promptLoginForHidden: false },
       prisma,
       accessTransformer: AllPublicAccessTransformer,
     });
@@ -101,7 +101,7 @@ describe('Entity Route', () => {
       await fastifyBefore();
       await fastify.register(entityRoute, {
         entityVisibilityFilter: AllVisibleEntityFilter,
-        hiddenResponse: 'notFound',
+        refusal: { promptLoginForHidden: false },
         prisma,
         accessTransformer: AllPublicAccessTransformer,
         entityTransformers: [customTransformer],
