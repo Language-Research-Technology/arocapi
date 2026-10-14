@@ -1,6 +1,7 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { describe, expect, it } from 'vitest';
-import type { AccessTransformer, EntityTransformer, TransformerContext } from '../types/transformers.js';
+import type { RequestContext } from '../types/context.js';
+import type { AccessTransformer, EntityTransformer } from '../types/transformers.js';
 import {
   AllPublicAccessTransformer,
   type AuthorisedEntity,
@@ -10,7 +11,7 @@ import {
 } from './default.js';
 
 describe('Entity Transformers', () => {
-  const mockContext: TransformerContext = {
+  const mockContext: RequestContext = {
     request: {} as FastifyRequest,
     fastify: {} as FastifyInstance,
   };
@@ -148,7 +149,7 @@ describe('Entity Transformers', () => {
         requestUrl: context.request.url || 'unknown',
       });
 
-      const contextWithUrl: TransformerContext = {
+      const contextWithUrl: RequestContext = {
         request: { url: '/test-url' } as FastifyRequest,
         fastify: {} as FastifyInstance,
       };

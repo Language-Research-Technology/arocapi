@@ -3,8 +3,8 @@ import type { FastifyPluginAsync } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import type { PrismaClient } from '../generated/prisma/client.js';
+import type { RequestContext } from '../types/context.js';
 import type { FileMetadata, RoCrateHandler } from '../types/fileHandlers.js';
-import type { TransformerContext } from '../types/transformers.js';
 import type { EntityVisibilityFilter, HiddenResponse } from '../types/visibility.js';
 import { createNotFoundError } from '../utils/errors.js';
 import { setFileHeaders } from '../utils/headers.js';
@@ -24,7 +24,7 @@ type CrateRouteOptions = {
 const crate: FastifyPluginAsync<CrateRouteOptions> = async (fastify, opts) => {
   const { prisma, roCrateHandler, entityVisibilityFilter, hiddenResponse } = opts;
 
-  const findVisibleEntity = async (id: string, context: TransformerContext) =>
+  const findVisibleEntity = async (id: string, context: RequestContext) =>
     prisma.entity.findFirst({ where: { AND: [{ id }, await entityVisibilityFilter(context)] } });
 
   const sendEntityNotVisible = createEntityNotVisibleResponder(prisma, hiddenResponse);

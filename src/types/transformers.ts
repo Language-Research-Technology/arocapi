@@ -1,13 +1,5 @@
-import type { FastifyInstance, FastifyRequest } from 'fastify';
 import type { AuthorisedEntity, AuthorisedFile, StandardEntity, StandardFile } from '../transformers/default.js';
-
-/**
- * Context provided to entity transformers
- */
-export type TransformerContext = {
-  request: FastifyRequest;
-  fastify: FastifyInstance;
-};
+import type { RequestContext } from './context.js';
 
 /**
  * Access transformer function - required
@@ -15,7 +7,7 @@ export type TransformerContext = {
  */
 export type AccessTransformer = (
   entity: StandardEntity,
-  context: TransformerContext,
+  context: RequestContext,
 ) => Promise<AuthorisedEntity> | AuthorisedEntity;
 
 /**
@@ -26,7 +18,7 @@ export type AccessTransformer = (
  */
 export type EntityTransformer<TInput = AuthorisedEntity, TOutput = TInput> = (
   entity: TInput,
-  context: TransformerContext,
+  context: RequestContext,
 ) => Promise<TOutput> | TOutput;
 
 /**
@@ -37,7 +29,7 @@ export type EntityTransformer<TInput = AuthorisedEntity, TOutput = TInput> = (
  */
 export type FileAccessTransformer = (
   file: StandardFile,
-  context: TransformerContext,
+  context: RequestContext,
 ) => Promise<AuthorisedFile> | AuthorisedFile;
 
 /**
@@ -48,5 +40,5 @@ export type FileAccessTransformer = (
  */
 export type FileTransformer<TInput = AuthorisedFile, TOutput = TInput> = (
   file: TInput,
-  context: TransformerContext,
+  context: RequestContext,
 ) => Promise<TOutput> | TOutput;

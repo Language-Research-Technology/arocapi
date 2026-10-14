@@ -1,11 +1,6 @@
 import type { Readable } from 'node:stream';
-import type { FastifyInstance, FastifyRequest } from 'fastify';
 import type { Entity, File } from '../generated/prisma/client.js';
-
-export type FileHandlerContext = {
-  request: FastifyRequest;
-  fastify: FastifyInstance;
-};
+import type { RequestContext } from './context.js';
 
 export type FileMetadata = {
   contentType: string;
@@ -34,14 +29,11 @@ export type FilePathResult = {
 
 export type FileResult = FileRedirectResult | FileStreamResult | FilePathResult;
 
-export type GetFileHandler = (
-  file: File,
-  context: FileHandlerContext,
-) => Promise<FileResult | false> | FileResult | false;
+export type GetFileHandler = (file: File, context: RequestContext) => Promise<FileResult | false> | FileResult | false;
 
 export type HeadFileHandler = (
   file: File,
-  context: FileHandlerContext,
+  context: RequestContext,
 ) => Promise<FileMetadata | false> | FileMetadata | false;
 
 export type FileHandler = {
@@ -51,12 +43,12 @@ export type FileHandler = {
 
 export type GetRoCrateHandler = (
   entity: Entity,
-  context: FileHandlerContext,
+  context: RequestContext,
 ) => Promise<FileResult | false> | FileResult | false;
 
 export type HeadRoCrateHandler = (
   entity: Entity,
-  context: FileHandlerContext,
+  context: RequestContext,
 ) => Promise<FileMetadata | false> | FileMetadata | false;
 
 export type RoCrateHandler = {

@@ -1,6 +1,6 @@
 import type { FastifyReply } from 'fastify';
 import type { PrismaClient } from '../generated/prisma/client.js';
-import type { TransformerContext } from '../types/transformers.js';
+import type { RequestContext } from '../types/context.js';
 import type { EntityVisibilityFilter, HiddenResponse, SearchVisibilityFilter } from '../types/visibility.js';
 import { createAuthenticationRequiredError, createForbiddenError, createNotFoundError } from './errors.js';
 
@@ -30,7 +30,7 @@ type NotVisibleResponderOptions = {
  */
 export const createNotVisibleResponder =
   ({ hiddenResponse, notFoundMessage, exists }: NotVisibleResponderOptions) =>
-  async (reply: FastifyReply, id: string, context: TransformerContext) => {
+  async (reply: FastifyReply, id: string, context: RequestContext) => {
     if (hiddenResponse !== 'notFound' && (await exists(id))) {
       const reason = typeof hiddenResponse === 'function' ? await hiddenResponse(context) : hiddenResponse;
 

@@ -3,8 +3,8 @@ import type { FastifyPluginAsync } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import type { PrismaClient } from '../generated/prisma/client.js';
+import type { RequestContext } from '../types/context.js';
 import type { FileHandler, FileMetadata } from '../types/fileHandlers.js';
-import type { TransformerContext } from '../types/transformers.js';
 import type { EntityVisibilityFilter, HiddenResponse } from '../types/visibility.js';
 import { createNotFoundError } from '../utils/errors.js';
 import { setFileHeaders } from '../utils/headers.js';
@@ -30,7 +30,7 @@ type FileRouteOptions = {
 const file: FastifyPluginAsync<FileRouteOptions> = async (fastify, opts) => {
   const { prisma, fileHandler, entityVisibilityFilter, hiddenResponse } = opts;
 
-  const findVisibleFile = async (id: string, context: TransformerContext) =>
+  const findVisibleFile = async (id: string, context: RequestContext) =>
     prisma.file.findFirst({ where: { id, entity: await entityVisibilityFilter(context) } });
 
   const sendFileNotVisible = createNotVisibleResponder({

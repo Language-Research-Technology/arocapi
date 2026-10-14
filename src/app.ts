@@ -29,9 +29,9 @@ import { setupValidation } from './utils/validation.js';
 
 export type { AuthorisedEntity, AuthorisedFile, StandardEntity, StandardFile } from './transformers/default.js';
 export { AllPublicAccessTransformer, AllPublicFileAccessTransformer } from './transformers/default.js';
+export type { RequestContext } from './types/context.js';
 export type {
   FileHandler,
-  FileHandlerContext,
   FileMetadata,
   FilePathResult,
   FileRedirectResult,
@@ -48,7 +48,6 @@ export type {
   EntityTransformer,
   FileAccessTransformer,
   FileTransformer,
-  TransformerContext,
 } from './types/transformers.js';
 export type {
   EntityVisibilityFilter,
