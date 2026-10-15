@@ -35,7 +35,7 @@ This is a Fastify plugin that registers routes for entities, files, search, and 
 
 ### Issue tracker
 
-Issues live in GitHub Issues on `Language-Research-Technology/arocapi` (via `gh`). See `docs/agents/issue-tracker.md`.
+Issues live in GitHub Issues on `crate-works/arocapi` (via `gh`). See `docs/agents/issue-tracker.md`.
 
 ### Triage labels
 
