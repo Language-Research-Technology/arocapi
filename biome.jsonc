@@ -21,6 +21,17 @@
       "preset": "recommended"
     }
   },
+  "overrides": [
+    {
+      // Biome can't see template usage in .astro files
+      "includes": ["**/*.astro"],
+      "linter": { "rules": { "correctness": { "noUnusedImports": "off", "noUnusedVariables": "off" } } }
+    }
+  ],
+  "css": {
+    "parser": { "tailwindDirectives": true },
+    "formatter": { "quoteStyle": "single" }
+  },
   "javascript": {
     "formatter": {
       "quoteStyle": "single"

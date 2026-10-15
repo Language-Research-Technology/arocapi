@@ -1,11 +1,20 @@
 {
-  "$schema": "https://unpkg.com/knip@5/schema-jsonc.json",
-  "ignore": ["src/index.dev.ts", "scripts/loadEntities.ts"],
-  "ignoreDependencies": [
-    // Needed by @semantic-release based on our config
-    "conventional-changelog-conventionalcommits",
-    // release.config.mjs drops these on beta
-    "@semantic-release/changelog",
-    "@semantic-release/git"
-  ]
+  "$schema": "https://unpkg.com/knip@6/schema-jsonc.json",
+  "workspaces": {
+    ".": {
+      "ignore": ["src/index.dev.ts", "scripts/loadEntities.ts"],
+      "ignoreDependencies": [
+        // Needed by @semantic-release based on our config
+        "conventional-changelog-conventionalcommits",
+        // release.config.mjs drops these on beta
+        "@semantic-release/changelog",
+        "@semantic-release/git"
+      ]
+    },
+    "website": {
+      "entry": ["scripts/*.ts"],
+      // Only imported inside Twoslash code fences
+      "ignoreDependencies": ["arocapi"]
+    }
+  }
 }
