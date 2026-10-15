@@ -24,7 +24,8 @@ const dataSources: Pick<Options, 'prisma' | 'opensearch'> = { prisma, opensearch
 
 ## `prisma`
 
-A `PrismaClient` generated from arocapi's `Entity` and `File` models. arocapi uses it for every route: listings,
+A `PrismaClient` generated from arocapi's `Entity` and `File` models; [Database](/getting-started/database/) shows how
+to link the models and generate it. arocapi uses it for every route: listings,
 single entities, metadata and files. Registration throws `Prisma client is required` without it.
 
 Your handlers and visibility filter work with the same models, including the free-form `meta` column described in

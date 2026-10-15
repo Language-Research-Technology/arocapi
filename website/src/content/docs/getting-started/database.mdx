@@ -1,0 +1,94 @@
+---
+title: Database (Prisma)
+description: Link arocapi's Prisma models into your schema, migrate the database and generate the client.
+sidebar:
+  order: 2
+---
+
+arocapi stores an index of your entities in a database. It ships two Prisma models, `Entity` and `File`, and reads them
+through a Prisma client that you generate in your own project. Your schema is a folder: your generator and datasource,
+your own models if you have any, and arocapi's models linked in from the package.
+
+## Connection settings
+
+Put the connection URLs in `.env`. The OpenSearch URL is for the [next page](/getting-started/opensearch/).
+
+```sh title=".env"
+DATABASE_URL="mysql://root:password@localhost:3306/catalog"
+OPENSEARCH_URL="http://localhost:9200"
+```
+
+## Configure Prisma
+
+Point the Prisma CLI at the `prisma` folder rather than a single schema file:
+
+```ts title="prisma.config.ts"
+import 'dotenv/config';
+import { defineConfig, env } from 'prisma/config';
+
+export default defineConfig({
+  schema: 'prisma',
+  datasource: {
+    url: env('DATABASE_URL'),
+  },
+});
+```
+
+Then add the generator and datasource. `importFileExtension = "ts"` lets Node load the generated client directly.
+
+```prisma title="prisma/schema.prisma"
+generator client {
+  provider            = "prisma-client"
+  output              = "../src/generated/prisma"
+  importFileExtension = "ts"
+}
+
+datasource db {
+  provider = "mysql"
+}
+```
+
+## Link arocapi's models
+
+Link the models from the installed package into your schema folder, so they always match the version of arocapi you
+run:
+
+```sh
+ln -s ../node_modules/arocapi/prisma/models prisma/arocapi
+```
+
+Your project now looks like this:
+
+```text
+my-repository/
+├── prisma/
+│   ├── arocapi -> ../node_modules/arocapi/prisma/models
+│   └── schema.prisma
+├── prisma.config.ts
+├── .env
+└── package.json
+```
+
+You can add your own models as more `.prisma` files in `prisma/`. Both arocapi models have a `meta` JSON column that
+arocapi never returns in responses, so it's the place for your own data about an entity or file, such as where it is
+stored. See [Entity meta](/reference/entity-meta/).
+
+## Migrate and generate
+
+Create the tables, then generate the client:
+
+```sh
+pnpm prisma migrate dev --name arocapi
+pnpm prisma generate
+```
+
+The client is generated into `src/generated/prisma`. Add that directory to `.gitignore` and regenerate it after every
+install, for example from a `postinstall` script.
+
+When you upgrade arocapi, its models may change. Run `pnpm prisma migrate dev` again to create a migration for the new
+version, and commit your `prisma/migrations` folder. In production, apply migrations with
+`pnpm prisma migrate deploy`.
+
+The client you generate here is the `prisma` option described in [Data sources](/configuration/data-sources/).
+
+Next, [create the search index](/getting-started/opensearch/).

@@ -1,0 +1,69 @@
+---
+title: OpenSearch
+description: Create the entities index that arocapi searches.
+sidebar:
+  order: 3
+---
+
+arocapi answers `POST /search` from an OpenSearch index named `entities`. It only reads the index: keeping it in step
+with the database is up to your indexing code.
+
+## Create the index
+
+Create the index with a mapping before you add documents:
+
+```sh
+curl -X PUT http://localhost:9200/entities -H 'Content-Type: application/json' -d '{
+  "mappings": {
+    "properties": {
+      "id": { "type": "keyword" },
+      "name": { "type": "text", "fields": { "keyword": { "type": "keyword" } } },
+      "description": { "type": "text" },
+      "entityType": { "type": "keyword", "fields": { "keyword": { "type": "keyword" } } },
+      "memberOf": { "type": "keyword" },
+      "rootCollection": { "type": "keyword" },
+      "inLanguage": { "type": "keyword", "fields": { "keyword": { "type": "keyword" } } },
+      "mediaType": { "type": "keyword", "fields": { "keyword": { "type": "keyword" } } },
+      "communicationMode": { "type": "keyword", "fields": { "keyword": { "type": "keyword" } } },
+      "location": { "type": "geo_point" },
+      "createdAt": { "type": "date" },
+      "updatedAt": { "type": "date" }
+    }
+  }
+}'
+```
+
+What the default search expects of the mapping:
+
+- **`name` and `description`** are full-text fields. Searches match both, with `name` weighted higher.
+- **`name.keyword`** is an exact-value sub-field, used to sort by name.
+- **Facet fields** (`entityType`, `inLanguage`, `mediaType` and `communicationMode`) are filtered on the field itself
+  but counted on its `.keyword` sub-field. Mapping each as `keyword` with a `keyword` sub-field makes both exact.
+- **`location`** is a `geo_point`, used for bounding-box searches and the geohash grid.
+- **`createdAt` and `updatedAt`** are only needed to sort search results by them.
+
+You can change the fields searched, filtered and counted by
+[customising the query builder](/strategies/search/#customising-the-query-builder). The
+[search strategy](/strategies/search/) explains the default query in full, and [Search](/configuration/search/) lists
+its options.
+
+## Index documents
+
+Each document's `_id` is the entity's ID, and its source includes `id` and the fields above. arocapi takes the IDs of
+the matching documents and loads the entities themselves from the database, so documents only need the fields you
+search, filter or sort on.
+
+```json
+{
+  "id": "https://example.org/collection",
+  "name": "My first collection",
+  "description": "A collection with one file",
+  "entityType": "http://pcdm.org/models#Collection",
+  "memberOf": null,
+  "rootCollection": null
+}
+```
+
+A search hit with no matching entity in the database is left out of the results.
+
+Next, write [your first API](/getting-started/first-api/), which adds an entity to the database and the index.

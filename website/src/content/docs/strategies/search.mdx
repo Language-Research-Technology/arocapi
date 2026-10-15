@@ -104,6 +104,9 @@ export const queryBuilderOptions: QueryBuilderOptions = {
 
 Passing `aggregations` replaces the defaults rather than adding to them, so list every facet you want.
 
+Alternatively, keep the default aggregations and map each facet field as `keyword` with a `keyword` subfield of its
+own, so both sides match exactly. The mapping on [OpenSearch](/getting-started/opensearch/) does this.
+
 ## Search and visibility
 
 Your `searchVisibilityFilter` returns an OpenSearch query. arocapi puts it in the search's `filter` clause beside the

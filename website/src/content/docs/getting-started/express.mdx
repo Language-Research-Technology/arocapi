@@ -1,0 +1,41 @@
+---
+title: Using with Express
+description: Serve arocapi from an Express app by forwarding requests to Fastify.
+sidebar:
+  order: 5
+---
+
+arocapi has no Express adapter, but you don't need to switch frameworks. Register the plugin on a Fastify instance as
+in [Your first API](/getting-started/first-api/), and have Express forward requests to it instead of calling
+`fastify.listen()`.
+
+```sh
+pnpm add express
+pnpm add -D @types/express
+```
+
+```ts twoslash title="src/index.ts"
+declare const options: import('arocapi').Options;
+// ---cut---
+import arocapi from 'arocapi';
+import express from 'express';
+import Fastify from 'fastify';
+
+const fastify = Fastify({ logger: true });
+await fastify.register(arocapi, options);
+await fastify.ready();
+
+const app = express();
+app.use('/api', (req, res) => {
+  fastify.routing(req, res);
+});
+
+app.listen(3000);
+```
+
+Express strips the `/api` mount path before forwarding, so the entity list is at `/api/entities`.
+
+Mount arocapi before any middleware that reads the request body, such as `express.json()`. Fastify parses the body
+itself, and if Express has already consumed it, `POST /search` never gets a response.
+
+CORS, error responses and unknown paths are set on the Fastify instance, as described in [HTTP](/configuration/http/).

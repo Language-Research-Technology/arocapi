@@ -1,0 +1,104 @@
+---
+title: Install
+description: Prerequisites and packages for a new arocapi project.
+sidebar:
+  order: 1
+---
+
+This section takes you from an empty directory to a running API, one page at a time: install the packages, set up the
+database and the search index, then register the plugin.
+
+## Prerequisites
+
+- **Node.js 22.18 or later.** These pages run TypeScript files directly with `node`, which strips types without a build
+  step.
+- **pnpm.** The commands use pnpm; npm and Yarn work too.
+- **A database Prisma supports.** These pages use MySQL. MariaDB and PostgreSQL also work with a different driver
+  adapter.
+- **OpenSearch** for search.
+
+For local development, run the database and OpenSearch with Docker Compose:
+
+```yaml title="compose.yaml"
+services:
+  db:
+    image: mysql:8
+    ports:
+      - 3306:3306
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: catalog
+
+  opensearch:
+    image: opensearchproject/opensearch:3
+    ports:
+      - 9200:9200
+    environment:
+      - discovery.type=single-node
+      - DISABLE_SECURITY_PLUGIN=true
+      - OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m
+```
+
+```sh
+docker compose up -d
+```
+
+## Create the project
+
+arocapi is an ES module, so your project needs `"type": "module"`:
+
+```sh
+mkdir my-repository && cd my-repository
+pnpm init
+pnpm pkg set type=module
+```
+
+## Add the packages
+
+```sh
+pnpm add arocapi@beta fastify @opensearch-project/opensearch @prisma/client@7 @prisma/adapter-mariadb@7
+pnpm add -D prisma@7 dotenv
+```
+
+- `arocapi` is the plugin. It depends on Fastify, but you install `fastify` yourself to create the server it runs in.
+- `@prisma/client` is a peer dependency. arocapi reads entities through the Prisma client that you generate in your
+  project.
+- `@prisma/adapter-mariadb` is the driver adapter Prisma 7 needs to connect to MySQL or MariaDB. For PostgreSQL, use
+  `@prisma/adapter-pg`.
+- `prisma` is the CLI that runs migrations and generates the client. Pin it to the same major version as
+  `@prisma/client`.
+- `@opensearch-project/opensearch` is the search client you pass to arocapi.
+- `dotenv` loads `.env` for the Prisma CLI.
+
+pnpm doesn't run dependency build scripts until you allow them. The Prisma CLI needs the schema engine that
+`@prisma/engines` downloads when it installs, so allow that one in `pnpm-workspace.yaml` and rebuild it:
+
+```yaml title="pnpm-workspace.yaml"
+allowBuilds:
+  '@prisma/engines': true
+  prisma: false
+```
+
+```sh
+pnpm rebuild @prisma/engines
+```
+
+## Type checking (optional)
+
+Node runs your TypeScript without checking it. To check types in your editor or with `tsc`, add `typescript` and
+`@types/node` as dev dependencies and a `tsconfig.json`:
+
+```json title="tsconfig.json"
+{
+  "compilerOptions": {
+    "target": "esnext",
+    "module": "nodenext",
+    "strict": true,
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "skipLibCheck": true
+  }
+}
+```
+
+Next, [set up the database](/getting-started/database/).
