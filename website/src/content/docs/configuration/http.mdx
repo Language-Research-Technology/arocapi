@@ -1,0 +1,68 @@
+---
+title: HTTP
+description: CORS, the error envelope and unknown paths when you mount arocapi in your app.
+sidebar:
+  order: 7
+---
+
+arocapi has no options of its own for HTTP behaviour. These are settings on your Fastify app.
+
+| Setting                   | Where                       | Default                         | Purpose                                                   |
+| ------------------------- | --------------------------- | ------------------------------- | --------------------------------------------------------- |
+| CORS                      | `@fastify/cors` on your app | no CORS headers                 | Let browsers on other origins call the API.               |
+| `errorHandler`            | `setErrorHandler` on your app | arocapi's routes only         | Answer your own routes' errors in arocapi's envelope.     |
+| `notFoundHandler`         | `setNotFoundHandler` on your app | your app's handler         | Answer unknown paths in arocapi's envelope.               |
+| `prefix`                  | Fastify's register options  | none                            | Mount arocapi under a path, with its own 404 for unknown paths. |
+
+## CORS
+
+arocapi doesn't set CORS headers. To let browsers on other origins call it, register
+[`@fastify/cors`](https://github.com/fastify/fastify-cors) on your root instance before arocapi:
+
+```sh
+pnpm add @fastify/cors
+```
+
+Its defaults allow every origin with `GET`, `HEAD` and `POST`, which covers all of arocapi's routes.
+
+## Error responses
+
+arocapi's routes answer errors as `{ error: { code, message, details? } }`; the codes and statuses are listed under
+[Error responses](/reference/errors/). To give your own routes and unknown paths the same envelope, set arocapi's
+handlers on the root instance:
+
+```ts twoslash
+declare const fastify: import('arocapi').RequestContext['fastify'];
+// ---cut---
+import { errorHandler, notFoundHandler } from 'arocapi';
+
+fastify.setErrorHandler(errorHandler);
+fastify.setNotFoundHandler(notFoundHandler);
+```
+
+To report a client error from your own code, throw an error with a 4xx `statusCode` and `expose: true`, such as those
+from `fastify.httpErrors`. Errors without `expose` answer 500, so internal details don't reach clients.
+
+```ts twoslash
+class DepositFinalisedError extends Error {
+  statusCode = 409;
+  expose = true;
+}
+```
+
+Build response bodies in your routes with the same helpers arocapi uses:
+
+```ts twoslash
+declare const id: string;
+// ---cut---
+import { createError, createNotFoundError, ERROR_CODES } from 'arocapi';
+
+const notFound = createNotFoundError('The requested collection was not found', id);
+const conflict = createError(ERROR_CODES.CONFLICT, 'The deposit is already finalised');
+```
+
+## `prefix`
+
+Pass Fastify's `prefix` register option to mount arocapi under a path, for example `/api`. arocapi then answers
+unknown paths under that prefix with 404 `NOT_FOUND`. Without a prefix, unknown paths go to the not-found handler of
+the scope arocapi is registered in.

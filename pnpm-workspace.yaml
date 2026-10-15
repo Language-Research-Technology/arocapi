@@ -12,3 +12,5 @@ allowBuilds:
 
 packages:
   - website
+patchedDependencies:
+  expressive-code-twoslash: patches/expressive-code-twoslash.patch

@@ -1,0 +1,91 @@
+---
+title: Transformers
+description: Entity and file transformers, the request context, and the pipeline every response flows through.
+sidebar:
+  order: 6
+---
+
+Transformers change the entities and files arocapi returns, for example to add fields.
+
+| Option               | Required | Type                  | Default | Purpose                                                      |
+| -------------------- | -------- | --------------------- | ------- | ------------------------------------------------------------ |
+| `entityTransformers` | no       | `EntityTransformer[]` | `[]`    | Transform each entity from `/entities`, `/entity/:id` and `/search`. |
+| `fileTransformers`   | no       | `FileTransformer[]`   | `[]`    | Transform each file from `/files`.                           |
+
+## Pipeline
+
+Every entity and file response flows through the same steps:
+
+1. **Base transformer.** arocapi turns the database row into an `AuthorisedEntity` or `AuthorisedFile` shape, resolving
+   `memberOf` and `rootCollection` to `{ id, name }`.
+2. **Access.** arocapi attaches the [access function](/configuration/access/#access)'s result as `access`.
+3. **Your transformers**, in order. Each receives the previous one's output and can read `access`.
+
+Transformers don't run for `/entity/:id/metadata` or `/file/:id`, which return bytes from your
+[handlers](/configuration/handlers/). Search results get `searchExtra` (score and highlights) after your transformers.
+
+## `entityTransformers`
+
+Each transformer receives an `AuthorisedEntity` (or the previous transformer's output) and the request context, and may
+be async.
+
+| Field               | Type                             |
+| ------------------- | -------------------------------- |
+| `id`                | `string`                         |
+| `entityType`        | `string`                         |
+| `name`              | `string`                         |
+| `description`       | `string`                         |
+| `memberOf`          | `{ id, name } \| null`           |
+| `rootCollection`    | `{ id, name } \| null`           |
+| `metadataLicenseId` | `string`                         |
+| `contentLicenseId`  | `string`                         |
+| `access`            | `AccessInfo`                     |
+
+```ts twoslash
+import type { EntityTransformer, Options } from 'arocapi';
+
+const addShortId: EntityTransformer = (entity) => ({ ...entity, shortId: entity.id.split('/').pop() });
+
+const entityTransformers: Options['entityTransformers'] = [addShortId];
+```
+
+The returned object is sent as is. The [Record](/concepts/record-metadata-content/#record) is never redacted by arocapi, so a transformer that removes fields is the
+only thing that can.
+
+## `fileTransformers`
+
+Each transformer receives an `AuthorisedFile` and the request context:
+
+| Field       | Type                                              |
+| ----------- | ------------------------------------------------- |
+| `id`        | `string`                                          |
+| `filename`  | `string`                                          |
+| `mediaType` | `string`                                          |
+| `size`      | `number`                                          |
+| `access`    | `{ content: boolean; contentAuthorizationUrl?: string }` |
+
+A file's `access` is its file entity's Content access.
+
+```ts twoslash
+import type { FileTransformer } from 'arocapi';
+
+const addSizeInKb: FileTransformer = (file) => ({ ...file, sizeInKb: Math.round(file.size / 1024) });
+```
+
+## Request context
+
+Visibility filters, the access function, `isAuthenticated`, transformers and handlers all receive a `RequestContext`:
+
+| Field     | Type              | Purpose                                                                            |
+| --------- | ----------------- | ---------------------------------------------------------------------------------- |
+| `request` | `FastifyRequest`  | The current request: headers, query and whatever your authentication sets on it.   |
+| `fastify` | `FastifyInstance` | The Fastify instance, for reading your own decorations. arocapi adds none.         |
+
+```ts twoslash
+import type { EntityTransformer } from 'arocapi';
+
+const addRequestedLanguage: EntityTransformer = (entity, { request }) => ({
+  ...entity,
+  requestedLanguage: request.headers['accept-language'] ?? null,
+});
+```

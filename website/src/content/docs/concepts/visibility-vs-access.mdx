@@ -101,6 +101,9 @@ Some details the table leaves out:
 - A repository without `isAuthenticated` has no Anonymous requests, so every Denied request is a 403.
 - `GET /capabilities` describes the API itself and involves no entities, so neither guard applies.
 
+The options involved are under [Visibility](/configuration/visibility/) and [Access](/configuration/access/), and
+every status and message under [Error responses](/reference/errors/).
+
 ## A worked scenario
 
 A repository holds one public collection with two items:
@@ -201,4 +204,5 @@ can't check that they agree. If they don't:
   search.
 
 The simplest way to keep them in step is to index the fields your visibility depends on alongside each entity, as
-the `published` flag is in the scenario above, and write both filters against the same field.
+the `published` flag is in the scenario above, and write both filters against the same field. Both filters are
+described under [Visibility](/configuration/visibility/).

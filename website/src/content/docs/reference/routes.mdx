@@ -1,0 +1,112 @@
+---
+title: Routes
+description: Every route arocapi registers, with its parameters and response.
+sidebar:
+  order: 1
+---
+
+Paths are relative to the `prefix` arocapi is registered with. Entity and file ids are URLs, encoded as one path
+segment, e.g. `/entity/http%3A%2F%2Fexample.com%2Fentity%2F1`.
+
+| Method       | Path                    | Returns                                     | Guarded by           |
+| ------------ | ----------------------- | ------------------------------------------- | -------------------- |
+| `GET`        | `/capabilities`         | API version and search capabilities         | nothing              |
+| `GET`        | `/entities`             | A page of entity Records                    | visibility           |
+| `GET`        | `/entity/:id`           | One entity Record                           | visibility           |
+| `GET`, `HEAD` | `/entity/:id/metadata` | The entity's RO-Crate metadata              | visibility, Metadata access |
+| `GET`        | `/files`                | A page of file Records                      | visibility           |
+| `GET`, `HEAD` | `/file/:id`            | The file's Content                          | visibility, Content access |
+| `POST`       | `/search`               | A page of matching entity Records and facets | visibility          |
+
+Refusals and validation errors are listed under [Error responses](/reference/errors/). The outcome of each route for
+Hidden, Accessible and Denied entities is under [Route by route](/concepts/visibility-vs-access/#route-by-route).
+
+## `GET /capabilities`
+
+Declares the API version and the search filters and facets your [query builder](/configuration/search/) supports. The
+same for every request.
+
+```json
+{
+  "apiVersion": "0.4.0",
+  "deposit": { "supported": false },
+  "tombstonePolicy": "404",
+  "extensions": {},
+  "search": {
+    "filters": { "inLanguage": { "type": "string" } },
+    "facets": { "inLanguage": {} }
+  }
+}
+```
+
+## `GET /entities`
+
+| Query        | Type                                 | Default | Purpose                                    |
+| ------------ | ------------------------------------ | ------- | ------------------------------------------ |
+| `memberOf`   | URL                                  | none    | Only direct members of this entity.        |
+| `entityType` | comma-separated list                 | none    | Only these entity types.                   |
+| `limit`      | integer, 1 to 1000                   | `100`   | Page size.                                 |
+| `offset`     | integer, 0 or more                   | `0`     | Entities to skip.                          |
+| `sort`       | `id`, `name`, `createdAt`, `updatedAt` | `id`  | Sort field.                                |
+| `order`      | `asc`, `desc`                        | `asc`   | Sort direction.                            |
+
+Response: `{ total, entities }`. `total` counts Visible entities matching the query, and each entity has been through
+the [entity transformers](/configuration/transformers/#entitytransformers).
+
+## `GET /entity/:id`
+
+Response: the entity after the entity transformers, with its `access`. Access isn't checked here: a Visible entity's
+Record is always returned.
+
+## `GET /entity/:id/metadata`
+
+Response: the RO-Crate metadata from [`roCrateHandler.get`](/configuration/handlers/#rocratehandler), as
+`application/ld+json`, or a 302 for a `redirect` result. `HEAD` answers with the headers from `roCrateHandler.head`.
+No query parameters.
+
+## `GET /files`
+
+| Query      | Type                                         | Default | Purpose                                       |
+| ---------- | -------------------------------------------- | ------- | --------------------------------------------- |
+| `memberOf` | URL                                          | none    | Only files whose entity is a member of this.  |
+| `limit`    | integer, 1 to 1000                           | `100`   | Page size.                                    |
+| `offset`   | integer, 0 or more                           | `0`     | Files to skip.                                |
+| `sort`     | `id`, `filename`, `createdAt`, `updatedAt`   | `id`    | Sort field.                                   |
+| `order`    | `asc`, `desc`                                | `asc`   | Sort direction.                               |
+
+Response: `{ total, files }`, each file after the [file transformers](/configuration/transformers/#filetransformers).
+A file is Visible when its file entity is.
+
+## `GET /file/:id`
+
+Response: the Content from [`fileHandler.get`](/configuration/handlers/#filehandler), or a 302 for a `redirect`
+result. `HEAD` answers with the headers from `fileHandler.head`. `GET` takes `disposition`, `filename` and `noRedirect`;
+see [query parameters](/configuration/handlers/#query-parameters).
+
+## `POST /search`
+
+JSON body:
+
+| Field              | Type                                            | Default     | Purpose                                         |
+| ------------------ | ----------------------------------------------- | ----------- | ----------------------------------------------- |
+| `query`            | string, **required**                            | none        | Search text. Empty matches everything in `basic`. |
+| `searchType`       | `basic`, `advanced`                             | `basic`     | Fuzzy match, or OpenSearch query string syntax. |
+| `filters`          | `Record<string, string[]>`                      | none        | Values per field: any value within a field, every field. |
+| `boundingBox`      | `{ topRight: { lat, lng }, bottomLeft: { lat, lng } }` | none | Only entities whose `location` is inside.     |
+| `geohashPrecision` | integer, 1 to 12                                | none        | Return a geohash grid; needs `boundingBox`.     |
+| `limit`            | integer, 1 to 1000                              | `100`       | Page size.                                      |
+| `offset`           | integer, 0 or more                              | `0`         | Hits to skip.                                   |
+| `sort`             | `id`, `name`, `createdAt`, `updatedAt`, `relevance` | `relevance` | Sort field.                                 |
+| `order`            | `asc`, `desc`                                   | `asc`       | Sort direction.                                 |
+
+Response:
+
+| Field         | Type                                         | Purpose                                                       |
+| ------------- | -------------------------------------------- | ------------------------------------------------------------- |
+| `total`       | `number`                                     | Matching Visible entities, as counted by OpenSearch.          |
+| `searchTime`  | `number`                                     | OpenSearch time taken, in milliseconds.                       |
+| `entities`    | array                                        | Entities after the entity transformers, each with `searchExtra: { score, highlight }`. |
+| `facets`      | `Record<string, { name, count }[]>`          | One list per bucket aggregation. Left out when there are none. |
+| `geohashGrid` | `Record<string, number>`                     | Counts per geohash. Only with `geohashPrecision` and `boundingBox`. |
+
+Highlights cover `name` and `description`.
