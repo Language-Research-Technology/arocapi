@@ -8,6 +8,12 @@ sidebar:
 arocapi answers `POST /search` from an OpenSearch index named `entities`. It only reads the index: keeping it in step
 with the database is up to your indexing code.
 
+:::note[Deposits are coming]
+Support for the RO-Crate API's [deposit](https://ro-crate-api.crate-works.org/docs/deposit) routes is coming soon.
+RO-Crates deposited through the API will be indexed by arocapi, so you won't need separate code to keep the database
+and search index in step for them.
+:::
+
 ## Create the index
 
 Create the index with a mapping before you add documents:

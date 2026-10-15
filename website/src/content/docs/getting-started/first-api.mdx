@@ -41,6 +41,12 @@ redirecting to object storage.
 arocapi serves what is in your database and index; it doesn't write to them. In a real repository your indexer fills
 both from your RO-Crates. For now, add a collection with one file by hand. Create its RO-Crate metadata and the file:
 
+:::note[Deposits are coming]
+Support for the RO-Crate API's [deposit](https://ro-crate-api.crate-works.org/docs/deposit) routes is coming soon.
+You'll be able to upload an RO-Crate and its files through the API and have arocapi fill the database and index from
+it, replacing hand-written seed scripts like the one below.
+:::
+
 ```sh
 mkdir data
 echo 'Hello from arocapi' > data/hello.txt

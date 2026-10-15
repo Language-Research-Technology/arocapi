@@ -10,6 +10,11 @@ whose OpenAPI reference is the contract clients code against. arocapi is a read-
 `deposit: { supported: false }` from `/capabilities` and doesn't provide the specification's optional deposit,
 RO-Crate or entity-delete routes.
 
+:::note[Deposits are coming]
+Support for the deposit routes is coming soon. Until then, you fill the database and search index yourself; see
+[Your first API](/getting-started/first-api/#add-an-entity).
+:::
+
 Paths are relative to the `prefix` arocapi is registered with. Entity and file ids are URLs, encoded as one path
 segment, e.g. `/entity/http%3A%2F%2Fexample.com%2Fentity%2F1`.
 
