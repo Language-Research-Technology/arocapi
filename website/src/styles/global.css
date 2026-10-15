@@ -38,3 +38,9 @@ html {
 pre.mermaid {
   font-family: var(--sl-font-mono);
 }
+
+@media (min-width: 72rem) {
+  :root {
+    --sl-content-width: 55rem;
+  }
+}
