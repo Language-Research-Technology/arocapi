@@ -17,7 +17,8 @@ repositories to you:
   [OpenSearch](/strategies/search/). You supply handlers that fetch RO-Crate metadata and file bytes from
   [your storage](/strategies/storage/).
 - **Who sees what.** Visibility filters decide which entities exist for a request. An access function decides
-  whether a request may read an entity's full metadata and its file content.
+  whether a request may read an entity's full metadata and its file content. See
+  [Visibility vs Access](/concepts/visibility-vs-access/).
 - **What responses look like.** Transformers can add fields to every entity and file the API returns.
 
 ## Registering the plugin
@@ -53,6 +54,8 @@ const options: Options = {
 Every request passes the same checks in the same order, and your code runs at each step. An entity hidden from a
 request doesn't exist as far as that request is concerned. Its summary appears in listings, search and entity
 responses whenever it is visible, but reading its full metadata or a file's content also needs access.
+[Record, Metadata, Content](/concepts/record-metadata-content/) describes these levels, and
+[Visibility vs Access](/concepts/visibility-vs-access/) shows what each route returns.
 
 ```mermaid
 flowchart LR

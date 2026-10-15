@@ -12,7 +12,8 @@ arocapi doesn't know where your files live. Two handlers fetch them for it:
 - `roCrateHandler` serves an entity's RO-Crate metadata on `GET` and `HEAD /entity/:id/metadata`. It receives the
   Entity row, including the entity's `meta` column.
 
-Both run only after the entity is visible and the request may read it, so a handler never checks access itself. Each
+Both run only after the entity is visible and the request may read it (see
+[Visibility vs Access](/concepts/visibility-vs-access/)), so a handler never checks access itself. Each
 has a `get`, which returns how to deliver the bytes, and a `head`, which returns only their headers. Either can return
 `false` to answer 404.
 

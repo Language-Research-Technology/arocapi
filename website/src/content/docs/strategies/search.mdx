@@ -116,7 +116,8 @@ come from OpenSearch, so they still count it.
 
 Keep the two filters in step: whatever field `entityVisibilityFilter` checks in the database has to be indexed, and
 `searchVisibilityFilter` checks the same thing in the index. For example, if drafts are hidden through a `draft` flag
-in the entity's `meta`, index that flag too:
+in the entity's `meta`, index that flag too (see
+[why the two filters must agree](/concepts/visibility-vs-access/#why-the-two-filters-must-agree)):
 
 ```ts twoslash
 import type { SearchVisibilityFilter } from 'arocapi';
