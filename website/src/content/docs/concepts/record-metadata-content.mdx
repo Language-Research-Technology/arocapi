@@ -15,9 +15,10 @@ arocapi serves each entity at three levels. The more a level reveals, the more a
 
 ## Record
 
-The Record is what a request sees when it lists, searches or looks up an entity: its id, name, description and type,
-the collection and object it belongs to, and the ids of its metadata and content licences. arocapi builds it from
-your database, not from the RO-Crate, so listing a thousand entities never opens a thousand crates.
+The Record is what a request sees when it lists, searches or looks up an entity: its id, name, description and type, the
+collection and object it belongs to ([Entities & hierarchy](/concepts/entities/)), and the ids of its metadata and
+content [licences](/concepts/licences/). arocapi builds it from your database, not from the RO-Crate, so listing a
+thousand entities never opens a thousand crates.
 
 Only visibility guards the Record. A request either sees an entity's whole Record or doesn't know the entity exists.
 arocapi never redacts a Record field by field, and never asks your access function before returning one.

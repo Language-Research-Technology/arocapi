@@ -5,7 +5,8 @@ sidebar:
   order: 3
 ---
 
-The `Entity` and `File` models each have a nullable JSON column, `meta`, for your own data. arocapi never puts `meta` in
+The `Entity` and `File` models (see [Entities & hierarchy](/concepts/entities/)) each have a nullable JSON column,
+`meta`, for your own data. arocapi never puts `meta` in
 an API response, so it can hold storage locations and internal flags.
 
 | Column        | Passed to                                                             | Typical use                              |

@@ -35,7 +35,8 @@ flowchart TB
 
 ## How a request is decided
 
-For a single entity or file, arocapi runs these checks before your handler sees anything.
+For a single entity or file, arocapi runs these checks before your handler sees anything. The
+[request lifecycle](/concepts/request-lifecycle/) shows where your other hooks run.
 
 ```mermaid
 flowchart TD
@@ -73,9 +74,9 @@ missing. arocapi answers in a way the client can act on:
 
 - **401 Unauthorized** when the request is anonymous. Logging in might grant access, so the client should prompt
   for it.
-- **403 Forbidden** when the request is logged in, or the repository has no logins. Logging in again won't help;
-  the user needs to be granted access. Your access function can return an authorisation URL telling them where to
-  ask for it.
+- **403 Forbidden** when the request is logged in, or the repository has no logins. Logging in again won't help; the
+  user needs to be granted access. Your access function can return an [authorisation
+  URL](/concepts/licences/#authorisation-urls) telling them where to ask for it.
 
 In both cases your handler isn't called, so a Denied request never learns a redirect location or file path.
 

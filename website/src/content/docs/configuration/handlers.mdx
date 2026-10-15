@@ -6,8 +6,9 @@ sidebar:
 ---
 
 Handlers fetch bytes from your storage. arocapi calls them only after the entity is Visible and the request has access,
-so they don't need their own checks. [Storage](/strategies/storage/) compares ways to serve bytes from local disk,
-object storage and OCFL.
+so they don't need their own checks (see the [request
+lifecycle](/concepts/request-lifecycle/#metadata-and-content-routes)). [Storage](/strategies/storage/) compares ways to
+serve bytes from local disk, object storage and OCFL.
 
 | Option           | Required | Type             | Default | Purpose                                                  |
 | ---------------- | -------- | ---------------- | ------- | -------------------------------------------------------- |

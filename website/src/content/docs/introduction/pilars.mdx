@@ -1,0 +1,51 @@
+---
+title: PILARS
+description: The protocols for long-term archival repositories that arocapi is designed around.
+sidebar:
+  order: 3
+---
+
+[PILARS](https://w3id.org/ldac/pilars), the _Protocols for Implementing Long-term Archival Repositories Services_, is a
+set of protocols for building archival repositories for research data and cultural heritage. It was published in 2024
+under CC BY 4.0, edited by Peter Sefton with contributors from Australian universities and research infrastructure, and
+grew out of the Language Data Commons of Australia's work to generalise the approach of the
+[PARADISEC](https://paradisec.org.au) archive to other disciplines.
+
+PILARS aims for repositories that are both FAIR and CARE-aligned, which it calls "CAREful FAIRness". It wants data
+stewards to stay in control of their data, and the services built on it to be sustainable. The technical goal is data
+that outlives any one piece of software: stored in open formats, described with open-specification metadata, and able
+to have its services rebuilt from the stored data with open-source tools.
+
+## The three protocols
+
+1. **Data is portable.** Data isn't locked into one storage system, interface or service. It lives in commodity
+   storage, divided into self-contained _storage objects_, with a documented way to map identifiers to storage
+   locations. How data is stored is kept separate from the services that currently use it.
+2. **Data is annotated.** Each storage object carries linked-data metadata describing its contents, structure,
+   provenance and licences, stored with the data. Each one includes at least one licence document, linked from its
+   metadata with a standard licence property, that says in plain language how the data may be used and by whom.
+3. **Governance.** Each repository has a stated purpose, management to sustain it, deposit agreements that give it the
+   rights it needs, and processes for keeping data for as long as required and for deaccessioning it.
+
+Read the [full protocols](https://w3id.org/ldac/pilars) for the detail behind each one.
+
+## How arocapi follows them
+
+PILARS expects services such as access interfaces and catalogues to be built, and rebuilt, from the data in storage.
+arocapi is one of those services: it serves your data but doesn't own it.
+
+- **Storage stays yours.** arocapi never writes to your storage or requires a layout. You supply handlers that read
+  RO-Crate metadata and files from wherever they live, whether OCFL, object storage or plain directories. See
+  [Storage](/strategies/storage/).
+- **Its index can be rebuilt.** The database and search index arocapi queries are derived from your RO-Crates. You
+  populate them from your storage, so they can be thrown away and rebuilt.
+- **RO-Crate is the metadata.** RO-Crate is the open, linked-data metadata format the second protocol asks for, and
+  arocapi serves each entity's RO-Crate metadata document from your storage.
+- **Access follows licences.** Under the second protocol, every item carries a natural-language description of its
+  access conditions, its licence, stored with the data. arocapi builds its access model on that. Each entity has a
+  metadata licence and a content licence, and you decide whether a request holds them, for example by asking an
+  external authority such as REMS. When a request lacks a licence, you can point the user at where to apply for it.
+  See [Licences & authorisation URLs](/concepts/licences/).
+
+Governance, the third protocol, is about the organisation running the repository rather than its software, so
+arocapi has nothing to say about it.

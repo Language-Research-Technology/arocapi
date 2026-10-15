@@ -13,9 +13,10 @@ arocapi doesn't know where your files live. Two handlers fetch them for it:
   Entity row, including the entity's `meta` column.
 
 Both run only after the entity is visible and the request may read it (see
-[Visibility vs Access](/concepts/visibility-vs-access/)), so a handler never checks access itself. Each
-has a `get`, which returns how to deliver the bytes, and a `head`, which returns only their headers. Either can return
-`false` to answer 404. The full contract is under [Handlers](/configuration/handlers/), and the `meta` columns under
+[Visibility vs Access](/concepts/visibility-vs-access/) and the
+[request lifecycle](/concepts/request-lifecycle/#metadata-and-content-routes)), so a handler never checks access
+itself. Each has a `get`, which returns how to deliver the bytes, and a `head`, which returns only their headers.
+Either can return `false` to answer 404. The full contract is under [Handlers](/configuration/handlers/), and the `meta` columns under
 [Entity meta](/reference/entity-meta/).
 
 ## Stream or redirect

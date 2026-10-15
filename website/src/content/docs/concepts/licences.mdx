@@ -1,0 +1,108 @@
+---
+title: Licences & authorisation URLs
+description: How metadata and content licences decide access, and how to tell a Denied user where to apply.
+sidebar:
+  order: 4
+---
+
+In a [PILARS](/introduction/pilars/) archive, every item carries a licence: a plain-language statement of who may use
+it and how, stored with the data. arocapi builds its access model on those licences.
+
+## Two licences per entity
+
+Every [entity](/concepts/entities/) has two licence ids, usually the URLs of licence documents named in its RO-Crate:
+
+| Field | Governs | Route it guards |
+| --- | --- | --- |
+| `metadataLicenseId` | Reading the entity's full RO-Crate metadata. | `/entity/:id/metadata` |
+| `contentLicenseId` | Downloading the bytes of a file entity. | `/file/:id` |
+
+Splitting them lets a repository publish what an item is while restricting the item itself. A common arrangement is an
+open licence such as CC BY 4.0 for metadata and a closed licence for the recordings of a sensitive collection.
+
+Both ids are part of the entity's summary, so listings, search results and `/entity/:id` show which licences apply
+even to a user who can't hold them. Access never hides an entity. Hiding is the job of the visibility filters, which
+run first; if a licence should also hide entities, your filters can use it too.
+
+## Deciding access
+
+Your [`access` function](/configuration/access/#access) decides, per entity and per request, whether the request may
+read the Metadata and the Content. It returns an `AccessInfo`:
+
+```ts twoslash
+import type { AccessInfo } from 'arocapi';
+
+const info: AccessInfo = {
+  metadata: true,
+  content: false,
+  contentAuthorizationUrl: 'https://rems.example.com/apply?resource=closed-licence',
+};
+```
+
+arocapi attaches the result to every entity it returns as `access`, and enforces it on the metadata and file routes. A
+request whose flag is `false` is Denied: `401` if it is anonymous, so the client can prompt a login, and `403` otherwise
+(see [Visibility vs Access](/concepts/visibility-vs-access/#denied-is-401-or-403-never-404)). Only `metadata`, `content`
+and non-empty authorisation URLs are kept; anything else you return is dropped.
+
+When access depends only on licences, use `LicenceAccess`. You tell it whether the request holds a licence, and it
+checks the entity's metadata licence for `metadata` and its content licence for `content`:
+
+```ts twoslash
+declare const userLicences: (request: import('arocapi').RequestContext['request']) => Promise<string[]>;
+// ---cut---
+import { LicenceAccess } from 'arocapi';
+
+const OPEN_LICENCES = ['https://creativecommons.org/licenses/by/4.0/'];
+
+const access = LicenceAccess({
+  hasLicence: async (licenceId, { request }) =>
+    OPEN_LICENCES.includes(licenceId) || (await userLicences(request)).includes(licenceId),
+  authorisationUrl: (licenceId) => `https://rems.example.com/apply?resource=${encodeURIComponent(licenceId)}`,
+});
+```
+
+`LicenceAccess` checks each licence at most once per request. A listing of a hundred entities that share three
+licences makes three `hasLicence` calls, which matters when each one asks a remote authority such as REMS.
+[Licence checks against an external authority](/strategies/access/#licence-checks-against-an-external-authority)
+describes that architecture. If you write
+your own access function, cache remote lookups per request in the same way.
+
+## Authorisation URLs
+
+A Denied user needs to know how to get access. The access result can carry a URL for each level:
+
+- `metadataAuthorizationUrl`, where to apply for the metadata licence;
+- `contentAuthorizationUrl`, where to apply for the content licence.
+
+They only mean something when the matching flag is `false`. `LicenceAccess` adds one only when the request doesn't
+hold the licence and you gave it `authorisationUrl`. The URL usually points at the licence's application form in your
+licence manager, or at a login page when the user simply isn't signed in.
+
+The URLs travel with the entity, not with the refusal. A `401` or `403` from `/entity/:id/metadata` or `/file/:id`
+carries only an error code, a message and the entity id. A client that wants to offer an "apply for access" link reads
+it from the entity's `access` in a listing, a search result or `/entity/:id`, before it requests the Metadata or
+Content. Trimmed to the relevant fields:
+
+```json
+{
+  "id": "https://example.com/item/42",
+  "contentLicenseId": "https://example.com/licence/closed",
+  "access": {
+    "metadata": true,
+    "content": false,
+    "contentAuthorizationUrl": "https://rems.example.com/apply?resource=https%3A%2F%2Fexample.com%2Flicence%2Fclosed"
+  }
+}
+```
+
+## Files
+
+A file's access is its file entity's access. In `/files`, each file's `access` keeps only `content` and
+`contentAuthorizationUrl`, because a file listing has no Metadata to guard. On `/file/:id`, only `content` matters: a
+request may download a file whose metadata licence it lacks.
+
+## Collections and objects
+
+Only file entities have Content. arocapi still calls your access function for collections and objects and attaches its
+`content` flag, but nothing enforces it. Treat it as a hint for clients, for example "you can't download the files in
+this collection", and make sure each file entity carries the content licence that actually guards its bytes.
