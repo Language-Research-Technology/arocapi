@@ -68,7 +68,7 @@
     "dbconsole": "docker compose exec db mysql --password=password catalog",
     "load-test-data": "tsx src/scripts/loadEntities.ts",
     "lint:biome": "biome check",
-    "lint:types": "prisma generate >/dev/null && tsc --noEmit",
+    "lint:types": "prisma generate >/dev/null && tsc --noEmit && pnpm --filter website check:examples",
     "lint:knip": "knip",
     "lint": "concurrently -p \"[{name}]\" -n \"biome,types,knip\" -c \"yellow.bold,cyan.bold,magenta.bold\" \"pnpm:lint:biome\" \"pnpm:lint:types\" \"pnpm:lint:knip\"",
     "test": "./scripts/setup-integration.sh vitest run",

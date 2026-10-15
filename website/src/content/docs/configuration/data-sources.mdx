@@ -5,6 +5,9 @@ sidebar:
   order: 1
 ---
 
+import { Code } from '@astrojs/starlight/components';
+import dataSourcesClients from '../../../../examples/configuration/data-sources-clients.ts?raw';
+
 arocapi reads Records from your database through Prisma and searches them through OpenSearch. You create both clients
 and pass them in.
 
@@ -13,14 +16,7 @@ and pass them in.
 | `prisma`     | yes      | `PrismaClient` | none    | Database client for entities and files.     |
 | `opensearch` | yes      | `Client`       | none    | OpenSearch client used by `POST /search`.   |
 
-```ts twoslash
-declare const prisma: import('arocapi').Options['prisma'];
-declare const opensearch: import('arocapi').Options['opensearch'];
-// ---cut---
-import type { Options } from 'arocapi';
-
-const dataSources: Pick<Options, 'prisma' | 'opensearch'> = { prisma, opensearch };
-```
+<Code code={dataSourcesClients} lang="ts" />
 
 ## `prisma`
 

@@ -12,16 +12,7 @@
       ]
     },
     "website": {
-      "entry": ["scripts/*.ts"],
-      // Only imported inside Twoslash code fences
-      "ignoreDependencies": [
-        "arocapi",
-        "@opensearch-project/opensearch",
-        "@prisma/adapter-mariadb",
-        "@types/express",
-        "express",
-        "fastify"
-      ]
+      "entry": ["scripts/*.ts", "examples/**/*.ts"]
     }
   }
 }

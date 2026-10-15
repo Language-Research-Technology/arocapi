@@ -5,6 +5,10 @@ sidebar:
   order: 2
 ---
 
+import { Code } from '@astrojs/starlight/components';
+import visibilityAll from '../../../../examples/configuration/visibility-all.ts?raw';
+import visibilityLicence from '../../../../examples/configuration/visibility-licence.ts?raw';
+
 Visibility decides whether an entity exists for a request. A Hidden entity is left out of listings and search,
 including their totals and facets, and a direct request for it gets the same 404 as a missing entity.
 [Visibility vs Access](/concepts/visibility-vs-access/) explains how visibility and access combine.
@@ -34,30 +38,11 @@ shorter than `limit`, and `total` still counts the dropped hits.
 
 For a public repository, use the exported filters that make every entity visible:
 
-```ts twoslash
-import { AllVisibleEntityFilter, AllVisibleSearchFilter, type Options } from 'arocapi';
-
-const visibility: Pick<Options, 'entityVisibilityFilter' | 'searchVisibilityFilter'> = {
-  entityVisibilityFilter: AllVisibleEntityFilter,
-  searchVisibilityFilter: AllVisibleSearchFilter,
-};
-```
+<Code code={visibilityAll} lang="ts" />
 
 To restrict by licence, build both filters from the same list:
 
-```ts twoslash
-declare function visibleLicences(request: import('arocapi').RequestContext['request']): Promise<string[]>;
-// ---cut---
-import type { EntityVisibilityFilter, SearchVisibilityFilter } from 'arocapi';
-
-const entityVisibilityFilter: EntityVisibilityFilter = async ({ request }) => ({
-  metadataLicenseId: { in: await visibleLicences(request) },
-});
-
-const searchVisibilityFilter: SearchVisibilityFilter = async ({ request }) => ({
-  terms: { metadataLicenseId: await visibleLicences(request) },
-});
-```
+<Code code={visibilityLicence} lang="ts" />
 
 Visibility doesn't pass down from collections. A member of a Hidden collection is only Hidden if your filters hide it,
 for example by also filtering on `rootCollection`.

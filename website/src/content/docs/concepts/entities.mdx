@@ -5,6 +5,9 @@ sidebar:
   order: 1
 ---
 
+import { Code } from '@astrojs/starlight/components';
+import entitiesLocation from '../../../../examples/concepts/entities-location.ts?raw';
+
 Everything arocapi serves is an **entity**: a thing described in an RO-Crate, identified by a URL. A repository is a
 tree of entities, usually three kinds deep.
 
@@ -44,13 +47,7 @@ You walk the tree one level at a time by listing members:
 In every entity response, arocapi replaces the `memberOf` and `rootCollection` ids with `{ id, name }`, so a client
 can show a breadcrumb without another request. A parent that isn't in the database comes back as `null`.
 
-```ts twoslash
-import type { AuthorisedEntity } from 'arocapi';
-
-const location = (entity: AuthorisedEntity) =>
-  entity.memberOf ? `In ${entity.memberOf.name}` : 'Top level';
-//       ^?
-```
+<Code code={entitiesLocation} lang="ts" />
 
 ## File entities
 

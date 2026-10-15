@@ -26,6 +26,11 @@
       // Biome can't see template usage in .astro files
       "includes": ["**/*.astro"],
       "linter": { "rules": { "correctness": { "noUnusedImports": "off", "noUnusedVariables": "off" } } }
+    },
+    {
+      // Examples show declarations without using them
+      "includes": ["website/examples/**"],
+      "linter": { "rules": { "correctness": { "noUnusedVariables": "off", "noUnusedFunctionParameters": "off" } } }
     }
   ],
   "css": {

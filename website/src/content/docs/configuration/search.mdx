@@ -5,6 +5,10 @@ sidebar:
   order: 5
 ---
 
+import { Code } from '@astrojs/starlight/components';
+import searchQueryBuilder from '../../../../examples/configuration/search-query-builder.ts?raw';
+import searchAggregations from '../../../../examples/configuration/search-aggregations.ts?raw';
+
 `POST /search` builds its OpenSearch request with a query builder. The default, `OpensearchQueryBuilder`, works with
 the defaults below; subclass it to fit your index. [Search](/strategies/search/) walks through the default builder
 and a worked subclass.
@@ -30,20 +34,7 @@ A subclass of `OpensearchQueryBuilder`. Override any of its methods:
 The [search visibility filter](/configuration/visibility/#searchvisibilityfilter) is added outside the builder, so an
 override can't skip it.
 
-```ts twoslash
-import { OpensearchQueryBuilder, type Options, type SearchCapability } from 'arocapi';
-
-class LabelledQueryBuilder extends OpensearchQueryBuilder {
-  searchCapabilities(): SearchCapability {
-    return {
-      filters: { inLanguage: { type: 'string', label: 'Language' } },
-      facets: { inLanguage: { label: 'Language' } },
-    };
-  }
-}
-
-const queryBuilderClass: Options['queryBuilderClass'] = LabelledQueryBuilder;
-```
+<Code code={searchQueryBuilder} lang="ts" />
 
 ## `queryBuilderOptions`
 
@@ -58,16 +49,7 @@ aggregation becomes a facet in the response. The defaults assume dynamically map
 subfield; if your index maps these fields as `keyword`, set your own. The OpenSearch client's typings leave `field` out
 of `terms` aggregations, so declare the aggregations before assigning them:
 
-```ts twoslash
-import type { QueryBuilderOptions } from 'arocapi';
-
-const aggregations = {
-  inLanguage: { terms: { field: 'inLanguage', size: 50 } },
-  entityType: { terms: { field: 'entityType', size: 10 } },
-};
-
-const queryBuilderOptions: QueryBuilderOptions = { aggregations };
-```
+<Code code={searchAggregations} lang="ts" />
 
 Search filters use the field name as given, so they need a field that matches exactly, such as a `keyword` field.
 

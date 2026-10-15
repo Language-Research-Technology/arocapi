@@ -5,6 +5,11 @@ sidebar:
   order: 6
 ---
 
+import { Code } from '@astrojs/starlight/components';
+import transformersEntity from '../../../../examples/configuration/transformers-entity.ts?raw';
+import transformersFile from '../../../../examples/configuration/transformers-file.ts?raw';
+import transformersRequest from '../../../../examples/configuration/transformers-request.ts?raw';
+
 Transformers change the entities and files arocapi returns, for example to add fields.
 
 | Option               | Required | Type                  | Default | Purpose                                                      |
@@ -42,13 +47,7 @@ be async.
 | `contentLicenseId`  | `string`                         |
 | `access`            | `AccessInfo`                     |
 
-```ts twoslash
-import type { EntityTransformer, Options } from 'arocapi';
-
-const addShortId: EntityTransformer = (entity) => ({ ...entity, shortId: entity.id.split('/').pop() });
-
-const entityTransformers: Options['entityTransformers'] = [addShortId];
-```
+<Code code={transformersEntity} lang="ts" />
 
 The returned object is sent as is. The [Record](/concepts/record-metadata-content/#record) is never redacted by arocapi, so a transformer that removes fields is the
 only thing that can.
@@ -67,11 +66,7 @@ Each transformer receives an `AuthorisedFile` and the request context:
 
 A file's `access` is its file entity's Content access.
 
-```ts twoslash
-import type { FileTransformer } from 'arocapi';
-
-const addSizeInKb: FileTransformer = (file) => ({ ...file, sizeInKb: Math.round(file.size / 1024) });
-```
+<Code code={transformersFile} lang="ts" />
 
 ## Request context
 
@@ -82,11 +77,4 @@ Visibility filters, the access function, `isAuthenticated`, transformers and han
 | `request` | `FastifyRequest`  | The current request: headers, query and whatever your authentication sets on it.   |
 | `fastify` | `FastifyInstance` | The Fastify instance, for reading your own decorations. arocapi adds none.         |
 
-```ts twoslash
-import type { EntityTransformer } from 'arocapi';
-
-const addRequestedLanguage: EntityTransformer = (entity, { request }) => ({
-  ...entity,
-  requestedLanguage: request.headers['accept-language'] ?? null,
-});
-```
+<Code code={transformersRequest} lang="ts" />

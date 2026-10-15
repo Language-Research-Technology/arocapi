@@ -5,6 +5,9 @@ sidebar:
   order: 3
 ---
 
+import { Code } from '@astrojs/starlight/components';
+import visibilityVsAccessGuards from '../../../../examples/concepts/visibility-vs-access-guards.ts?raw';
+
 arocapi asks two questions about every entity a request touches, always in the same order.
 
 1. **Is it visible?** Your visibility filters decide which entities exist for this request. A **Visible** entity
@@ -122,25 +125,7 @@ Three people use it:
 
 The repository is configured like this:
 
-```ts twoslash
-type User = { licences: string[] };
-declare function currentUser(request: import('arocapi').RequestContext['request']): User | undefined;
-// ---cut---
-import { LicenceAccess, type Options } from 'arocapi';
-
-const openLicence = 'https://creativecommons.org/licenses/by/4.0/';
-
-const guards = {
-  entityVisibilityFilter: () => ({ meta: { path: '$.published', equals: true } }),
-  searchVisibilityFilter: () => ({ term: { 'meta.published': true } }),
-  isAuthenticated: ({ request }) => currentUser(request) !== undefined,
-  access: LicenceAccess({
-    hasLicence: (licenceId, { request }) =>
-      licenceId === openLicence || (currentUser(request)?.licences.includes(licenceId) ?? false),
-    authorisationUrl: (licenceId) => `https://rems.example.org/apply?licence=${encodeURIComponent(licenceId)}`,
-  }),
-} satisfies Partial<Options>;
-```
+<Code code={visibilityVsAccessGuards} lang="ts" />
 
 Each entity carries its own `published` flag. Visibility filters don't cascade: hiding an item doesn't hide its
 files, so **draft.wav** needs the flag as well. `currentUser` stands in for however your app reads the logged-in

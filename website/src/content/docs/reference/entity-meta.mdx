@@ -5,6 +5,10 @@ sidebar:
   order: 3
 ---
 
+import { Code } from '@astrojs/starlight/components';
+import entityMetaStoragePath from '../../../../examples/reference/entity-meta-storage-path.ts?raw';
+import entityMetaDraft from '../../../../examples/reference/entity-meta-draft.ts?raw';
+
 The `Entity` and `File` models (see [Entities & hierarchy](/concepts/entities/)) each have a nullable JSON column,
 `meta`, for your own data. arocapi never puts `meta` in
 an API response, so it can hold storage locations and internal flags.
@@ -19,22 +23,7 @@ the `File` row. [Storage](/strategies/storage/) shows handlers reading locations
 
 `meta` is typed as Prisma's `JsonValue`, so narrow it before reading fields:
 
-```ts twoslash
-import type { FileHandler } from 'arocapi';
-
-const storagePath = (meta: unknown) => {
-  if (typeof meta === 'object' && meta !== null && 'storagePath' in meta && typeof meta.storagePath === 'string') {
-    return meta.storagePath;
-  }
-
-  throw new Error('File has no storagePath');
-};
-
-const fileHandler: FileHandler = {
-  get: (file) => ({ type: 'redirect', url: `https://storage.example.com/${storagePath(file.meta)}` }),
-  head: (file) => ({ contentType: file.mediaType, contentLength: Number(file.size) }),
-};
-```
+<Code code={entityMetaStoragePath} lang="ts" />
 
 ## Visibility flags
 
@@ -42,21 +31,7 @@ A flag in `Entity.meta` can drive the [visibility filters](/configuration/visibi
 index, for example as `meta.draft`, so the search filter can match the same entities. In Prisma, a plain `not` on a
 JSON path also excludes rows where `meta` or the path is null, so match those explicitly:
 
-```ts twoslash
-type EntityWhere = Awaited<ReturnType<import('arocapi').EntityVisibilityFilter>>;
-type JsonFilter = Extract<NonNullable<EntityWhere['meta']>, { equals?: unknown }>;
-declare const Prisma: { AnyNull: NonNullable<JsonFilter['equals']> };
-// ---cut---
-import type { EntityVisibilityFilter, SearchVisibilityFilter } from 'arocapi';
-
-const entityVisibilityFilter: EntityVisibilityFilter = () => ({
-  OR: [{ meta: { path: '$.draft', equals: Prisma.AnyNull } }, { meta: { path: '$.draft', not: true } }],
-});
-
-const searchVisibilityFilter: SearchVisibilityFilter = () => ({
-  bool: { must_not: { term: { 'meta.draft': true } } },
-});
-```
+<Code code={entityMetaDraft} lang="ts" />
 
 `Prisma` here is the namespace from your generated Prisma client. JSON path filters can't use an index on MySQL; for
 large repositories, store visibility flags in your own indexed columns.

@@ -5,6 +5,11 @@ sidebar:
   order: 4
 ---
 
+import { Code } from '@astrojs/starlight/components';
+import firstApiIndex from '../../../../examples/getting-started/src/first-api-index.ts?raw';
+import firstApiSeed from '../../../../examples/getting-started/scripts/first-api-seed.ts?raw';
+import firstApiLogin from '../../../../examples/getting-started/src/first-api-login.ts?raw';
+
 With the database and index ready, you can register the plugin. This page builds a public repository that stores its
 RO-Crate metadata and files on local disk, then shows how to require a login for some of it.
 
@@ -25,86 +30,7 @@ Every one of these functions gets the request context, `{ request, fastify }`, s
 asking. This first API answers the same for everyone: every entity is visible and every entity is accessible.
 [Visibility vs Access](/concepts/visibility-vs-access/) explains how the two differ.
 
-```ts twoslash title="src/index.ts"
-// @allowImportingTsExtensions
-// @noEmit
-// @filename: src/generated/prisma/client.ts
-export declare const PrismaClient: new (options: {
-  adapter: import('@prisma/adapter-mariadb').PrismaMariaDb;
-}) => import('arocapi').Options['prisma'];
-// @filename: src/index.ts
-// ---cut---
-import { createReadStream } from 'node:fs';
-import { stat } from 'node:fs/promises';
-import { Client } from '@opensearch-project/opensearch';
-import { PrismaMariaDb } from '@prisma/adapter-mariadb';
-import arocapi, {
-  AllPublicAccess,
-  AllVisibleEntityFilter,
-  AllVisibleSearchFilter,
-  type FileHandler,
-  type RoCrateHandler,
-} from 'arocapi';
-import Fastify from 'fastify';
-import { PrismaClient } from './generated/prisma/client.ts';
-
-const prisma = new PrismaClient({
-  adapter: new PrismaMariaDb(process.env.DATABASE_URL as string),
-});
-const opensearch = new Client({ node: process.env.OPENSEARCH_URL });
-
-// Where each entity's RO-Crate and each file is stored, kept in their meta column
-type StoredMeta = { storagePath: string };
-
-const fileHandler: FileHandler = {
-  head: async (file) => ({
-    contentType: file.mediaType,
-    contentLength: Number(file.size),
-  }),
-  get: async (file) => {
-    const { storagePath } = file.meta as StoredMeta;
-
-    return {
-      type: 'file',
-      path: storagePath,
-      metadata: { contentType: file.mediaType, contentLength: Number(file.size) },
-    };
-  },
-};
-
-const roCrateHandler: RoCrateHandler = {
-  head: async (entity) => {
-    const { storagePath } = entity.meta as StoredMeta;
-    const { size, mtime } = await stat(storagePath);
-
-    return { contentType: 'application/ld+json', contentLength: size, lastModified: mtime };
-  },
-  get: async (entity) => {
-    const { storagePath } = entity.meta as StoredMeta;
-    const { size, mtime } = await stat(storagePath);
-
-    return {
-      type: 'stream',
-      stream: createReadStream(storagePath),
-      metadata: { contentType: 'application/ld+json', contentLength: size, lastModified: mtime },
-    };
-  },
-};
-
-const fastify = Fastify({ logger: true });
-
-await fastify.register(arocapi, {
-  prisma,
-  opensearch,
-  entityVisibilityFilter: AllVisibleEntityFilter,
-  searchVisibilityFilter: AllVisibleSearchFilter,
-  access: AllPublicAccess,
-  fileHandler,
-  roCrateHandler,
-});
-
-await fastify.listen({ port: 3000 });
-```
+<Code code={firstApiIndex} lang="ts" title="src/index.ts" />
 
 The handlers only run after visibility and access have passed, so they never need to check either. Returning `false`
 from a handler gives a 404. [Storage strategies](/strategies/storage/) covers other ways to serve content, such as
@@ -132,73 +58,7 @@ EOF
 
 Then a script that records both entities in the database and the index:
 
-```ts twoslash title="scripts/seed.ts"
-// @allowImportingTsExtensions
-// @noEmit
-// @filename: src/generated/prisma/client.ts
-export declare const PrismaClient: new (options: {
-  adapter: import('@prisma/adapter-mariadb').PrismaMariaDb;
-}) => import('arocapi').Options['prisma'];
-// @filename: scripts/seed.ts
-// ---cut---
-import { resolve } from 'node:path';
-import { Client } from '@opensearch-project/opensearch';
-import { PrismaMariaDb } from '@prisma/adapter-mariadb';
-import { PrismaClient } from '../src/generated/prisma/client.ts';
-
-const prisma = new PrismaClient({
-  adapter: new PrismaMariaDb(process.env.DATABASE_URL as string),
-});
-const opensearch = new Client({ node: process.env.OPENSEARCH_URL });
-
-const licence = 'https://creativecommons.org/licenses/by/4.0/';
-const collectionId = 'https://example.org/collection';
-const fileId = 'https://example.org/collection/hello.txt';
-
-const entities = [
-  {
-    id: collectionId,
-    name: 'My first collection',
-    description: 'A collection with one file',
-    entityType: 'http://pcdm.org/models#Collection',
-    memberOf: null,
-    rootCollection: null,
-    metadataLicenseId: licence,
-    contentLicenseId: licence,
-  },
-  {
-    id: fileId,
-    name: 'hello.txt',
-    description: 'A greeting',
-    entityType: 'http://schema.org/MediaObject',
-    memberOf: collectionId,
-    rootCollection: collectionId,
-    metadataLicenseId: licence,
-    contentLicenseId: licence,
-  },
-];
-
-await prisma.entity.create({
-  data: { ...entities[0], meta: { storagePath: resolve('data/ro-crate-metadata.json') } },
-});
-await prisma.entity.create({ data: entities[1] });
-await prisma.file.create({
-  data: {
-    id: fileId,
-    filename: 'hello.txt',
-    mediaType: 'text/plain',
-    size: 19,
-    meta: { storagePath: resolve('data/hello.txt') },
-  },
-});
-
-await opensearch.bulk({
-  body: entities.flatMap((entity) => [{ index: { _index: 'entities', _id: entity.id } }, entity]),
-  refresh: true,
-});
-
-await prisma.$disconnect();
-```
+<Code code={firstApiSeed} lang="ts" title="scripts/seed.ts" />
 
 A file is two rows: an `Entity` that gives it its place in the collection and its licences, and a `File` with the same
 ID that describes the bytes.
@@ -248,42 +108,7 @@ that checks licences, and tell arocapi how to recognise a logged-in request with
 [`isAuthenticated`](/configuration/access/#isauthenticated). How a request
 proves who it is stays up to your app; this example accepts a single bearer token.
 
-```ts twoslash title="src/index.ts"
-import type { FastifyInstance } from 'fastify';
-declare const fastify: FastifyInstance;
-declare const prisma: import('arocapi').Options['prisma'];
-declare const opensearch: import('arocapi').Options['opensearch'];
-declare const fileHandler: import('arocapi').FileHandler;
-declare const roCrateHandler: import('arocapi').RoCrateHandler;
-// ---cut---
-import arocapi, {
-  AllVisibleEntityFilter,
-  AllVisibleSearchFilter,
-  type IsAuthenticated,
-  LicenceAccess,
-} from 'arocapi';
-
-const openLicences = new Set(['https://creativecommons.org/licenses/by/4.0/']);
-
-const isAuthenticated: IsAuthenticated = ({ request }) =>
-  request.headers.authorization === `Bearer ${process.env.API_TOKEN}`;
-
-const access = LicenceAccess({
-  hasLicence: async (licenceId, context) => openLicences.has(licenceId) || (await isAuthenticated(context)),
-  authorisationUrl: (licenceId) => `https://example.org/request-access?licence=${encodeURIComponent(licenceId)}`,
-});
-
-await fastify.register(arocapi, {
-  prisma,
-  opensearch,
-  entityVisibilityFilter: AllVisibleEntityFilter,
-  searchVisibilityFilter: AllVisibleSearchFilter,
-  access,
-  isAuthenticated,
-  fileHandler,
-  roCrateHandler,
-});
-```
+<Code code={firstApiLogin} lang="ts" title="src/index.ts" />
 
 Now an entity whose content licence isn't open is still listed, with `access.content` set to `false` and a
 `contentAuthorizationUrl` saying where to ask for it. Fetching its file without the token gets a 401, so a client knows

@@ -47,7 +47,7 @@ pnpm dev               # build and serve src/index.dev.ts on http://localhost:90
 | `pnpm test:coverage`          | Run the tests with an HTML coverage report                           |
 | `pnpm dbconsole`              | Open a MySQL console on the development database                     |
 | `pnpm --filter website dev`   | Run the documentation site locally                                   |
-| `pnpm --filter website build` | Build the documentation site, checking every link                    |
+| `pnpm --filter website build` | Build the documentation site, checking its examples and every link   |
 
 Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/); they decide the next version.
 See [TESTING.md](TESTING.md) for the test setup and [RELEASING.md](RELEASING.md) for releases.

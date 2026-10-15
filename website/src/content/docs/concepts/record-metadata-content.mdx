@@ -5,6 +5,9 @@ sidebar:
   order: 2
 ---
 
+import { Code } from '@astrojs/starlight/components';
+import recordMetadataContentTransformer from '../../../../examples/concepts/record-metadata-content-transformer.ts?raw';
+
 arocapi serves each entity at three levels. The more a level reveals, the more a request needs before it can read it.
 
 | Level        | What it is                                       | Routes                                                | Guarded by                                     |
@@ -27,14 +30,7 @@ Every Record carries an `access` field saying whether this request may read the 
 client can show a lock or a "request access" link without making a request that will be refused. Your entity
 transformers run after `access` is attached and can rely on it:
 
-```ts twoslash
-import type { EntityTransformer } from 'arocapi';
-
-const addDownloadFlag: EntityTransformer = (entity) => ({
-  ...entity,
-  canDownload: entity.access.content,
-});
-```
+<Code code={recordMetadataContentTransformer} lang="ts" />
 
 A file in `GET /files` has a smaller Record: id, filename, media type and size. Its `access` holds only `content`,
 taken from the file's own entity.

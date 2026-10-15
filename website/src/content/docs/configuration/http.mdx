@@ -5,6 +5,11 @@ sidebar:
   order: 7
 ---
 
+import { Code } from '@astrojs/starlight/components';
+import httpHandlers from '../../../../examples/configuration/http-handlers.ts?raw';
+import httpCustomError from '../../../../examples/configuration/http-custom-error.ts?raw';
+import httpCreateError from '../../../../examples/configuration/http-create-error.ts?raw';
+
 arocapi has no options of its own for HTTP behaviour. These are settings on your Fastify app, which can itself be
 mounted in Express ([Using with Express](/getting-started/express/)).
 
@@ -32,37 +37,18 @@ arocapi's routes answer errors as `{ error: { code, message, details? } }`; the 
 [Error responses](/reference/errors/). To give your own routes and unknown paths the same envelope, set arocapi's
 handlers on the root instance:
 
-```ts twoslash
-declare const fastify: import('arocapi').RequestContext['fastify'];
-// ---cut---
-import { errorHandler, notFoundHandler } from 'arocapi';
-
-fastify.setErrorHandler(errorHandler);
-fastify.setNotFoundHandler(notFoundHandler);
-```
+<Code code={httpHandlers} lang="ts" />
 
 To report a client error from your own code, throw an error with a 4xx `statusCode` and `expose: true`, such as those
 from `fastify.httpErrors`. Fastify's own errors, whose `code` starts with `FST_` (such as invalid JSON or a body that is
 too large), also keep their 4xx status. Other errors answer 500, even with a 4xx status (such as an OpenSearch
 `ResponseError` escaping your route), so internal details don't reach clients.
 
-```ts twoslash
-class DepositFinalisedError extends Error {
-  statusCode = 409;
-  expose = true;
-}
-```
+<Code code={httpCustomError} lang="ts" />
 
 Build response bodies in your routes with the same helpers arocapi uses:
 
-```ts twoslash
-declare const id: string;
-// ---cut---
-import { createError, createNotFoundError, ERROR_CODES } from 'arocapi';
-
-const notFound = createNotFoundError('The requested collection was not found', id);
-const conflict = createError(ERROR_CODES.CONFLICT, 'The deposit is already finalised');
-```
+<Code code={httpCreateError} lang="ts" />
 
 ## `prefix`
 

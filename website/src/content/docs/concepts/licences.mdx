@@ -5,6 +5,10 @@ sidebar:
   order: 4
 ---
 
+import { Code } from '@astrojs/starlight/components';
+import licencesAccessInfo from '../../../../examples/concepts/licences-access-info.ts?raw';
+import licencesLicenceAccess from '../../../../examples/concepts/licences-licence-access.ts?raw';
+
 In a [PILARS](/introduction/pilars/) archive, every item carries a licence: a plain-language statement of who may use
 it and how, stored with the data. arocapi builds its access model on those licences.
 
@@ -29,15 +33,7 @@ run first; if a licence should also hide entities, your filters can use it too.
 Your [`access` function](/configuration/access/#access) decides, per entity and per request, whether the request may
 read the Metadata and the Content. It returns an `AccessInfo`:
 
-```ts twoslash
-import type { AccessInfo } from 'arocapi';
-
-const info: AccessInfo = {
-  metadata: true,
-  content: false,
-  contentAuthorizationUrl: 'https://rems.example.com/apply?resource=closed-licence',
-};
-```
+<Code code={licencesAccessInfo} lang="ts" />
 
 arocapi attaches the result to every entity it returns as `access`, and enforces it on the metadata and file routes. A
 request whose flag is `false` is Denied: `401` if it is anonymous, so the client can prompt a login, and `403` otherwise
@@ -47,19 +43,7 @@ and non-empty authorisation URLs are kept; anything else you return is dropped.
 When access depends only on licences, use `LicenceAccess`. You tell it whether the request holds a licence, and it
 checks the entity's metadata licence for `metadata` and its content licence for `content`:
 
-```ts twoslash
-declare const userLicences: (request: import('arocapi').RequestContext['request']) => Promise<string[]>;
-// ---cut---
-import { LicenceAccess } from 'arocapi';
-
-const OPEN_LICENCES = ['https://creativecommons.org/licenses/by/4.0/'];
-
-const access = LicenceAccess({
-  hasLicence: async (licenceId, { request }) =>
-    OPEN_LICENCES.includes(licenceId) || (await userLicences(request)).includes(licenceId),
-  authorisationUrl: (licenceId) => `https://rems.example.com/apply?resource=${encodeURIComponent(licenceId)}`,
-});
-```
+<Code code={licencesLicenceAccess} lang="ts" />
 
 `LicenceAccess` checks each licence at most once per request. A listing of a hundred entities that share three
 licences makes three `hasLicence` calls, which matters when each one asks a remote authority such as REMS.

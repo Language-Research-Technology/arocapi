@@ -5,6 +5,13 @@ sidebar:
   order: 2
 ---
 
+import { Code } from '@astrojs/starlight/components';
+import storageLocal from '../../../../examples/strategies/storage-local.ts?raw';
+import storageAccel from '../../../../examples/strategies/storage-accel.ts?raw';
+import storagePresigned from '../../../../examples/strategies/storage-presigned.ts?raw';
+import storageSignedUrl from '../../../../examples/strategies/storage-signed-url.ts?raw';
+import storageRoCrate from '../../../../examples/strategies/storage-ro-crate.ts?raw';
+
 arocapi doesn't know where your files live. Two handlers fetch them for it:
 
 - `fileHandler` serves a file's content on `GET` and `HEAD /file/:id`. It receives the File row, including the file's
@@ -83,53 +90,13 @@ sequenceDiagram
 
 Store each file's location in its `meta` column when you index it, then build the path from it.
 
-```ts twoslash
-declare const storageRoot: string;
-// ---cut---
-import type { FileHandler } from 'arocapi';
-
-type FileMeta = { storagePath: string };
-
-export const fileHandler: FileHandler = {
-  get: (file) => ({
-    type: 'file',
-    path: `${storageRoot}/${(file.meta as FileMeta).storagePath}`,
-    metadata: {
-      contentType: file.mediaType,
-      contentLength: Number(file.size),
-      lastModified: file.updatedAt,
-    },
-  }),
-  head: (file) => ({
-    contentType: file.mediaType,
-    contentLength: Number(file.size),
-    lastModified: file.updatedAt,
-  }),
-};
-```
+<Code code={storageLocal} lang="ts" />
 
 Use this when files are small, or when nobody needs to seek within them. It is a poor fit for media playback, because
 every seek downloads the file from the start. If nginx sits in front of arocapi, add `accelPath` to the same result and
 nginx serves the file, with range support, from an `internal` location:
 
-```ts twoslash
-declare const storageRoot: string;
-// ---cut---
-import type { FilePathResult, GetFileHandler } from 'arocapi';
-
-type FileMeta = { storagePath: string };
-
-export const get: GetFileHandler = (file): FilePathResult => {
-  const { storagePath } = file.meta as FileMeta;
-
-  return {
-    type: 'file',
-    path: `${storageRoot}/${storagePath}`,
-    accelPath: `/protected/${storagePath}`,
-    metadata: { contentType: file.mediaType, contentLength: Number(file.size) },
-  };
-};
-```
+<Code code={storageAccel} lang="ts" />
 
 ## Redirect to object storage
 
@@ -151,30 +118,7 @@ sequenceDiagram
   Bucket-->>Client: 206 Partial Content
 ```
 
-```ts twoslash
-declare function presign(
-  key: string,
-  options: { expiresIn: number; contentDisposition: string },
-): Promise<string>;
-// ---cut---
-import type { FileHandler } from 'arocapi';
-
-type FileMeta = { objectKey: string };
-type FileQuery = { disposition?: 'inline' | 'attachment'; filename?: string };
-
-export const fileHandler: FileHandler = {
-  get: async (file, { request }) => {
-    const { disposition = 'inline', filename = file.filename } = request.query as FileQuery;
-    const url = await presign((file.meta as FileMeta).objectKey, {
-      expiresIn: 60,
-      contentDisposition: `${disposition}; filename="${filename}"`,
-    });
-
-    return { type: 'redirect', url };
-  },
-  head: (file) => ({ contentType: file.mediaType, contentLength: Number(file.size) }),
-};
-```
+<Code code={storagePresigned} lang="ts" />
 
 Things to plan for:
 
@@ -221,19 +165,7 @@ sequenceDiagram
 
 arocapi's part is only the signing:
 
-```ts twoslash
-declare function sign(payload: { fileId: string }, options: { expiresIn: number }): string;
-// ---cut---
-import type { FileHandler } from 'arocapi';
-
-export const fileHandler: FileHandler = {
-  get: (file) => ({
-    type: 'redirect',
-    url: `/content/${sign({ fileId: file.id }, { expiresIn: 60 })}`,
-  }),
-  head: (file) => ({ contentType: file.mediaType, contentLength: Number(file.size) }),
-};
-```
+<Code code={storageSignedUrl} lang="ts" />
 
 The token stands in for the access check that arocapi already made, so the content route must trust nothing else in
 the request. Keep the expiry short, and scope the token to one file.
@@ -254,35 +186,6 @@ The same storage patterns apply: read `ro-crate-metadata.json` from disk, redire
 it from the OCFL object. Because the handler can return a stream, it can also build the document on the fly, for
 example to redact it before sending it.
 
-```ts twoslash
-declare const storageRoot: string;
-declare function readCrate(path: string): Promise<{ text: string; modified: Date }>;
-declare function toStream(text: string): ReadableStream;
-// ---cut---
-import type { RoCrateHandler } from 'arocapi';
-
-type EntityMeta = { cratePath: string };
-
-export const roCrateHandler: RoCrateHandler = {
-  get: async (entity) => {
-    const crate = await readCrate(`${storageRoot}/${(entity.meta as EntityMeta).cratePath}`);
-
-    return {
-      type: 'stream',
-      stream: toStream(crate.text),
-      metadata: {
-        contentType: 'application/ld+json',
-        contentLength: Buffer.byteLength(crate.text),
-        lastModified: crate.modified,
-      },
-    };
-  },
-  head: async (entity) => {
-    const crate = await readCrate(`${storageRoot}/${(entity.meta as EntityMeta).cratePath}`);
-
-    return { contentType: 'application/ld+json', contentLength: Buffer.byteLength(crate.text) };
-  },
-};
-```
+<Code code={storageRoCrate} lang="ts" />
 
 `contentLength` must match the bytes you send, so measure a generated document after you build it.

@@ -5,6 +5,9 @@ sidebar:
   order: 5
 ---
 
+import { Code } from '@astrojs/starlight/components';
+import requestLifecycleTransformer from '../../../../examples/concepts/request-lifecycle-transformer.ts?raw';
+
 Every route runs your code in a fixed order. Knowing it tells you what each hook can rely on: an access function never
 sees a hidden entity, a handler never runs for a Denied request, and a transformer always sees the access result.
 [Visibility vs Access](/concepts/visibility-vs-access/#how-a-request-is-decided) covers the outcomes; this page covers
@@ -74,15 +77,7 @@ highlights) after your transformers have run.
 
 Transformers can rely on `access` being present:
 
-```ts twoslash
-import type { EntityTransformer } from 'arocapi';
-
-const withDownloadHint: EntityTransformer = (entity) => {
-  const { access } = entity;
-  //        ^?
-  return access.content ? entity : { ...entity, description: `${entity.description} (request access to download)` };
-};
-```
+<Code code={requestLifecycleTransformer} lang="ts" />
 
 ## Metadata and Content routes
 

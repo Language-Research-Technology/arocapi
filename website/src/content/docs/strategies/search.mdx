@@ -5,6 +5,11 @@ sidebar:
   order: 3
 ---
 
+import { Code } from '@astrojs/starlight/components';
+import searchAggregations from '../../../../examples/strategies/search-aggregations.ts?raw';
+import searchDrafts from '../../../../examples/strategies/search-drafts.ts?raw';
+import searchQueryBuilder from '../../../../examples/strategies/search-query-builder.ts?raw';
+
 `POST /search` runs a query against an OpenSearch index named `entities`. A query builder writes the query, the
 aggregations and the sort. arocapi adds your search visibility filter, runs the search, then loads the matching
 entities from the database and returns them in hit order.
@@ -92,15 +97,7 @@ facets.
 So pick one mapping and make the other side agree. The simplest is to map each facet field as `keyword`, and pass
 aggregations on the bare field names:
 
-```ts twoslash
-import type { QueryBuilderOptions } from 'arocapi';
-
-const fields = ['inLanguage', 'mediaType', 'communicationMode', 'entityType'];
-
-export const queryBuilderOptions: QueryBuilderOptions = {
-  aggregations: Object.fromEntries(fields.map((field) => [field, { terms: { field, size: 20 } }])),
-};
-```
+<Code code={searchAggregations} lang="ts" />
 
 Passing `aggregations` replaces the defaults rather than adding to them, so list every facet you want.
 
@@ -122,13 +119,7 @@ Keep the two filters in step: whatever field `entityVisibilityFilter` checks in 
 in the entity's `meta`, index that flag too (see
 [why the two filters must agree](/concepts/visibility-vs-access/#why-the-two-filters-must-agree)):
 
-```ts twoslash
-import type { SearchVisibilityFilter } from 'arocapi';
-
-export const searchVisibilityFilter: SearchVisibilityFilter = () => ({
-  bool: { must_not: [{ term: { draft: true } }] },
-});
-```
+<Code code={searchDrafts} lang="ts" />
 
 ## Customising the query builder
 
@@ -144,40 +135,7 @@ as `queryBuilderClass`. Each method can call `super` and adjust the result.
 
 This builder ranks collections above the items in them, breaks ties in sorted results by ID, and labels its facets:
 
-```ts twoslash
-import { OpensearchQueryBuilder, type Options } from 'arocapi';
-
-class ArchiveQueryBuilder extends OpensearchQueryBuilder {
-  override buildQuery(...args: Parameters<OpensearchQueryBuilder['buildQuery']>) {
-    const { bool } = super.buildQuery(...args);
-
-    return {
-      bool: {
-        ...bool,
-        should: [{ term: { entityType: { value: 'http://pcdm.org/models#Collection', boost: 2 } } }],
-      },
-    };
-  }
-
-  override buildSort(...args: Parameters<OpensearchQueryBuilder['buildSort']>) {
-    const sort = super.buildSort(...args);
-
-    return sort && [...sort, { id: 'asc' as const }];
-  }
-
-  override searchCapabilities() {
-    const capabilities = super.searchCapabilities();
-    capabilities.facets.entityType = { label: 'Type' };
-    capabilities.facets.inLanguage = { label: 'Language' };
-
-    return capabilities;
-  }
-}
-
-export const searchOptions: Pick<Options, 'queryBuilderClass' | 'queryBuilderOptions'> = {
-  queryBuilderClass: ArchiveQueryBuilder,
-};
-```
+<Code code={searchQueryBuilder} lang="ts" />
 
 A `should` clause beside `must` only adds to the score, so collections rise without anything being excluded.
 

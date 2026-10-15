@@ -5,6 +5,10 @@ sidebar:
   order: 4
 ---
 
+import { Code } from '@astrojs/starlight/components';
+import handlersFile from '../../../../examples/configuration/handlers-file.ts?raw';
+import handlersRoCrate from '../../../../examples/configuration/handlers-ro-crate.ts?raw';
+
 Handlers fetch bytes from your storage. arocapi calls them only after the entity is Visible and the request has access,
 so they don't need their own checks (see the [request
 lifecycle](/concepts/request-lifecycle/#metadata-and-content-routes)). [Storage](/strategies/storage/) compares ways to
@@ -30,39 +34,11 @@ Returning `false` answers 404 `NOT_FOUND`. The `meta` columns hold whatever your
 
 ## `fileHandler`
 
-```ts twoslash
-declare function presign(key: string): Promise<string>;
-declare function storageKey(meta: unknown): string;
-// ---cut---
-import type { FileHandler } from 'arocapi';
-
-const fileHandler: FileHandler = {
-  get: async (file) => ({ type: 'redirect', url: await presign(storageKey(file.meta)) }),
-  head: (file) => ({ contentType: file.mediaType, contentLength: Number(file.size) }),
-};
-```
+<Code code={handlersFile} lang="ts" />
 
 ## `roCrateHandler`
 
-```ts twoslash
-declare function cratePath(meta: unknown): string;
-declare function crateSize(path: string): Promise<number>;
-// ---cut---
-import type { RoCrateHandler } from 'arocapi';
-
-const roCrateHandler: RoCrateHandler = {
-  get: async (entity) => {
-    const path = cratePath(entity.meta);
-    const contentLength = await crateSize(path);
-
-    return { type: 'file', path, metadata: { contentType: 'application/ld+json', contentLength } };
-  },
-  head: async (entity) => ({
-    contentType: 'application/ld+json',
-    contentLength: await crateSize(cratePath(entity.meta)),
-  }),
-};
-```
+<Code code={handlersRoCrate} lang="ts" />
 
 `/entity/:id/metadata` always answers `GET` with `Content-Type: application/ld+json`, whatever `contentType` the
 handler returns.

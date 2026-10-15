@@ -5,6 +5,9 @@ sidebar:
   order: 5
 ---
 
+import { Code } from '@astrojs/starlight/components';
+import expressIndex from '../../../../examples/getting-started/src/express-index.ts?raw';
+
 arocapi has no Express adapter, but you don't need to switch frameworks. Register the plugin on a Fastify instance as
 in [Your first API](/getting-started/first-api/), and have Express forward requests to it instead of calling
 `fastify.listen()`.
@@ -14,24 +17,7 @@ pnpm add express
 pnpm add -D @types/express
 ```
 
-```ts twoslash title="src/index.ts"
-declare const options: import('arocapi').Options;
-// ---cut---
-import arocapi from 'arocapi';
-import express from 'express';
-import Fastify from 'fastify';
-
-const fastify = Fastify({ logger: true });
-await fastify.register(arocapi, options);
-await fastify.ready();
-
-const app = express();
-app.use('/api', (req, res) => {
-  fastify.routing(req, res);
-});
-
-app.listen(3000);
-```
+<Code code={expressIndex} lang="ts" title="src/index.ts" />
 
 Express strips the `/api` mount path before forwarding, so the entity list is at `/api/entities`.
 

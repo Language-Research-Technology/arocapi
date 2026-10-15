@@ -14,7 +14,7 @@ arocapi is a **published npm library** (not a standalone app). It provides an RO
 - `pnpm test:coverage` — tests with HTML coverage report
 - `pnpm generate` — generate Prisma client (run after schema changes)
 - `pnpm db:migrate` — apply database migrations
-- `pnpm --filter website build` — build the docs site (`website/`, Astro Starlight). Fails on a Twoslash type error, a broken internal link or anchor, or an invalid Mermaid diagram
+- `pnpm --filter website build` — build the docs site (`website/`, Astro Starlight). Fails on a type error in an example (`website/examples/`, also checked by `pnpm lint`), a broken internal link or anchor, or an invalid Mermaid diagram
 - `pnpm --filter website dev` — docs dev server
 
 Releases (stable and `beta` prereleases) are covered in `RELEASING.md`.

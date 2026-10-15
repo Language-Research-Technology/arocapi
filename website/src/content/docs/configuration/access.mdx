@@ -5,6 +5,12 @@ sidebar:
   order: 3
 ---
 
+import { Code } from '@astrojs/starlight/components';
+import accessPublic from '../../../../examples/configuration/access-public.ts?raw';
+import accessLicence from '../../../../examples/configuration/access-licence.ts?raw';
+import accessFunction from '../../../../examples/configuration/access-function.ts?raw';
+import accessIsAuthenticated from '../../../../examples/configuration/access-is-authenticated.ts?raw';
+
 Access decides whether a request may read a Visible entity's Metadata (its RO-Crate metadata document) and Content (a
 file's bytes). arocapi attaches the result to every entity and file it returns, and enforces it on
 `/entity/:id/metadata` and `/file/:id` before calling your handlers. See
@@ -39,27 +45,14 @@ Anything else it returns is dropped.
 
 For a public repository, use `AllPublicAccess`, which grants everything:
 
-```ts twoslash
-import { AllPublicAccess, type Options } from 'arocapi';
-
-const access: Options['access'] = AllPublicAccess;
-```
+<Code code={accessPublic} lang="ts" />
 
 When access follows licences, use `LicenceAccess`. Metadata needs the entity's `metadataLicenseId` and Content its
 `contentLicenseId`. Each licence is checked at most once per request. See
 [licence checks against an external authority](/strategies/access/#licence-checks-against-an-external-authority)
 for caching a user's entitlements across licences.
 
-```ts twoslash
-declare function licencesHeldBy(request: import('arocapi').RequestContext['request']): Promise<string[]>;
-// ---cut---
-import { LicenceAccess } from 'arocapi';
-
-const access = LicenceAccess({
-  hasLicence: async (licenceId, { request }) => (await licencesHeldBy(request)).includes(licenceId),
-  authorisationUrl: (licenceId) => `https://rems.example.com/apply?resource=${encodeURIComponent(licenceId)}`,
-});
-```
+<Code code={accessLicence} lang="ts" />
 
 | `LicenceAccess` option | Required | Type                                                     | Purpose                                                  |
 | ---------------------- | -------- | -------------------------------------------------------- | -------------------------------------------------------- |
@@ -68,21 +61,7 @@ const access = LicenceAccess({
 
 For any other rule, write your own function:
 
-```ts twoslash
-declare function currentUser(request: import('arocapi').RequestContext['request']): { isStaff: boolean } | undefined;
-// ---cut---
-import type { AccessFunction } from 'arocapi';
-
-const access: AccessFunction = (entity, { request }) => {
-  const user = currentUser(request);
-
-  return {
-    metadata: true,
-    content: Boolean(user?.isStaff),
-    contentAuthorizationUrl: user ? undefined : 'https://auth.example.com/login',
-  };
-};
-```
+<Code code={accessFunction} lang="ts" />
 
 ## `isAuthenticated`
 
@@ -90,13 +69,7 @@ Returns whether the request carries valid credentials. arocapi uses it to pick t
 anonymous request, so the client can prompt a login, and 403 when logging in won't help; see
 [Denied is 401 or 403, never 404](/concepts/visibility-vs-access/#denied-is-401-or-403-never-404).
 
-```ts twoslash
-declare function currentUser(request: import('arocapi').RequestContext['request']): object | undefined;
-// ---cut---
-import type { IsAuthenticated } from 'arocapi';
-
-const isAuthenticated: IsAuthenticated = ({ request }) => currentUser(request) !== undefined;
-```
+<Code code={accessIsAuthenticated} lang="ts" />
 
 Without it, the repository has no logins: no request is anonymous, so a Denied request always gets 403. It is required
 by [`promptLoginForHidden`](/configuration/visibility/#promptloginforhidden). See

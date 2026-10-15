@@ -5,6 +5,12 @@ sidebar:
   order: 1
 ---
 
+import { Code } from '@astrojs/starlight/components';
+import accessPublic from '../../../../examples/strategies/access-public.ts?raw';
+import accessLogin from '../../../../examples/strategies/access-login.ts?raw';
+import accessHidden from '../../../../examples/strategies/access-hidden.ts?raw';
+import accessEntitlements from '../../../../examples/strategies/access-entitlements.ts?raw';
+
 Your `access` function decides, for each visible entity, whether a request may read its
 [Metadata and Content](/concepts/record-metadata-content/). arocapi attaches the answer to every Record and enforces it
 on `/entity/:id/metadata` and `/file/:id`. An optional `isAuthenticated` function tells arocapi which requests are
@@ -41,15 +47,7 @@ flowchart LR
 arocapi exports `AllPublicAccess` for this. Leave out `isAuthenticated`: without it no request is anonymous, and with
 this access function no request is Denied either.
 
-```ts twoslash
-import { AllPublicAccess, AllVisibleEntityFilter, AllVisibleSearchFilter, type Options } from 'arocapi';
-
-export const guards = {
-  entityVisibilityFilter: AllVisibleEntityFilter,
-  searchVisibilityFilter: AllVisibleSearchFilter,
-  access: AllPublicAccess,
-} satisfies Partial<Options>;
-```
+<Code code={accessPublic} lang="ts" />
 
 **With visibility.** An open repository can still keep entities out of sight. Access only covers what is visible, so
 drafts, withdrawn items or anything else you don't want to publish belong in the visibility filters, not in the access
@@ -80,20 +78,7 @@ Your app authenticates the request however it already does, for example with a s
 checked in a Fastify hook. Both functions then read the result from the request. Here `currentUser` stands in for
 that:
 
-```ts twoslash
-type User = { id: string };
-declare function currentUser(request: import('arocapi').RequestContext['request']): User | undefined;
-// ---cut---
-import type { AccessFunction, IsAuthenticated } from 'arocapi';
-
-export const isAuthenticated: IsAuthenticated = ({ request }) => currentUser(request) !== undefined;
-
-export const access: AccessFunction = (_entity, { request }) => {
-  const loggedIn = currentUser(request) !== undefined;
-
-  return { metadata: loggedIn, content: loggedIn };
-};
-```
+<Code code={accessLogin} lang="ts" />
 
 [`isAuthenticated`](/configuration/access/#isauthenticated) is what turns the refusal into a 401. Without it, arocapi treats every request as logged in and
 answers 403, which a client can't act on.
@@ -104,18 +89,7 @@ keep `content: loggedIn`.
 **With visibility.** In this pattern anonymous visitors still see Records in listings and search, with `access` flags
 false. If anonymous visitors shouldn't see anything at all, hide everything from them through visibility instead:
 
-```ts twoslash
-type User = { id: string };
-declare function currentUser(request: import('arocapi').RequestContext['request']): User | undefined;
-// ---cut---
-import type { Options } from 'arocapi';
-
-export const guards = {
-  entityVisibilityFilter: ({ request }) => (currentUser(request) ? {} : { id: { in: [] } }),
-  searchVisibilityFilter: ({ request }) => (currentUser(request) ? { match_all: {} } : { match_none: {} }),
-  promptLoginForHidden: true,
-} satisfies Partial<Options>;
-```
+<Code code={accessHidden} lang="ts" />
 
 Listings and search come back empty for anonymous requests. With [`promptLoginForHidden`](/configuration/visibility/#promptloginforhidden), a direct request for an
 entity that exists gets a 401 rather than a 404, so links shared with colleagues still lead to a login.
@@ -166,36 +140,7 @@ licence per request, and adds an authorisation URL only to a flag that is false.
 That built-in cache is per licence. To ask the entitlement service only once per request, whatever the number of
 licences, cache the user's whole entitlement list against the request as well:
 
-```ts twoslash
-type User = { id: string };
-declare function currentUser(request: import('arocapi').RequestContext['request']): User | undefined;
-declare function fetchEntitlements(userId: string): Promise<Set<string>>;
-// ---cut---
-import { type IsAuthenticated, LicenceAccess, type RequestContext } from 'arocapi';
-
-const openLicences = new Set(['https://creativecommons.org/licenses/by/4.0/']);
-
-const entitlementsByRequest = new WeakMap<RequestContext['request'], Promise<Set<string>>>();
-
-const entitlements = ({ request }: RequestContext) => {
-  let held = entitlementsByRequest.get(request);
-  if (!held) {
-    const user = currentUser(request);
-    held = user ? fetchEntitlements(user.id) : Promise.resolve(new Set());
-    entitlementsByRequest.set(request, held);
-  }
-
-  return held;
-};
-
-export const isAuthenticated: IsAuthenticated = ({ request }) => currentUser(request) !== undefined;
-
-export const access = LicenceAccess({
-  hasLicence: async (licenceId, context) =>
-    openLicences.has(licenceId) || (await entitlements(context)).has(licenceId),
-  authorisationUrl: (licenceId) => `https://rems.example.org/apply?resource=${encodeURIComponent(licenceId)}`,
-});
-```
+<Code code={accessEntitlements} lang="ts" />
 
 The `WeakMap` is keyed by the request, so entries disappear with it and nothing is shared between users. Anonymous
 requests never reach the entitlement service: they hold only the open licences, and get a 401 for anything else so

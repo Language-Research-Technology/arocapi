@@ -5,6 +5,9 @@ sidebar:
   order: 1
 ---
 
+import { Code } from '@astrojs/starlight/components';
+import whatIsArocapiOptions from '../../../../examples/introduction/what-is-arocapi-options.ts?raw';
+
 arocapi is a library that implements an RO-Crate API, and part of [CrateWorks](/introduction/crate-works/). It is a
 [Fastify](https://fastify.dev) plugin, so you register it in your own app (or in an Express app through Fastify), and
 it adds routes for listing, searching and reading the [entities](/concepts/entities/) in a repository: collections,
@@ -23,31 +26,9 @@ owns the API and leaves the decisions that differ between repositories to you:
 
 ## Registering the plugin
 
-You pass everything arocapi needs as plugin options. Hover over the names to see their types.
+You pass everything arocapi needs as plugin options.
 
-```ts twoslash
-declare const prisma: import('arocapi').Options['prisma'];
-declare const opensearch: import('arocapi').Options['opensearch'];
-declare const fileHandler: import('arocapi').FileHandler;
-declare const roCrateHandler: import('arocapi').RoCrateHandler;
-// ---cut---
-import {
-  AllPublicAccess,
-  AllVisibleEntityFilter,
-  AllVisibleSearchFilter,
-  type Options,
-} from 'arocapi';
-
-const options: Options = {
-  prisma,
-  opensearch,
-  fileHandler,
-  roCrateHandler,
-  entityVisibilityFilter: AllVisibleEntityFilter,
-  searchVisibilityFilter: AllVisibleSearchFilter,
-  access: AllPublicAccess,
-};
-```
+<Code code={whatIsArocapiOptions} lang="ts" />
 
 Every option is described under Configuration: [data sources](/configuration/data-sources/),
 [visibility](/configuration/visibility/), [access](/configuration/access/), [handlers](/configuration/handlers/),
