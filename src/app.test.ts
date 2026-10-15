@@ -43,15 +43,21 @@ describe('Entity Route', () => {
     });
 
     it.each([
-      ['accessTransformer', 'access'],
-      ['fileAccessTransformer', 'access'],
-      ['hiddenResponse', 'promptLoginForHidden and isAuthenticated'],
-    ])('should reject the removed %s option', async (option, replacement) => {
+      ['accessTransformer', 'access', 'https://arocapi.crate-works.org/configuration/access/'],
+      ['fileAccessTransformer', 'access', 'https://arocapi.crate-works.org/configuration/access/'],
+      [
+        'hiddenResponse',
+        'promptLoginForHidden and isAuthenticated',
+        'https://arocapi.crate-works.org/configuration/visibility/#promptloginforhidden',
+      ],
+    ])('should reject the removed %s option', async (option, replacement, docs) => {
       const fastify = Fastify({ logger: false });
 
       fastify.register(app, { ...requiredOptions(), [option]: 'notFound' });
 
-      await expect(() => fastify.ready()).rejects.toThrowError(`${option} has been replaced by ${replacement}`);
+      await expect(() => fastify.ready()).rejects.toThrowError(
+        `${option} has been replaced by ${replacement}, see ${docs}`,
+      );
     });
 
     it('should reject promptLoginForHidden without isAuthenticated', async () => {
