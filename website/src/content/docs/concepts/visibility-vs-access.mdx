@@ -143,7 +143,8 @@ const guards = {
 
 Each entity carries its own `published` flag. Visibility filters don't cascade: hiding an item doesn't hide its
 files, so **draft.wav** needs the flag as well. `currentUser` stands in for however your app reads the logged-in
-user from the request.
+user from the request. [Access strategies](/strategies/access/#licence-checks-against-an-external-authority) covers
+this licence pattern and the alternatives.
 
 Here's what each request gets:
 

@@ -10,6 +10,7 @@ file's bytes). arocapi attaches the result to every entity and file it returns, 
 `/entity/:id/metadata` and `/file/:id` before calling your handlers. See
 [Record, Metadata, Content](/concepts/record-metadata-content/) for the levels and
 [Visibility vs Access](/concepts/visibility-vs-access/) for how a request is decided.
+[Access strategies](/strategies/access/) compares common ways to decide access.
 
 | Option            | Required | Type              | Default     | Purpose                                                  |
 | ----------------- | -------- | ----------------- | ----------- | -------------------------------------------------------- |
@@ -44,7 +45,9 @@ const access: Options['access'] = AllPublicAccess;
 ```
 
 When access follows licences, use `LicenceAccess`. Metadata needs the entity's `metadataLicenseId` and Content its
-`contentLicenseId`. Each licence is checked at most once per request.
+`contentLicenseId`. Each licence is checked at most once per request. See
+[licence checks against an external authority](/strategies/access/#licence-checks-against-an-external-authority)
+for caching a user's entitlements across licences.
 
 ```ts twoslash
 declare function licencesHeldBy(request: import('arocapi').RequestContext['request']): Promise<string[]>;
