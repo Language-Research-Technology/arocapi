@@ -51,7 +51,7 @@ For direct requests to `/entity/:id`, `/entity/:id/metadata` and `/file/:id`:
 
 - A Hidden entity gets the same response as a missing one, so its existence isn't revealed. It never gets 403.
 - A Denied request is never 404: the entity is Visible, so the client already knows it exists.
-- Without [`isAuthenticated`](/configuration/access/#isauthenticated) no request is anonymous, so Denied is always 403.
+- Without [`isAuthenticated`](/configuration/access/#isauthenticated) no request is Anonymous, so Denied is always 403.
 - Refusal bodies carry `details.entityId` but no authorisation URLs. Clients read those from the entity's `access`.
 - `/entity/:id` only checks visibility; the Record is returned whatever the access.
 

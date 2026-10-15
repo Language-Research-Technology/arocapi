@@ -6,9 +6,9 @@ sidebar:
 ---
 
 import { Code } from '@astrojs/starlight/components';
-import firstApiIndex from '../../../../examples/getting-started/src/first-api-index.ts?raw';
-import firstApiSeed from '../../../../examples/getting-started/scripts/first-api-seed.ts?raw';
-import firstApiLogin from '../../../../examples/getting-started/src/first-api-login.ts?raw';
+import firstApiIndex from '@examples/getting-started/src/first-api-index.ts?raw';
+import firstApiSeed from '@examples/getting-started/scripts/first-api-seed.ts?raw';
+import firstApiLogin from '@examples/getting-started/src/first-api-login.ts?raw';
 
 With the database and index ready, you can register the plugin. This page builds a public repository that stores its
 RO-Crate metadata and files on local disk, then shows how to require a login for some of it.
@@ -106,7 +106,8 @@ Each entity in a response carries an `access` object saying whether this request
 Most repositories have content that only some people may read. Replace `AllPublicAccess` with an access function
 that checks licences, and tell arocapi how to recognise a logged-in request with
 [`isAuthenticated`](/configuration/access/#isauthenticated). How a request
-proves who it is stays up to your app; this example accepts a single bearer token.
+proves who it is stays up to your app; this example accepts a single bearer token from `API_TOKEN`, and treats
+every request as Anonymous if it isn't set.
 
 <Code code={firstApiLogin} lang="ts" title="src/index.ts" />
 

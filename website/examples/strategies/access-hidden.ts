@@ -7,5 +7,6 @@ declare function currentUser(request: FastifyRequest): { id: string } | undefine
 export const guards = {
   entityVisibilityFilter: ({ request }) => (currentUser(request) ? {} : { id: { in: [] } }),
   searchVisibilityFilter: ({ request }) => (currentUser(request) ? { match_all: {} } : { match_none: {} }),
+  isAuthenticated: ({ request }) => currentUser(request) !== undefined,
   promptLoginForHidden: true,
 } satisfies Partial<Options>;

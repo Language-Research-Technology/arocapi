@@ -1,9 +1,9 @@
 # arocapi
 
-arocapi is an RO-Crate API for data collections, packaged as a Fastify plugin. You mount it into your own Fastify (or
-Express) app and bring your storage, search index and access rules; arocapi serves the routes for entities, files,
-search and RO-Crate metadata, following the [PILARS](https://w3id.org/ldac/pilars) protocols for long-term archival
-repositories.
+arocapi implements the [RO-Crate API](https://ro-crate-api.crate-works.org) for data collections, packaged as a
+Fastify plugin. You mount it into your own Fastify (or Express) app and bring your storage, search index and access
+rules; arocapi serves the routes for entities, files, search and RO-Crate metadata, following the
+[PILARS](https://w3id.org/ldac/pilars) protocols for long-term archival repositories.
 
 **Documentation: <https://arocapi.crate-works.org>**
 
@@ -40,14 +40,14 @@ pnpm dev               # build and serve src/index.dev.ts on http://localhost:90
 
 | Command                       | What it does                                                         |
 | ----------------------------- | -------------------------------------------------------------------- |
-| `pnpm lint`                   | Biome, type checking and knip                                        |
+| `pnpm lint`                   | Biome, type checking, the docs examples type check and knip          |
 | `pnpm test`                   | Start the test containers, apply migrations and run every test       |
 | `pnpm test src/app.test.ts`   | Run one test file                                                    |
 | `pnpm test:watch`             | Run the tests in watch mode                                          |
 | `pnpm test:coverage`          | Run the tests with an HTML coverage report                           |
 | `pnpm dbconsole`              | Open a MySQL console on the development database                     |
 | `pnpm --filter website dev`   | Run the documentation site locally                                   |
-| `pnpm --filter website build` | Build the documentation site, checking its examples and every link   |
+| `pnpm --filter website build` | Build the documentation site, checking its diagrams and every link   |
 
 Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/); they decide the next version.
 See [TESTING.md](TESTING.md) for the test setup and [RELEASING.md](RELEASING.md) for releases.

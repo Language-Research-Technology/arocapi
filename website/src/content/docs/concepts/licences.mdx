@@ -6,8 +6,8 @@ sidebar:
 ---
 
 import { Code } from '@astrojs/starlight/components';
-import licencesAccessInfo from '../../../../examples/concepts/licences-access-info.ts?raw';
-import licencesLicenceAccess from '../../../../examples/concepts/licences-licence-access.ts?raw';
+import licencesAccessInfo from '@examples/concepts/licences-access-info.ts?raw';
+import licencesLicenceAccess from '@examples/concepts/licences-licence-access.ts?raw';
 
 In a [PILARS](/introduction/pilars/) archive, every item carries a licence: a plain-language statement of who may use
 it and how, stored with the data. arocapi builds its access model on those licences.
@@ -24,9 +24,10 @@ Every [entity](/concepts/entities/) has two licence ids, usually the URLs of lic
 Splitting them lets a repository publish what an item is while restricting the item itself. A common arrangement is an
 open licence such as CC BY 4.0 for metadata and a closed licence for the recordings of a sensitive collection.
 
-Both ids are part of the entity's summary, so listings, search results and `/entity/:id` show which licences apply
+Both ids are part of the entity's Record, so listings, search results and `/entity/:id` show which licences apply
 even to a user who can't hold them. Access never hides an entity. Hiding is the job of the visibility filters, which
-run first; if a licence should also hide entities, your filters can use it too.
+run first. Keep licences out of them, so a user without a licence can still find the Record and the authorisation URL
+that lets them apply.
 
 ## Deciding access
 
@@ -36,7 +37,7 @@ read the Metadata and the Content. It returns an `AccessInfo`:
 <Code code={licencesAccessInfo} lang="ts" />
 
 arocapi attaches the result to every entity it returns as `access`, and enforces it on the metadata and file routes. A
-request whose flag is `false` is Denied: `401` if it is anonymous, so the client can prompt a login, and `403` otherwise
+request whose flag is `false` is Denied: `401` if it is Anonymous, so the client can prompt a login, and `403` otherwise
 (see [Visibility vs Access](/concepts/visibility-vs-access/#denied-is-401-or-403-never-404)). Only `metadata`, `content`
 and non-empty authorisation URLs are kept; anything else you return is dropped.
 

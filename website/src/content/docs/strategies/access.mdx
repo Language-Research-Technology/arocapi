@@ -6,15 +6,15 @@ sidebar:
 ---
 
 import { Code } from '@astrojs/starlight/components';
-import accessPublic from '../../../../examples/strategies/access-public.ts?raw';
-import accessLogin from '../../../../examples/strategies/access-login.ts?raw';
-import accessHidden from '../../../../examples/strategies/access-hidden.ts?raw';
-import accessEntitlements from '../../../../examples/strategies/access-entitlements.ts?raw';
+import accessPublic from '@examples/strategies/access-public.ts?raw';
+import accessLogin from '@examples/strategies/access-login.ts?raw';
+import accessHidden from '@examples/strategies/access-hidden.ts?raw';
+import accessEntitlements from '@examples/strategies/access-entitlements.ts?raw';
 
 Your `access` function decides, for each visible entity, whether a request may read its
 [Metadata and Content](/concepts/record-metadata-content/). arocapi attaches the answer to every Record and enforces it
 on `/entity/:id/metadata` and `/file/:id`. An optional `isAuthenticated` function tells arocapi which requests are
-anonymous, which decides whether a Denied request gets a 401 or a 403. How those answers play out route by route is
+Anonymous, which decides whether a Denied request gets a 401 or a 403. How those answers play out route by route is
 covered in [Visibility vs Access](/concepts/visibility-vs-access/), and the options themselves in
 [Configuration → Access](/configuration/access/).
 
@@ -152,6 +152,6 @@ If the entitlement service fails, the rejected promise fails the request with a 
 
 **With visibility.** Keep licences and visibility apart. Don't hide entities a user lacks the licence for: a hidden
 entity can't be found, so the user never sees its Record or the authorisation URL that would let them apply. Leave
-those entities visible and Denied, and use visibility only for entities that shouldn't be published at all, such as
+those entities Visible and Denied, and use visibility only for entities that shouldn't be published at all, such as
 drafts. The [worked scenario](/concepts/visibility-vs-access/#a-worked-scenario) follows this pattern through every
 route for an anonymous, a logged-in and a licensed user.

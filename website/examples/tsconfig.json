@@ -10,7 +10,7 @@
     "skipLibCheck": true,
     "noEmit": true,
     "allowImportingTsExtensions": true,
-    "paths": { "arocapi": ["../../src/app.ts"] }
+    "rootDirs": ["introduction", "reference", "configuration", "getting-started/src", "../../dist"]
   },
-  "include": ["**/*.ts", "../../src/reset.d.ts"]
+  "include": ["**/*.ts"]
 }

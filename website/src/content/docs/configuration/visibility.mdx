@@ -6,8 +6,8 @@ sidebar:
 ---
 
 import { Code } from '@astrojs/starlight/components';
-import visibilityAll from '../../../../examples/configuration/visibility-all.ts?raw';
-import visibilityLicence from '../../../../examples/configuration/visibility-licence.ts?raw';
+import accessPublic from '@examples/strategies/access-public.ts?raw';
+import visibilityCollections from '@examples/configuration/visibility-collections.ts?raw';
 
 Visibility decides whether an entity exists for a request. A Hidden entity is left out of listings and search,
 including their totals and facets, and a direct request for it gets the same 404 as a missing entity.
@@ -36,20 +36,26 @@ Returns an OpenSearch query. `POST /search` adds it as a `bool` filter beside yo
 If the two filters disagree, search drops any hit the entity filter hides and logs a warning. The page can then be
 shorter than `limit`, and `total` still counts the dropped hits.
 
-For a public repository, use the exported filters that make every entity visible:
+For a public repository, use the exported filters that make every entity visible, with `AllPublicAccess`:
 
-<Code code={visibilityAll} lang="ts" />
+<Code code={accessPublic} lang="ts" />
 
-To restrict by licence, build both filters from the same list:
+To hide whole collections, such as ones withdrawn from publication, build both filters from the same list. `id` and
+`rootCollection` are `keyword` fields in the [index mapping](/getting-started/opensearch/#create-the-index), so `terms`
+matches them exactly:
 
-<Code code={visibilityLicence} lang="ts" />
+<Code code={visibilityCollections} lang="ts" />
 
 Visibility doesn't pass down from collections. A member of a Hidden collection is only Hidden if your filters hide it,
-for example by also filtering on `rootCollection`.
+which is why both filters also check `rootCollection`. In Prisma, `notIn` leaves out rows where the column is null, so
+the entity filter keeps top-level collections with an explicit `rootCollection: null`.
+
+Hide only what shouldn't be published. An entity a request lacks the licence for should stay Visible and be Denied, so
+its Record still says where to apply; see [Licence checks against an external authority](/strategies/access/#licence-checks-against-an-external-authority).
 
 ## `promptLoginForHidden`
 
-When `true`, an anonymous request for a Hidden entity gets 401 `UNAUTHORIZED` instead of 404, in case logging in makes
+When `true`, an Anonymous request for a Hidden entity gets 401 `UNAUTHORIZED` instead of 404, in case logging in makes
 it visible. Authenticated requests still get 404, and missing entities always do. It applies to `/entity/:id`,
 `/entity/:id/metadata` and `/file/:id`. The trade-off is described under
 [Hidden is 404, unless you prompt a login](/concepts/visibility-vs-access/#hidden-is-404-unless-you-prompt-a-login).

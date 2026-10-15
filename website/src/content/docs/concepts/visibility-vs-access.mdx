@@ -6,19 +6,19 @@ sidebar:
 ---
 
 import { Code } from '@astrojs/starlight/components';
-import visibilityVsAccessGuards from '../../../../examples/concepts/visibility-vs-access-guards.ts?raw';
+import visibilityVsAccessGuards from '@examples/concepts/visibility-vs-access-guards.ts?raw';
 
 arocapi asks two questions about every entity a request touches, always in the same order.
 
 1. **Is it visible?** Your visibility filters decide which entities exist for this request. A **Visible** entity
    appears in listings and search and can be looked up. A **Hidden** one behaves exactly like an entity that was
    never there.
-2. **Is it accessible?** For a visible entity, your access function decides whether this request may read its
-   [Metadata and Content](/concepts/record-metadata-content/). If it may, the request is **Accessible**; if not, it
-   is **Denied**.
+2. **Is it accessible?** For a Visible entity, your access function decides whether this request may read its
+   [Metadata and Content](/concepts/record-metadata-content/). If it may, the entity is **Accessible** to the request;
+   if not, the request is **Denied**.
 
 A request is **Anonymous** when it carries no valid credentials, as decided by your `isAuthenticated` function.
-If you don't supply `isAuthenticated`, the repository has no logins, so no request is anonymous.
+If you don't supply `isAuthenticated`, the repository has no logins, so no request is Anonymous.
 
 ## Three levels, two guards
 

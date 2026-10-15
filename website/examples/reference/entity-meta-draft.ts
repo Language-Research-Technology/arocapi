@@ -1,10 +1,10 @@
 import type { EntityVisibilityFilter, SearchVisibilityFilter } from 'arocapi';
 import { Prisma } from './generated/prisma/client.ts';
 
-const entityVisibilityFilter: EntityVisibilityFilter = () => ({
+export const entityVisibilityFilter: EntityVisibilityFilter = () => ({
   OR: [{ meta: { path: '$.draft', equals: Prisma.AnyNull } }, { meta: { path: '$.draft', not: true } }],
 });
 
-const searchVisibilityFilter: SearchVisibilityFilter = () => ({
+export const searchVisibilityFilter: SearchVisibilityFilter = () => ({
   bool: { must_not: { term: { 'meta.draft': true } } },
 });

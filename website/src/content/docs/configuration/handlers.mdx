@@ -6,8 +6,8 @@ sidebar:
 ---
 
 import { Code } from '@astrojs/starlight/components';
-import handlersFile from '../../../../examples/configuration/handlers-file.ts?raw';
-import handlersRoCrate from '../../../../examples/configuration/handlers-ro-crate.ts?raw';
+import handlersFile from '@examples/configuration/handlers-file.ts?raw';
+import handlersRoCrate from '@examples/configuration/handlers-ro-crate.ts?raw';
 
 Handlers fetch bytes from your storage. arocapi calls them only after the entity is Visible and the request has access,
 so they don't need their own checks (see the [request

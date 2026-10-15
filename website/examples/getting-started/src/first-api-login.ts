@@ -18,8 +18,10 @@ declare const roCrateHandler: RoCrateHandler;
 
 const openLicences = new Set(['https://creativecommons.org/licenses/by/4.0/']);
 
+const apiToken = process.env.API_TOKEN;
+
 const isAuthenticated: IsAuthenticated = ({ request }) =>
-  request.headers.authorization === `Bearer ${process.env.API_TOKEN}`;
+  Boolean(apiToken) && request.headers.authorization === `Bearer ${apiToken}`;
 
 const access = LicenceAccess({
   hasLicence: async (licenceId, context) => openLicences.has(licenceId) || (await isAuthenticated(context)),

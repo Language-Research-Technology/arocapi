@@ -4,20 +4,16 @@
   "type": "module",
   "scripts": {
     "dev": "astro dev",
-    "build": "pnpm --workspace-root exec prisma generate && pnpm check:examples && node scripts/check-mermaid.ts && astro build",
-    "preview": "astro preview",
-    "check:examples": "pnpm --workspace-root exec tsc -p website/examples"
+    "build": "node scripts/check-mermaid.ts && astro build",
+    "preview": "astro preview"
   },
   "dependencies": {
     "@astrojs/starlight": "^0.42.6",
-    "@astrojs/starlight-tailwind": "^5.0.0",
-    "@tailwindcss/vite": "^4.3.3",
     "arocapi": "workspace:*",
     "astro": "^7.3.8",
     "astro-mermaid": "^2.1.0",
     "mermaid": "^11.17.2",
-    "starlight-links-validator": "^0.27.0",
-    "tailwindcss": "^4.3.3"
+    "starlight-links-validator": "^0.27.0"
   },
   "devDependencies": {
     "@opensearch-project/opensearch": "^3.9.0",

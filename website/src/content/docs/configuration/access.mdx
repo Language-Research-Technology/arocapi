@@ -6,10 +6,10 @@ sidebar:
 ---
 
 import { Code } from '@astrojs/starlight/components';
-import accessPublic from '../../../../examples/configuration/access-public.ts?raw';
-import accessLicence from '../../../../examples/configuration/access-licence.ts?raw';
-import accessFunction from '../../../../examples/configuration/access-function.ts?raw';
-import accessIsAuthenticated from '../../../../examples/configuration/access-is-authenticated.ts?raw';
+import accessPublic from '@examples/strategies/access-public.ts?raw';
+import licencesLicenceAccess from '@examples/concepts/licences-licence-access.ts?raw';
+import accessFunction from '@examples/configuration/access-function.ts?raw';
+import accessIsAuthenticated from '@examples/configuration/access-is-authenticated.ts?raw';
 
 Access decides whether a request may read a Visible entity's Metadata (its RO-Crate metadata document) and Content (a
 file's bytes). arocapi attaches the result to every entity and file it returns, and enforces it on
@@ -43,7 +43,8 @@ Anything else it returns is dropped.
 - A file's access is its file entity's access. On collections and objects, `content` is only a signal to clients.
 - When access is false, `/entity/:id/metadata` and `/file/:id` refuse the request and never call your handler.
 
-For a public repository, use `AllPublicAccess`, which grants everything:
+For a public repository, use `AllPublicAccess`, which grants everything, with the filters that make every entity
+visible:
 
 <Code code={accessPublic} lang="ts" />
 
@@ -52,7 +53,7 @@ When access follows licences, use `LicenceAccess`. Metadata needs the entity's `
 [licence checks against an external authority](/strategies/access/#licence-checks-against-an-external-authority)
 for caching a user's entitlements across licences.
 
-<Code code={accessLicence} lang="ts" />
+<Code code={licencesLicenceAccess} lang="ts" />
 
 | `LicenceAccess` option | Required | Type                                                     | Purpose                                                  |
 | ---------------------- | -------- | -------------------------------------------------------- | -------------------------------------------------------- |
@@ -71,6 +72,6 @@ anonymous request, so the client can prompt a login, and 403 when logging in won
 
 <Code code={accessIsAuthenticated} lang="ts" />
 
-Without it, the repository has no logins: no request is anonymous, so a Denied request always gets 403. It is required
+Without it, the repository has no logins: no request is Anonymous, so a Denied request always gets 403. It is required
 by [`promptLoginForHidden`](/configuration/visibility/#promptloginforhidden). See
 [Error responses](/reference/errors/#refusals) for every outcome.

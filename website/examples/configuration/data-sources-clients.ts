@@ -6,4 +6,4 @@ import { PrismaClient } from './generated/prisma/client.ts';
 const prisma = new PrismaClient({ adapter: new PrismaMariaDb(process.env.DATABASE_URL as string) });
 const opensearch = new Client({ node: process.env.OPENSEARCH_URL });
 
-const dataSources: Pick<Options, 'prisma' | 'opensearch'> = { prisma, opensearch };
+export const dataSources: Pick<Options, 'prisma' | 'opensearch'> = { prisma, opensearch };

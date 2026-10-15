@@ -14,7 +14,7 @@ import { PrismaClient } from './generated/prisma/client.ts';
 declare const fileHandler: FileHandler;
 declare const roCrateHandler: RoCrateHandler;
 
-const options: Options = {
+export const options: Options = {
   prisma: new PrismaClient({ adapter: new PrismaMariaDb(process.env.DATABASE_URL as string) }),
   opensearch: new Client({ node: process.env.OPENSEARCH_URL }),
   fileHandler,

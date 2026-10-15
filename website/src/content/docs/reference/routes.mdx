@@ -5,6 +5,11 @@ sidebar:
   order: 1
 ---
 
+These are the read routes of the [RO-Crate API](https://ro-crate-api.crate-works.org) specification, version 0.4.0,
+whose OpenAPI reference is the contract clients code against. arocapi is a read-only catalogue: it reports
+`deposit: { supported: false }` from `/capabilities` and doesn't provide the specification's optional deposit,
+RO-Crate or entity-delete routes.
+
 Paths are relative to the `prefix` arocapi is registered with. Entity and file ids are URLs, encoded as one path
 segment, e.g. `/entity/http%3A%2F%2Fexample.com%2Fentity%2F1`.
 

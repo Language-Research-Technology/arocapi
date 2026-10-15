@@ -6,12 +6,12 @@ sidebar:
 ---
 
 import { Code } from '@astrojs/starlight/components';
-import whatIsArocapiOptions from '../../../../examples/introduction/what-is-arocapi-options.ts?raw';
+import whatIsArocapiOptions from '@examples/introduction/what-is-arocapi-options.ts?raw';
 
-arocapi is a library that implements an RO-Crate API, and part of [CrateWorks](/introduction/crate-works/). It is a
-[Fastify](https://fastify.dev) plugin, so you register it in your own app (or in an Express app through Fastify), and
-it adds routes for listing, searching and reading the [entities](/concepts/entities/) in a repository: collections,
-objects and files, each described by RO-Crate metadata.
+arocapi is a library that implements the [RO-Crate API](https://ro-crate-api.crate-works.org) specification, and part
+of [CrateWorks](/introduction/crate-works/). It is a [Fastify](https://fastify.dev) plugin, so you register it in your
+own app (or in an Express app through Fastify), and it adds routes for listing, searching and reading the
+[entities](/concepts/entities/) in a repository: collections, objects and files, each described by RO-Crate metadata.
 
 It is built for long-term archival repositories that follow the [PILARS](/introduction/pilars/) protocols. arocapi
 owns the API and leaves the decisions that differ between repositories to you:
@@ -38,9 +38,9 @@ routes it adds are listed under [Routes](/reference/routes/).
 ## How a request is handled
 
 Every request passes the same checks in the same order, and your code runs at each step. The
-[request lifecycle](/concepts/request-lifecycle/) covers it in detail. An entity hidden from a
-request doesn't exist as far as that request is concerned. Its summary appears in listings, search and entity
-responses whenever it is visible, but reading its full metadata or a file's content also needs access.
+[request lifecycle](/concepts/request-lifecycle/) covers it in detail. An entity Hidden from a
+request doesn't exist as far as that request is concerned. Its Record appears in listings, search and entity
+responses whenever it is Visible, but reading its Metadata or a file's Content also needs access.
 [Record, Metadata, Content](/concepts/record-metadata-content/) describes these levels, and
 [Visibility vs Access](/concepts/visibility-vs-access/) shows what each route returns.
 
@@ -50,7 +50,7 @@ flowchart LR
   visible -- no --> notFound[404, or 401 to prompt a login]
   visible -- yes --> route{Route}
   route -- listing, search or entity --> transformers[Your transformers]
-  transformers --> summary[Entity summary with its access]
+  transformers --> record[Record with its access]
   route -- metadata or file --> accessible{Accessible?}
   accessible -- no --> refused[401 or 403]
   accessible -- yes --> handler[Your handler]

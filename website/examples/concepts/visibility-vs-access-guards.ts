@@ -6,7 +6,7 @@ declare function currentUser(request: FastifyRequest): { licences: string[] } | 
 
 const openLicence = 'https://creativecommons.org/licenses/by/4.0/';
 
-const guards = {
+export const guards = {
   entityVisibilityFilter: () => ({ meta: { path: '$.published', equals: true } }),
   searchVisibilityFilter: () => ({ term: { 'meta.published': true } }),
   isAuthenticated: ({ request }) => currentUser(request) !== undefined,

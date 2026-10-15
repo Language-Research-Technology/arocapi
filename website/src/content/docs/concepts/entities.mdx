@@ -1,25 +1,38 @@
 ---
 title: Entities & hierarchy
-description: Collections, objects and files, and how membership links them.
+description: Collections, objects, files, people and organisations, and how membership links them.
 sidebar:
   order: 1
 ---
 
 import { Code } from '@astrojs/starlight/components';
-import entitiesLocation from '../../../../examples/concepts/entities-location.ts?raw';
+import entitiesLocation from '@examples/concepts/entities-location.ts?raw';
 
 Everything arocapi serves is an **entity**: a thing described in an RO-Crate, identified by a URL. A repository is a
-tree of entities, usually three kinds deep.
+tree of entities, usually three kinds deep, plus the people and organisations those entities refer to.
 
 | Kind | Typical `entityType` | What it is |
 | --- | --- | --- |
 | Collection | `http://pcdm.org/models#Collection` | A grouping, such as a corpus, a project or a sub-collection. |
 | Object | `http://pcdm.org/models#Object` | One item in a collection, such as a recording session or a document. |
 | File | `http://schema.org/MediaObject` | A file belonging to an object, with bytes you can download. |
+| Person | `http://schema.org/Person` | Someone an entity refers to, such as a speaker, a depositor or a collector. |
+| Organisation | `http://schema.org/Organization` | A body an entity refers to, such as a funder or the holding archive. |
 
 The types come from the [Portland Common Data Model](https://pcdm.org) and [schema.org](https://schema.org), as used in
-RO-Crate. arocapi stores `entityType` as a string and doesn't check it, so you can index other types, such as people
-or places, alongside these.
+RO-Crate. arocapi stores `entityType` as a string and doesn't check it, so you can index other types, such as places,
+alongside these.
+
+## People and organisations
+
+An RO-Crate describes the people and organisations behind its data, and you can index them as entities in their own
+right. A speaker who appears in many recordings then has one id, one Record and one page in your portal, rather than a
+name repeated in each crate.
+
+They behave like any other entity. They have a Record and Metadata but no Content, because they have no row in the File
+table. They sit outside the membership tree, or under the collection that describes them, as you choose when indexing.
+`GET /entities?entityType=http://schema.org/Person` lists them, and the [visibility filters](/configuration/visibility/)
+apply to them as to anything else, which matters when a person's details are sensitive.
 
 ## Membership
 

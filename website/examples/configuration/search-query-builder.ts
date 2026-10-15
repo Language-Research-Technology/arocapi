@@ -9,4 +9,4 @@ class LabelledQueryBuilder extends OpensearchQueryBuilder {
   }
 }
 
-const queryBuilderClass: Options['queryBuilderClass'] = LabelledQueryBuilder;
+export const queryBuilderClass: Options['queryBuilderClass'] = LabelledQueryBuilder;

@@ -4,7 +4,7 @@ import type { FileHandler } from 'arocapi';
 declare function presign(key: string): Promise<string>;
 declare function storageKey(meta: unknown): string;
 
-const fileHandler: FileHandler = {
+export const fileHandler: FileHandler = {
   get: async (file) => ({ type: 'redirect', url: await presign(storageKey(file.meta)) }),
   head: (file) => ({ contentType: file.mediaType, contentLength: Number(file.size) }),
 };

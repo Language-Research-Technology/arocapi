@@ -6,14 +6,14 @@ sidebar:
 ---
 
 import { Code } from '@astrojs/starlight/components';
-import requestLifecycleTransformer from '../../../../examples/concepts/request-lifecycle-transformer.ts?raw';
+import requestLifecycleTransformer from '@examples/concepts/request-lifecycle-transformer.ts?raw';
 
 Every route runs your code in a fixed order. Knowing it tells you what each hook can rely on: an access function never
-sees a hidden entity, a handler never runs for a Denied request, and a transformer always sees the access result.
+sees a Hidden entity, a handler never runs for a Denied request, and a transformer always sees the access result.
 [Visibility vs Access](/concepts/visibility-vs-access/#how-a-request-is-decided) covers the outcomes; this page covers
 where your code runs.
 
-Routes come in two shapes. **Summary routes** (`/entities`, `/entity/:id`, `/files` and `/search`) return entities and
+Routes come in two shapes. **Record routes** (`/entities`, `/entity/:id`, `/files` and `/search`) return entities and
 files as JSON and run your transformers. **Metadata and Content routes** (`/entity/:id/metadata` and `/file/:id`,
 `GET` and `HEAD`) enforce access and hand over to your handlers.
 
@@ -25,7 +25,7 @@ flowchart TB
   visibility --> visible{Found and visible?}
   visible -- "no (single entity or file)" --> notVisible[404, or 401 to prompt a login]
   visible -- yes --> shape{Route}
-  shape -- summary --> base[Base transformer]
+  shape -- record --> base[Base transformer]
   base --> accessFn[Access function]
   accessFn --> attach[Access result attached]
   attach --> transformers[Your transformers, in order]
@@ -56,7 +56,7 @@ For a single entity or file that isn't found, arocapi answers `404`. If you set
 `isAuthenticated`, and answers `401` instead when the request is anonymous and the entity exists. For `/file/:id`,
 visibility is that of the file's entity.
 
-## Summary routes
+## Record routes
 
 For each visible entity, arocapi:
 
@@ -68,7 +68,7 @@ For each visible entity, arocapi:
 4. Runs your [`entityTransformers`](/configuration/transformers/#entitytransformers) one after another, each receiving
    the previous one's output.
 
-Summary routes don't enforce access. A Denied entity is still listed, with `access.metadata` or `access.content` set to
+Record routes don't enforce access. A Denied entity is still listed, with `access.metadata` or `access.content` set to
 `false`.
 
 Files follow the same steps with `fileTransformers`: the access function is called with the file's entity, and the
@@ -86,7 +86,7 @@ For `/entity/:id/metadata` and `/file/:id`, arocapi:
 1. Calls your `access` function with the base entity (for a file, its file entity) and checks `metadata` or `content`
    respectively.
 2. If that is `false`, the request is Denied. arocapi asks [`isAuthenticated`](/configuration/access/#isauthenticated)
-   and answers `401` for an anonymous request or `403` otherwise. Without `isAuthenticated`, every Denied request gets
+   and answers `401` for an Anonymous request or `403` otherwise. Without `isAuthenticated`, every Denied request gets
    `403`. Your handler isn't called.
 3. Otherwise calls [`roCrateHandler` or `fileHandler`](/configuration/handlers/) (`get` or `head`). Your handler can
    assume the request is allowed.

@@ -8,7 +8,7 @@ const storagePath = (meta: unknown) => {
   throw new Error('File has no storagePath');
 };
 
-const fileHandler: FileHandler = {
+export const fileHandler: FileHandler = {
   get: (file) => ({ type: 'redirect', url: `https://storage.example.com/${storagePath(file.meta)}` }),
   head: (file) => ({ contentType: file.mediaType, contentLength: Number(file.size) }),
 };

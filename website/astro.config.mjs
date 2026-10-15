@@ -1,30 +1,9 @@
 // @ts-check
-import { existsSync, readdirSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import starlight from '@astrojs/starlight';
-import tailwindcss from '@tailwindcss/vite';
 import { defineConfig } from 'astro/config';
 import mermaid from 'astro-mermaid';
 import starlightLinksValidator from 'starlight-links-validator';
-
-const groups = [
-  ['Introduction', 'introduction'],
-  ['Concepts', 'concepts'],
-  ['Getting started', 'getting-started'],
-  ['Strategies', 'strategies'],
-  ['Configuration', 'configuration'],
-  ['Reference', 'reference'],
-];
-
-// Starlight renders an empty heading for a group with no pages, so later pages only need adding as files.
-/** @param {string} dir */
-const hasPages = (dir) => {
-  const path = new URL(`./src/content/docs/${dir}/`, import.meta.url);
-  return existsSync(path) && readdirSync(path).some((f) => /\.mdx?$/.test(f));
-};
-
-const sidebar = groups
-  .filter(([, dir]) => hasPages(dir))
-  .map(([label, directory]) => ({ label, items: [{ autogenerate: { directory } }] }));
 
 export default defineConfig({
   site: 'https://arocapi.crate-works.org',
@@ -46,8 +25,15 @@ export default defineConfig({
         SocialIcons: './src/components/SocialIcons.astro',
       },
       plugins: [starlightLinksValidator()],
-      sidebar,
+      sidebar: [
+        { label: 'Introduction', items: [{ autogenerate: { directory: 'introduction' } }] },
+        { label: 'Concepts', items: [{ autogenerate: { directory: 'concepts' } }] },
+        { label: 'Getting started', items: [{ autogenerate: { directory: 'getting-started' } }] },
+        { label: 'Strategies', items: [{ autogenerate: { directory: 'strategies' } }] },
+        { label: 'Configuration', items: [{ autogenerate: { directory: 'configuration' } }] },
+        { label: 'Reference', items: [{ autogenerate: { directory: 'reference' } }] },
+      ],
     }),
   ],
-  vite: { plugins: [tailwindcss()] },
+  vite: { resolve: { alias: { '@examples': fileURLToPath(new URL('./examples', import.meta.url)) } } },
 });

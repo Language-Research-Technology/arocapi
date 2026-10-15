@@ -4,7 +4,7 @@ import type { FastifyRequest } from 'fastify';
 // Your app's session lookup
 declare function currentUser(request: FastifyRequest): { isStaff: boolean } | undefined;
 
-const access: AccessFunction = (entity, { request }) => {
+export const access: AccessFunction = (_entity, { request }) => {
   const user = currentUser(request);
 
   return {

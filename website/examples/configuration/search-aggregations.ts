@@ -5,4 +5,4 @@ const aggregations = {
   entityType: { terms: { field: 'entityType', size: 10 } },
 };
 
-const queryBuilderOptions: QueryBuilderOptions = { aggregations };
+export const queryBuilderOptions: QueryBuilderOptions = { aggregations };

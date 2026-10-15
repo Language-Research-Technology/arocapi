@@ -1,12 +1,20 @@
 pre-commit:
-  parallel: true
-  commands:
-    lint-biome:
-      run: pnpm lint:biome
-    lint-types:
-      run: pnpm lint:types
-    lint-knip:
-      run: pnpm lint:knip
+  piped: true
+  jobs:
+    - name: generate
+      run: pnpm generate >/dev/null
+    - name: lint
+      group:
+        parallel: true
+        jobs:
+          - name: lint-biome
+            run: pnpm lint:biome
+          - name: lint-types
+            run: pnpm lint:types
+          - name: lint-knip
+            run: pnpm lint:knip
+          - name: lint-examples
+            run: pnpm lint:examples
 
 commit-msg:
   commands:

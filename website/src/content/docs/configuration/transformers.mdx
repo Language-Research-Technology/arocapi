@@ -6,9 +6,9 @@ sidebar:
 ---
 
 import { Code } from '@astrojs/starlight/components';
-import transformersEntity from '../../../../examples/configuration/transformers-entity.ts?raw';
-import transformersFile from '../../../../examples/configuration/transformers-file.ts?raw';
-import transformersRequest from '../../../../examples/configuration/transformers-request.ts?raw';
+import transformersEntity from '@examples/configuration/transformers-entity.ts?raw';
+import transformersFile from '@examples/configuration/transformers-file.ts?raw';
+import transformersRequest from '@examples/configuration/transformers-request.ts?raw';
 
 Transformers change the entities and files arocapi returns, for example to add fields.
 
@@ -28,7 +28,7 @@ Every entity and file response flows through the same steps:
 
 Transformers don't run for `/entity/:id/metadata` or `/file/:id`, which return bytes from your
 [handlers](/configuration/handlers/). Search results get `searchExtra` (score and highlights) after your transformers.
-The [request lifecycle](/concepts/request-lifecycle/#summary-routes) shows where these steps sit.
+The [request lifecycle](/concepts/request-lifecycle/#record-routes) shows where these steps sit.
 
 ## `entityTransformers`
 

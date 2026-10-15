@@ -6,9 +6,9 @@ sidebar:
 ---
 
 import { Code } from '@astrojs/starlight/components';
-import searchAggregations from '../../../../examples/strategies/search-aggregations.ts?raw';
-import searchDrafts from '../../../../examples/strategies/search-drafts.ts?raw';
-import searchQueryBuilder from '../../../../examples/strategies/search-query-builder.ts?raw';
+import searchAggregations from '@examples/strategies/search-aggregations.ts?raw';
+import searchDrafts from '@examples/strategies/search-drafts.ts?raw';
+import searchQueryBuilder from '@examples/strategies/search-query-builder.ts?raw';
 
 `POST /search` runs a query against an OpenSearch index named `entities`. A query builder writes the query, the
 aggregations and the sort. arocapi adds your search visibility filter, runs the search, then loads the matching
@@ -116,7 +116,7 @@ come from OpenSearch, so they still count it.
 
 Keep the two filters in step: whatever field `entityVisibilityFilter` checks in the database has to be indexed, and
 `searchVisibilityFilter` checks the same thing in the index. For example, if drafts are hidden through a `draft` flag
-in the entity's `meta`, index that flag too (see
+in the entity's `meta`, index that flag too, as `meta.draft` (see
 [why the two filters must agree](/concepts/visibility-vs-access/#why-the-two-filters-must-agree)):
 
 <Code code={searchDrafts} lang="ts" />

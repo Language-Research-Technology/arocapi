@@ -7,14 +7,16 @@ Object.assign(globalThis, { window: new Window() });
 const { default: mermaid } = await import('mermaid');
 
 const docs = new URL('../src/content/docs/', import.meta.url);
-const fence = /^```mermaid[^\n]*\n([\s\S]*?)^```/gm;
+// Indent, then a ``` or ~~~ fence; it closes on a fence of the same character at least as long.
+const fence = /^([ \t]*)((`|~)\3{2,})mermaid\b[^\n]*\n([\s\S]*?)^[ \t]*\2\3*[ \t]*$/gm;
 let failed = 0;
 
 for await (const file of glob('**/*.{md,mdx}', { cwd: docs })) {
   const text = await readFile(new URL(file, docs), 'utf8');
   for (const match of text.matchAll(fence)) {
     try {
-      await mermaid.parse(match[1]);
+      const indent = new RegExp(`^[ \\t]{0,${match[1].length}}`, 'gm');
+      await mermaid.parse(match[4].replace(indent, ''));
     } catch (error) {
       failed++;
       const line = text.slice(0, match.index).split('\n').length;

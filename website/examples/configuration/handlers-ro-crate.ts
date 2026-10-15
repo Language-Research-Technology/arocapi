@@ -4,7 +4,7 @@ import type { RoCrateHandler } from 'arocapi';
 declare function cratePath(meta: unknown): string;
 declare function crateSize(path: string): Promise<number>;
 
-const roCrateHandler: RoCrateHandler = {
+export const roCrateHandler: RoCrateHandler = {
   get: async (entity) => {
     const path = cratePath(entity.meta);
     const contentLength = await crateSize(path);
