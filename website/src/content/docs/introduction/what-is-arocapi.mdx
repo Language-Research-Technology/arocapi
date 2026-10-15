@@ -13,8 +13,9 @@ It is built for long-term archival repositories that follow the
 [PILARS](https://w3id.org/ldac/pilars) protocols. arocapi owns the API and leaves the decisions that differ between
 repositories to you:
 
-- **Where things live.** Entities are indexed in a database through Prisma and searched with OpenSearch. You supply
-  handlers that fetch RO-Crate metadata and file bytes from your storage.
+- **Where things live.** Entities are indexed in a database through Prisma and searched with
+  [OpenSearch](/strategies/search/). You supply handlers that fetch RO-Crate metadata and file bytes from
+  [your storage](/strategies/storage/).
 - **Who sees what.** Visibility filters decide which entities exist for a request. An access function decides
   whether a request may read an entity's full metadata and its file content.
 - **What responses look like.** Transformers can add fields to every entity and file the API returns.
