@@ -17,6 +17,7 @@
     "@fastify/sensible": "^6.0.7",
     "@opensearch-project/opensearch": "^3.9.0",
     "@prisma/config": "^7.10.0",
+    "content-disposition": "^3.0.0",
     "dotenv": "^18.0.7",
     "fastify": "^5.12.5",
     "fastify-type-provider-zod": "^7.0.0",

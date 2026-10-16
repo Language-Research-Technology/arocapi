@@ -1,4 +1,5 @@
 import { createReadStream } from 'node:fs';
+import { create as contentDisposition } from 'content-disposition';
 import type { FastifyPluginAsync } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
@@ -128,9 +129,8 @@ const file: FastifyPluginAsync<FileRouteOptions> = async (fastify, opts) => {
       }
 
       const { disposition, filename: customFilename } = request.query;
-      const filename = customFilename || file.filename;
       setFileHeaders(reply, result.metadata);
-      reply.header('Content-Disposition', `${disposition}; filename="${filename}"`);
+      reply.header('Content-Disposition', contentDisposition(customFilename || file.filename, { type: disposition }));
 
       // Handle stream response
       if (result.type === 'stream') {

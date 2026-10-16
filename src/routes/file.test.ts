@@ -88,7 +88,7 @@ describe('File Route', () => {
       expect(response.headers['content-type']).toBe('audio/wav');
       expect(response.headers['content-length']).toBe('17');
       expect(response.headers.etag).toBe('"abc123"');
-      expect(response.headers['content-disposition']).toBe('inline; filename="test.wav"');
+      expect(response.headers['content-disposition']).toBe('inline; filename=test.wav');
       expect(response.body).toBe('test file content');
 
       expect(mockFileHandler.get).toHaveBeenCalledWith(
@@ -120,7 +120,7 @@ describe('File Route', () => {
       });
 
       expect(response.statusCode).toBe(200);
-      expect(response.headers['content-disposition']).toBe('attachment; filename="test.wav"');
+      expect(response.headers['content-disposition']).toBe('attachment; filename=test.wav');
     });
 
     it('should use custom filename when provided', async () => {
@@ -143,7 +143,43 @@ describe('File Route', () => {
       });
 
       expect(response.statusCode).toBe(200);
-      expect(response.headers['content-disposition']).toBe('inline; filename="custom-name.wav"');
+      expect(response.headers['content-disposition']).toBe('inline; filename=custom-name.wav');
+    });
+
+    it.each([
+      {
+        name: 'a non-Latin stored filename',
+        stored: 'ŋaŋa.wav',
+        query: '',
+        expected: `inline; filename="?a?a.wav"; filename*=UTF-8''%C5%8Ba%C5%8Ba.wav`,
+      },
+      {
+        name: 'quotes in a custom filename',
+        stored: 'test.wav',
+        query: `?filename=${encodeURIComponent(`a"; filename*=UTF-8''evil.html`)}`,
+        expected: `inline; filename="a\\"; filename*=UTF-8''evil.html"`,
+      },
+      {
+        name: 'backslashes in a stored filename',
+        stored: 'back\\slash.wav',
+        query: '',
+        expected: 'inline; filename="back\\\\slash.wav"',
+      },
+    ])('should encode $name', async ({ stored, query, expected }) => {
+      prisma.file.findFirst.mockResolvedValue({ ...mockFile, filename: stored });
+      vi.mocked(mockFileHandler.get).mockResolvedValue({
+        type: 'stream',
+        stream: Readable.from(['test']),
+        metadata: { contentType: 'audio/wav', contentLength: 4 },
+      });
+
+      const response = await fastify.inject({
+        method: 'GET',
+        url: `/file/${encodeURIComponent('http://example.com/file/test.wav')}${query}`,
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(response.headers['content-disposition']).toBe(expected);
     });
 
     it('should handle redirect response with noRedirect=false (default)', async () => {
