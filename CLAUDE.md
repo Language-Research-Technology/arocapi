@@ -17,7 +17,7 @@ arocapi is a **published npm library** (not a standalone app). It provides an RO
 - `pnpm --filter website build` — build the docs site (`website/`, Astro Starlight): checks every Mermaid diagram parses, then `astro build` with starlight-links-validator, which fails on a broken internal link or anchor. Examples are type-checked by `pnpm lint`, not here
 - `pnpm --filter website dev` — docs dev server
 
-Releases (stable and `beta` prereleases) are covered in `RELEASING.md`.
+Every push to `main` publishes a `beta` prerelease. Read `RELEASING.md` before merging or pushing to `main`.
 
 ## Architecture
 
