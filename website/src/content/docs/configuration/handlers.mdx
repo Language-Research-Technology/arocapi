@@ -73,11 +73,10 @@ presigned object storage URL, or a `file` result with `accelPath` so nginx serve
 
 `GET /file/:id` accepts:
 
-| Parameter     | Values                   | Default         | Effect                                                    |
-| ------------- | ------------------------ | --------------- | --------------------------------------------------------- |
+| Parameter     | Values                   | Default         | Effect                                                      |
+| ------------- | ------------------------ | --------------- | ----------------------------------------------------------- |
 | `disposition` | `inline` or `attachment` | `inline`        | `Content-Disposition` type for `stream` and `file` results. |
-| `filename`    | string                   | `file.filename` | Filename in `Content-Disposition`.                        |
-| `noRedirect`  | boolean                  | `false`         | Answer a `redirect` result with 200 `{ "location": url }`. |
+| `filename`    | string                   | `file.filename` | Filename in `Content-Disposition`.                          |
+| `noRedirect`  | `true` or `false`        | `false`         | Answer a `redirect` result with 200 `{ "location": url }`.  |
 
-Any non-empty `noRedirect` value counts as true, including `noRedirect=false`. Leave the parameter out to get a
-redirect. `/entity/:id/metadata` takes no query parameters.
+Any other `disposition` or `noRedirect` value is a 400. `/entity/:id/metadata` takes no query parameters.

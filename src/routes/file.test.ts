@@ -182,7 +182,7 @@ describe('File Route', () => {
       expect(response.headers['content-disposition']).toBe(expected);
     });
 
-    it('should handle redirect response with noRedirect=false (default)', async () => {
+    it.each(['', '?noRedirect=false'])('should redirect when the query is %j', async (query) => {
       prisma.file.findFirst.mockResolvedValue(mockFile);
 
       const mockResult: FileResult = {
@@ -193,7 +193,7 @@ describe('File Route', () => {
 
       const response = await fastify.inject({
         method: 'GET',
-        url: `/file/${encodeURIComponent('http://example.com/file/test.wav')}`,
+        url: `/file/${encodeURIComponent('http://example.com/file/test.wav')}${query}`,
       });
 
       expect(response.statusCode).toBe(302);
@@ -217,6 +217,18 @@ describe('File Route', () => {
       expect(response.statusCode).toBe(200);
       const body = JSON.parse(response.body);
       expect(body).toEqual({ location: 'https://storage.example.com/files/test.wav' });
+    });
+
+    it.each(['', '1', 'TRUE', 'yes'])('should return 400 for noRedirect=%j', async (value) => {
+      const response = await fastify.inject({
+        method: 'GET',
+        url: `/file/${encodeURIComponent('http://example.com/file/test.wav')}?noRedirect=${value}`,
+      });
+      const body = JSON.parse(response.body) as StandardErrorResponse;
+
+      expect(response.statusCode).toBe(400);
+      expect(body.error.code).toBe('VALIDATION_ERROR');
+      expect(mockFileHandler.get).not.toHaveBeenCalled();
     });
 
     it('should handle file path response without nginx X-Accel-Redirect', async () => {

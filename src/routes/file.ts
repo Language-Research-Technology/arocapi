@@ -20,7 +20,11 @@ const paramsSchema = z.object({
 const querySchema = z.object({
   disposition: z.enum(['inline', 'attachment']).optional().default('inline'),
   filename: z.string().optional(),
-  noRedirect: z.coerce.boolean().optional().default(false),
+  noRedirect: z
+    .enum(['true', 'false'])
+    .optional()
+    .default('false')
+    .transform((value) => value === 'true'),
 });
 
 type FileRouteOptions = {

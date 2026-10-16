@@ -61,8 +61,7 @@ To give players range support, let something else serve the bytes:
 - a `redirect` to a server that handles ranges, such as object storage or your own content route; or
 - a `file` result with `accelPath`, so nginx serves the file and handles the range itself.
 
-A client that wants the redirect target without following it can call `/file/:id?noRedirect=true`. Any non-empty value
-counts as true, so `?noRedirect=false` also returns the JSON. Leave the parameter out to get the redirect.
+A client that wants the redirect target without following it can call `/file/:id?noRedirect=true`.
 
 ### HEAD requests
 
