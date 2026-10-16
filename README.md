@@ -1,7 +1,7 @@
 # arocapi
 
 arocapi implements the [RO-Crate API](https://ro-crate-api.crate-works.org) for data collections, packaged as a
-Fastify plugin. You mount it into your own Fastify (or Express) app and bring your storage, search index and access
+Fastify plugin. You mount it into your own Fastify app and bring your storage, search index and access
 rules; arocapi serves the routes for entities, files, search and RO-Crate metadata, following the
 [PILARS](https://w3id.org/ldac/pilars) protocols for long-term archival repositories.
 
