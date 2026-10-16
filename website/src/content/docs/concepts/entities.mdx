@@ -53,7 +53,7 @@ flowchart TB
 You walk the tree one level at a time by listing members:
 
 - [`GET /entities?memberOf=<id>`](/reference/routes/#get-entities) lists the entities whose parent is `<id>`. Add
-  `entityType` (comma-separated) to keep only some types.
+  `entityType`, repeated for each type, to keep only some types.
 - [`GET /files?memberOf=<id>`](/reference/routes/#get-files) lists the files of an object, with their filename, media
   type and size.
 

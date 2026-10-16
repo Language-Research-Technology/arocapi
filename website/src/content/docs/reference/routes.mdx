@@ -56,7 +56,7 @@ same for every request.
 | Query        | Type                                 | Default | Purpose                                    |
 | ------------ | ------------------------------------ | ------- | ------------------------------------------ |
 | `memberOf`   | URL                                  | none    | Only direct members of this entity.        |
-| `entityType` | comma-separated list                 | none    | Only these entity types.                   |
+| `entityType` | URL, repeatable                      | none    | Only these entity types.                   |
 | `limit`      | integer, 1 to 1000                   | `100`   | Page size.                                 |
 | `offset`     | integer, 0 or more                   | `0`     | Entities to skip.                          |
 | `sort`       | `id`, `name`, `createdAt`, `updatedAt` | `id`  | Sort field.                                |
@@ -64,6 +64,9 @@ same for every request.
 
 Response: `{ total, entities }`. `total` counts Visible entities matching the query, and each entity has been through
 the [entity transformers](/configuration/transformers/#entitytransformers).
+
+Repeat `entityType` for several types: `?entityType=A&entityType=B`. Commas aren't separators, so `?entityType=A,B`
+is the single type `A,B`. Blank values are ignored.
 
 ## `GET /entity/:id`
 

@@ -124,7 +124,7 @@ describe('Entities Route', () => {
         method: 'GET',
         url: '/entities',
         query: {
-          entityType: 'http://pcdm.org/models#Collection,http://pcdm.org/models#Object',
+          entityType: ['http://pcdm.org/models#Collection', 'http://pcdm.org/models#Object'],
         },
       });
 

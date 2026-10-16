@@ -159,6 +159,112 @@ describe('Integration Tests', () => {
       expect(body.entities[1].entityType).toBe('http://schema.org/MediaObject');
     });
 
+    it('should filter entities by repeated entityType parameters', async () => {
+      const app = getTestApp();
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/entities',
+        query: {
+          entityType: ['http://pcdm.org/models#Collection', 'http://pcdm.org/models#Object'],
+        },
+      });
+      const body = JSON.parse(response.body) as { total: number; entities: AuthorisedEntity[] };
+
+      expect(response.statusCode).toBe(200);
+      expect(body.total).toBe(2);
+      expect(body.entities.map((e) => e.id)).toEqual(['http://example.com/entity/1', 'http://example.com/entity/2']);
+    });
+
+    it('should treat a comma-separated entityType as a single type', async () => {
+      const app = getTestApp();
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/entities',
+        query: {
+          entityType: 'http://pcdm.org/models#Collection,http://pcdm.org/models#Object',
+        },
+      });
+      const body = JSON.parse(response.body) as { total: number; entities: AuthorisedEntity[] };
+
+      expect(response.statusCode).toBe(200);
+      expect(body.total).toBe(0);
+      expect(body.entities).toEqual([]);
+    });
+
+    it('should apply no entityType filter when the value is empty', async () => {
+      const app = getTestApp();
+
+      const response = await app.inject({ method: 'GET', url: '/entities?entityType=' });
+      const body = JSON.parse(response.body) as { total: number; entities: AuthorisedEntity[] };
+
+      expect(response.statusCode).toBe(200);
+      expect(body.total).toBe(5);
+    });
+
+    it('should ignore blank repeated entityType values', async () => {
+      const app = getTestApp();
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/entities',
+        query: {
+          entityType: ['', '  ', ' http://schema.org/Person '],
+        },
+      });
+      const body = JSON.parse(response.body) as { total: number; entities: AuthorisedEntity[] };
+
+      expect(response.statusCode).toBe(200);
+      expect(body.total).toBe(1);
+      expect(body.entities.map((e) => e.id)).toEqual(['http://example.com/entity/3']);
+    });
+
+    it.each([
+      ['alone', 'not-a-uri'],
+      ['alongside a valid one', ['http://schema.org/Person', 'not-a-uri']],
+    ])('should reject an entityType that is not a URI %s', async (_label, entityType) => {
+      const app = getTestApp();
+
+      const response = await app.inject({ method: 'GET', url: '/entities', query: { entityType } });
+      const body = JSON.parse(response.body) as StandardErrorResponse;
+      const violations = body.error.details?.violations as { field: string }[];
+
+      expect(response.statusCode).toBe(400);
+      expect(body.error.code).toBe('VALIDATION_ERROR');
+      expect(violations.some((v) => v.field.startsWith('/entityType'))).toBe(true);
+    });
+
+    it('should apply no entityType filter when all repeated values are blank', async () => {
+      const app = getTestApp();
+
+      const response = await app.inject({ method: 'GET', url: '/entities?entityType=&entityType=' });
+      const body = JSON.parse(response.body) as { total: number; entities: AuthorisedEntity[] };
+
+      expect(response.statusCode).toBe(200);
+      expect(body.total).toBe(5);
+    });
+
+    it('should combine repeated entityType parameters with memberOf and pagination', async () => {
+      const app = getTestApp();
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/entities',
+        query: {
+          memberOf: 'http://example.com/entity/1',
+          entityType: ['http://pcdm.org/models#Object', 'http://schema.org/MediaObject'],
+          limit: '1',
+          offset: '1',
+        },
+      });
+      const body = JSON.parse(response.body) as { total: number; entities: AuthorisedEntity[] };
+
+      expect(response.statusCode).toBe(200);
+      expect(body.total).toBe(2);
+      expect(body.entities.map((e) => e.id)).toEqual(['http://example.com/entity/5']);
+    });
+
     it('should filter File entities by memberOf (Object parent)', async () => {
       const app = getTestApp();
 

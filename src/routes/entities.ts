@@ -10,14 +10,15 @@ import type { EntityVisibilityFilter } from '../types/visibility.js';
 const querySchema = z.object({
   memberOf: z.url().optional(),
   entityType: z
-    .string()
-    .optional()
-    .transform((val) => {
-      if (!val) return undefined;
-
-      return val.split(',').map((item) => item.trim());
-    })
-    .pipe(z.array(z.string()).optional()),
+    .union([z.string(), z.array(z.string())])
+    .default([])
+    .transform((val) =>
+      [val]
+        .flat()
+        .map((value) => value.trim())
+        .filter(Boolean),
+    )
+    .pipe(z.array(z.url())),
   limit: z.coerce.number().int().min(1).max(1000).default(100),
   offset: z.coerce.number().int().min(0).default(0),
   sort: z.enum(['id', 'name', 'createdAt', 'updatedAt']).default('id'),
@@ -49,7 +50,7 @@ const entities: FastifyPluginAsync<EntitiesRouteOptions> = async (fastify, opts)
         where.memberOf = memberOf;
       }
 
-      if (entityType && entityType.length > 0) {
+      if (entityType.length > 0) {
         where.entityType = {
           in: entityType,
         };
