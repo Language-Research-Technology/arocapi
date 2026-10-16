@@ -1,0 +1,20 @@
+---
+import Default from '@astrojs/starlight/components/Banner.astro';
+---
+
+<div class="sl-banner" data-pagefind-ignore>
+  These docs describe arocapi v5, which is in beta. Install it with <code>pnpm add arocapi@beta</code>.
+</div>
+<Default />
+
+<style>
+  .sl-banner {
+    padding: var(--sl-nav-pad-y) var(--sl-nav-pad-x);
+    background-color: var(--sl-color-accent-low);
+    color: var(--sl-color-white);
+    line-height: var(--sl-line-height-headings);
+    text-align: center;
+    text-wrap: balance;
+    font-size: var(--sl-text-sm);
+  }
+</style>

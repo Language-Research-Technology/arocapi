@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" width="80" height="80" role="img" aria-labelledby="logo-title">
+  <title id="logo-title">CrateWorks</title>
+
+  <g fill="none" stroke="#f2a06a" stroke-width="3" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M40 10 L64 23 L40 36 L16 23 Z" />
+    <path d="M16 23 L16 52 L40 65 L40 36 Z" />
+    <path d="M40 36 L64 23 L64 52 L40 65 Z" />
+
+    <path d="M16 32 L40 45" opacity="0.55" />
+    <path d="M16 42 L40 55" opacity="0.55" />
+    <path d="M64 32 L40 45" opacity="0.55" />
+    <path d="M64 42 L40 55" opacity="0.55" />
+
+    <path d="M44 28 L60 4" />
+    <path d="M56 4 L66 2 L62 12 L52 14 Z" />
+  </g>
+</svg>

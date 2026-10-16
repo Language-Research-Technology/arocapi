@@ -1,0 +1,77 @@
+---
+title: Access
+description: The access function that guards Metadata and Content, and how arocapi tells anonymous requests apart.
+sidebar:
+  order: 3
+---
+
+import { Code } from '@astrojs/starlight/components';
+import accessPublic from '@examples/strategies/access-public.ts?raw';
+import licencesLicenceAccess from '@examples/concepts/licences-licence-access.ts?raw';
+import accessFunction from '@examples/configuration/access-function.ts?raw';
+import accessIsAuthenticated from '@examples/configuration/access-is-authenticated.ts?raw';
+
+Access decides whether a request may read a Visible entity's Metadata (its RO-Crate metadata document) and Content (a
+file's bytes). arocapi attaches the result to every entity and file it returns, and enforces it on
+`/entity/:id/metadata` and `/file/:id` before calling your handlers. See
+[Record, Metadata, Content](/concepts/record-metadata-content/) for the levels and
+[Visibility vs Access](/concepts/visibility-vs-access/) for how a request is decided.
+[Access strategies](/strategies/access/) compares common ways to decide access, and
+[Licences & authorisation URLs](/concepts/licences/) explains the licence model.
+
+| Option            | Required | Type              | Default     | Purpose                                                  |
+| ----------------- | -------- | ----------------- | ----------- | -------------------------------------------------------- |
+| `access`          | yes      | `AccessFunction`  | none        | Decide Metadata and Content access for an entity.        |
+| `isAuthenticated` | no       | `IsAuthenticated` | none        | Tell anonymous requests (401) from authenticated (403). |
+
+## `access`
+
+Called with the entity as a `BaseEntity` and the [request context](/configuration/transformers/#request-context). It
+returns an `AccessInfo`:
+
+| Field                      | Type      | Purpose                                                  |
+| -------------------------- | --------- | -------------------------------------------------------- |
+| `metadata`                 | `boolean` | Whether the request may read the entity's Metadata.      |
+| `content`                  | `boolean` | Whether the request may read the file's Content.         |
+| `metadataAuthorizationUrl` | `string?` | Where to request Metadata access. Kept only when truthy. |
+| `contentAuthorizationUrl`  | `string?` | Where to request Content access. Kept only when truthy.  |
+
+Anything else it returns is dropped.
+
+- `BaseEntity` has the Record fields, with `memberOf` and `rootCollection` as ids. arocapi doesn't look up parents.
+- It runs once per entity in a listing and once per Metadata or Content request. Cache remote lookups per request.
+- A file's access is its file entity's access. On collections and objects, `content` is only a signal to clients.
+- When access is false, `/entity/:id/metadata` and `/file/:id` refuse the request and never call your handler.
+
+For a public repository, use `AllPublicAccess`, which grants everything, with the filters that make every entity
+visible:
+
+<Code code={accessPublic} lang="ts" />
+
+When access follows licences, use `LicenceAccess`. Metadata needs the entity's `metadataLicenseId` and Content its
+`contentLicenseId`. Each licence is checked at most once per request. See
+[licence checks against an external authority](/strategies/access/#licence-checks-against-an-external-authority)
+for caching a user's entitlements across licences.
+
+<Code code={licencesLicenceAccess} lang="ts" />
+
+| `LicenceAccess` option | Required | Type                                                     | Purpose                                                  |
+| ---------------------- | -------- | -------------------------------------------------------- | -------------------------------------------------------- |
+| `hasLicence`           | yes      | `(licenceId, context) => boolean \| Promise<boolean>`    | Whether the request holds a licence.                     |
+| `authorisationUrl`     | no       | `(licenceId) => string`                                  | Authorisation URL to attach when a licence isn't held.   |
+
+For any other rule, write your own function:
+
+<Code code={accessFunction} lang="ts" />
+
+## `isAuthenticated`
+
+Returns whether the request carries valid credentials. arocapi uses it to pick the status of a refusal: 401 for an
+anonymous request, so the client can prompt a login, and 403 when logging in won't help; see
+[Denied is 401 or 403, never 404](/concepts/visibility-vs-access/#denied-is-401-or-403-never-404).
+
+<Code code={accessIsAuthenticated} lang="ts" />
+
+Without it, the repository has no logins: no request is Anonymous, so a Denied request always gets 403. It is required
+by [`promptLoginForHidden`](/configuration/visibility/#promptloginforhidden). See
+[Error responses](/reference/errors/#refusals) for every outcome.

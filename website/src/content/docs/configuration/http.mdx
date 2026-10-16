@@ -1,0 +1,57 @@
+---
+title: HTTP
+description: CORS, the error envelope and unknown paths when you mount arocapi in your app.
+sidebar:
+  order: 7
+---
+
+import { Code } from '@astrojs/starlight/components';
+import httpHandlers from '@examples/configuration/http-handlers.ts?raw';
+import httpCustomError from '@examples/configuration/http-custom-error.ts?raw';
+import httpCreateError from '@examples/configuration/http-create-error.ts?raw';
+
+arocapi has no options of its own for HTTP behaviour. These are settings on your Fastify app, which can itself be
+mounted in Express ([Using with Express](/getting-started/express/)).
+
+| Setting                   | Where                       | Default                         | Purpose                                                   |
+| ------------------------- | --------------------------- | ------------------------------- | --------------------------------------------------------- |
+| CORS                      | `@fastify/cors` on your app | no CORS headers                 | Let browsers on other origins call the API.               |
+| `errorHandler`            | `setErrorHandler` on your app | arocapi's routes only         | Answer your own routes' errors in arocapi's envelope.     |
+| `notFoundHandler`         | `setNotFoundHandler` on your app | your app's handler         | Answer unknown paths in arocapi's envelope.               |
+| `prefix`                  | Fastify's register options  | none                            | Mount arocapi under a path, with its own 404 for unknown paths. |
+
+## CORS
+
+arocapi doesn't set CORS headers. To let browsers on other origins call it, register
+[`@fastify/cors`](https://github.com/fastify/fastify-cors) on your root instance before arocapi:
+
+```sh
+pnpm add @fastify/cors
+```
+
+Its defaults allow every origin with `GET`, `HEAD` and `POST`, which covers all of arocapi's routes.
+
+## Error responses
+
+arocapi's routes answer errors as `{ error: { code, message, details? } }`; the codes and statuses are listed under
+[Error responses](/reference/errors/). To give your own routes and unknown paths the same envelope, set arocapi's
+handlers on the root instance:
+
+<Code code={httpHandlers} lang="ts" />
+
+To report a client error from your own code, throw an error with a 4xx `statusCode` and `expose: true`, such as those
+from `fastify.httpErrors`. Fastify's own errors, whose `code` starts with `FST_` (such as invalid JSON or a body that is
+too large), also keep their 4xx status. Other errors answer 500, even with a 4xx status (such as an OpenSearch
+`ResponseError` escaping your route), so internal details don't reach clients.
+
+<Code code={httpCustomError} lang="ts" />
+
+Build response bodies in your routes with the same helpers arocapi uses:
+
+<Code code={httpCreateError} lang="ts" />
+
+## `prefix`
+
+Pass Fastify's `prefix` register option to mount arocapi under a path, for example `/api`. arocapi then answers
+unknown paths under that prefix with 404 `NOT_FOUND`. Without a prefix, unknown paths go to the not-found handler of
+the scope arocapi is registered in.

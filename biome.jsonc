@@ -21,6 +21,10 @@
       "preset": "recommended"
     }
   },
+  "html": { "experimentalFullSupportEnabled": true },
+  "css": {
+    "formatter": { "quoteStyle": "single" }
+  },
   "javascript": {
     "formatter": {
       "quoteStyle": "single"

@@ -1,0 +1,22 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema-jsonc.json",
+  "workspaces": {
+    ".": {
+      "ignore": ["src/index.dev.ts", "scripts/loadEntities.ts"],
+      "ignoreDependencies": [
+        // Needed by @semantic-release based on our config
+        "conventional-changelog-conventionalcommits",
+        // release.config.mjs drops these on beta
+        "@semantic-release/changelog",
+        "@semantic-release/git",
+        // Knip reads `tsc -p website/examples` in lint:examples as a package
+        "website"
+      ]
+    },
+    "website": {
+      "entry": ["scripts/*.ts", "examples/**/*.ts"],
+      // examples/tsconfig.json maps these onto the library's generated client via rootDirs
+      "ignoreUnresolved": ["./generated/prisma/client.ts"]
+    }
+  }
+}

@@ -1,0 +1,66 @@
+---
+title: Visibility
+description: The filters that decide which entities exist for a request, and the login prompt for hidden entities.
+sidebar:
+  order: 2
+---
+
+import { Code } from '@astrojs/starlight/components';
+import accessPublic from '@examples/strategies/access-public.ts?raw';
+import visibilityCollections from '@examples/configuration/visibility-collections.ts?raw';
+
+Visibility decides whether an entity exists for a request. A Hidden entity is left out of listings and search,
+including their totals and facets, and a direct request for it gets the same 404 as a missing entity.
+[Visibility vs Access](/concepts/visibility-vs-access/) explains how visibility and access combine.
+
+| Option                   | Required | Type                     | Default | Purpose                                                    |
+| ------------------------ | -------- | ------------------------ | ------- | ---------------------------------------------------------- |
+| `entityVisibilityFilter` | yes      | `EntityVisibilityFilter` | none    | Prisma condition matching the entities visible to a request. |
+| `searchVisibilityFilter` | yes      | `SearchVisibilityFilter` | none    | OpenSearch query matching the same entities.               |
+| `promptLoginForHidden`   | no       | `boolean`                | `false` | Answer anonymous requests for Hidden entities with 401.    |
+
+Both filters receive the [request context](/configuration/transformers/#request-context) and may be async. They
+**must match the same entities**, and any field they use must be in both the database and the search index; see
+[why the two filters must agree](/concepts/visibility-vs-access/#why-the-two-filters-must-agree).
+
+## `entityVisibilityFilter`
+
+Returns a Prisma `EntityWhereInput`. arocapi combines it with `AND` into every database query: `/entities`, `/files`
+(through each file's entity), `/entity/:id`, `/entity/:id/metadata`, `/file/:id` and the reload of search hits.
+
+## `searchVisibilityFilter`
+
+Returns an OpenSearch query. `POST /search` adds it as a `bool` filter beside your query builder's query, so a custom
+[query builder](/configuration/search/#querybuilderclass) can't bypass it.
+
+If the two filters disagree, search drops any hit the entity filter hides and logs a warning. The page can then be
+shorter than `limit`, and `total` still counts the dropped hits.
+
+For a public repository, use the exported filters that make every entity visible, with `AllPublicAccess`:
+
+<Code code={accessPublic} lang="ts" />
+
+To hide whole collections, such as ones withdrawn from publication, build both filters from the same list. `id` and
+`rootCollection` are `keyword` fields in the [index mapping](/getting-started/opensearch/#create-the-index), so `terms`
+matches them exactly:
+
+<Code code={visibilityCollections} lang="ts" />
+
+Visibility doesn't pass down from collections. A member of a Hidden collection is only Hidden if your filters hide it,
+which is why both filters also check `rootCollection`. In Prisma, `notIn` leaves out rows where the column is null, so
+the entity filter keeps top-level collections with an explicit `rootCollection: null`.
+
+Hide only what shouldn't be published. An entity a request lacks the licence for should stay Visible and be Denied, so
+its Record still says where to apply; see [Licence checks against an external authority](/strategies/access/#licence-checks-against-an-external-authority).
+
+## `promptLoginForHidden`
+
+When `true`, an Anonymous request for a Hidden entity gets 401 `UNAUTHORIZED` instead of 404, in case logging in makes
+it visible. Authenticated requests still get 404, and missing entities always do. It applies to `/entity/:id`,
+`/entity/:id/metadata` and `/file/:id`. The trade-off is described under
+[Hidden is 404, unless you prompt a login](/concepts/visibility-vs-access/#hidden-is-404-unless-you-prompt-a-login).
+
+It requires [`isAuthenticated`](/configuration/access/#isauthenticated); registration throws
+`promptLoginForHidden requires isAuthenticated` without it. See [Error responses](/reference/errors/#refusals) for the
+full set of outcomes, and [Logged-in only](/strategies/access/#logged-in-only) for using it to hide a whole
+repository from anonymous visitors.

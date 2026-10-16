@@ -1,0 +1,129 @@
+---
+title: Your first API
+description: Register arocapi with every required option, add an entity and call the API.
+sidebar:
+  order: 4
+---
+
+import { Code } from '@astrojs/starlight/components';
+import firstApiIndex from '@examples/getting-started/src/first-api-index.ts?raw';
+import firstApiSeed from '@examples/getting-started/scripts/first-api-seed.ts?raw';
+import firstApiLogin from '@examples/getting-started/src/first-api-login.ts?raw';
+
+With the database and index ready, you can register the plugin. This page builds a public repository that stores its
+RO-Crate metadata and files on local disk, then shows how to require a login for some of it.
+
+## Register the plugin
+
+arocapi needs seven options:
+
+- `prisma` and `opensearch`: the clients for your database and search index
+  ([Data sources](/configuration/data-sources/)).
+- `entityVisibilityFilter` and `searchVisibilityFilter`: which entities exist for a request, as a Prisma condition and
+  an OpenSearch query. Hidden entities never appear in any response ([Visibility](/configuration/visibility/)).
+- `access`: whether a request may read a visible entity's full RO-Crate metadata and, for a file, its content
+  ([Access](/configuration/access/)).
+- `fileHandler` and `roCrateHandler`: how to fetch a file's content and an entity's RO-Crate metadata from your
+  storage ([Handlers](/configuration/handlers/)).
+
+Every one of these functions gets the request context, `{ request, fastify }`, so its answer can depend on who is
+asking. This first API answers the same for everyone: every entity is visible and every entity is accessible.
+[Visibility vs Access](/concepts/visibility-vs-access/) explains how the two differ.
+
+<Code code={firstApiIndex} lang="ts" title="src/index.ts" />
+
+The handlers only run after visibility and access have passed, so they never need to check either. Returning `false`
+from a handler gives a 404. [Storage strategies](/strategies/storage/) covers other ways to serve content, such as
+redirecting to object storage.
+
+## Add an entity
+
+arocapi serves what is in your database and index; it doesn't write to them. In a real repository your indexer fills
+both from your RO-Crates. For now, add a collection with one file by hand. Create its RO-Crate metadata and the file:
+
+:::note[Deposits are coming]
+Support for the RO-Crate API's [deposit](https://ro-crate-api.crate-works.org/docs/deposit) routes is coming soon.
+You'll be able to upload an RO-Crate and its files through the API and have arocapi fill the database and index from
+it, replacing hand-written seed scripts like the one below.
+:::
+
+```sh
+mkdir data
+echo 'Hello from arocapi' > data/hello.txt
+cat > data/ro-crate-metadata.json <<'EOF'
+{
+  "@context": "https://w3id.org/ro/crate/1.1/context",
+  "@graph": [
+    { "@id": "ro-crate-metadata.json", "@type": "CreativeWork", "about": { "@id": "./" } },
+    { "@id": "./", "@type": "Dataset", "name": "My first collection", "hasPart": [{ "@id": "hello.txt" }] },
+    { "@id": "hello.txt", "@type": "File", "name": "hello.txt", "encodingFormat": "text/plain" }
+  ]
+}
+EOF
+```
+
+Then a script that records both entities in the database and the index:
+
+<Code code={firstApiSeed} lang="ts" title="scripts/seed.ts" />
+
+A file is two rows: an `Entity` that gives it its place in the collection and its licences, and a `File` with the same
+ID that describes the bytes.
+
+```sh
+node --env-file=.env scripts/seed.ts
+```
+
+## Call the API
+
+Start the server:
+
+```sh
+node --env-file=.env src/index.ts
+```
+
+Entity IDs are URLs, so encode them in paths. [Routes](/reference/routes/) lists every route and its parameters.
+
+```sh
+curl http://localhost:3000/entities
+curl http://localhost:3000/entity/https%3A%2F%2Fexample.org%2Fcollection
+curl http://localhost:3000/entity/https%3A%2F%2Fexample.org%2Fcollection/metadata
+curl http://localhost:3000/file/https%3A%2F%2Fexample.org%2Fcollection%2Fhello.txt
+curl -X POST http://localhost:3000/search -H 'Content-Type: application/json' -d '{"query": "greeting"}'
+```
+
+Each entity in a response carries an `access` object saying whether this request may read its metadata and content:
+
+```json
+{
+  "id": "https://example.org/collection",
+  "name": "My first collection",
+  "description": "A collection with one file",
+  "entityType": "http://pcdm.org/models#Collection",
+  "memberOf": null,
+  "rootCollection": null,
+  "metadataLicenseId": "https://creativecommons.org/licenses/by/4.0/",
+  "contentLicenseId": "https://creativecommons.org/licenses/by/4.0/",
+  "access": { "metadata": true, "content": true }
+}
+```
+
+## Require a login for some content
+
+Most repositories have content that only some people may read. Replace `AllPublicAccess` with an access function
+that checks licences, and tell arocapi how to recognise a logged-in request with
+[`isAuthenticated`](/configuration/access/#isauthenticated). How a request
+proves who it is stays up to your app; this example accepts a single bearer token from `API_TOKEN`, and treats
+every request as Anonymous if it isn't set.
+
+<Code code={firstApiLogin} lang="ts" title="src/index.ts" />
+
+Now an entity whose content licence isn't open is still listed, with `access.content` set to `false` and a
+`contentAuthorizationUrl` saying where to ask for it. Fetching its file without the token gets a 401, so a client knows
+to prompt for a login. With the token it gets the file. In a repository where logged-in users hold different
+licences, a logged-in request without the licence gets a 403.
+
+Visibility filters work the same way: they receive the request context, so an entity can be hidden from some requests
+and not others. [Visibility vs Access](/concepts/visibility-vs-access/) follows a worked example through every route,
+and [Transformers](/configuration/transformers/) shows how to add your own fields to responses.
+
+Next, if your app uses Express, see [Using with Express](/getting-started/express/).

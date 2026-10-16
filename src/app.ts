@@ -61,10 +61,15 @@ export { AllVisibleEntityFilter, AllVisibleSearchFilter } from './utils/visibili
 export type { FacetCapability, FilterCapability, QueryBuilderOptions, SearchCapability };
 export { OpensearchQueryBuilder };
 
-const REMOVED_OPTIONS: Record<string, string> = {
-  accessTransformer: 'access',
-  fileAccessTransformer: 'access',
-  hiddenResponse: 'promptLoginForHidden and isAuthenticated',
+const DOCS_URL = 'https://arocapi.crate-works.org';
+
+const REMOVED_OPTIONS: Record<string, { replacement: string; docs: string }> = {
+  accessTransformer: { replacement: 'access', docs: `${DOCS_URL}/configuration/access/` },
+  fileAccessTransformer: { replacement: 'access', docs: `${DOCS_URL}/configuration/access/` },
+  hiddenResponse: {
+    replacement: 'promptLoginForHidden and isAuthenticated',
+    docs: `${DOCS_URL}/configuration/visibility/#promptloginforhidden`,
+  },
 };
 
 export type Options = {
@@ -107,9 +112,9 @@ const app: FastifyPluginAsync<Options> = async (fastify, options) => {
     throw new Error('OpenSearch client is required');
   }
 
-  for (const [removed, replacement] of Object.entries(REMOVED_OPTIONS)) {
+  for (const [removed, { replacement, docs }] of Object.entries(REMOVED_OPTIONS)) {
     if ((options as Record<string, unknown>)[removed] !== undefined) {
-      throw new Error(`${removed} has been replaced by ${replacement}, see the README`);
+      throw new Error(`${removed} has been replaced by ${replacement}, see ${docs}`);
     }
   }
 

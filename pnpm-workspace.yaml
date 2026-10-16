@@ -9,3 +9,6 @@ allowBuilds:
   esbuild: true # validates/links the platform-specific binary
   lefthook: true # installs the git hooks
   prisma: false # preinstall only warns about unsupported Node versions
+
+packages:
+  - website

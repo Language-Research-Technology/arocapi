@@ -6,7 +6,7 @@ arocapi is a **published npm library** (not a standalone app). It provides an RO
 
 ## Commands
 
-- `pnpm lint` — run all linters in parallel (biome, type checking, knip)
+- `pnpm lint` — generate the Prisma client, then run biome, type checking, the docs examples type check (`website/examples/`) and knip in parallel
 - `pnpm test` — start test containers (docker-compose.test.yml), apply migrations, then run all tests with coverage. Concurrent runs across checkouts are serialised by a lock
 - `pnpm test:ci` — run tests without starting containers (CI provides its own services)
 - `pnpm test <file>` — run a single test file, e.g. `pnpm run test src/routes/entity.test.ts`
@@ -14,6 +14,8 @@ arocapi is a **published npm library** (not a standalone app). It provides an RO
 - `pnpm test:coverage` — tests with HTML coverage report
 - `pnpm generate` — generate Prisma client (run after schema changes)
 - `pnpm db:migrate` — apply database migrations
+- `pnpm --filter website build` — build the docs site (`website/`, Astro Starlight): checks every Mermaid diagram parses, then `astro build` with starlight-links-validator, which fails on a broken internal link or anchor. Examples are type-checked by `pnpm lint`, not here
+- `pnpm --filter website dev` — docs dev server
 
 Releases (stable and `beta` prereleases) are covered in `RELEASING.md`.
 
@@ -35,7 +37,7 @@ This is a Fastify plugin that registers routes for entities, files, search, and 
 
 ### Issue tracker
 
-Issues live in GitHub Issues on `Language-Research-Technology/arocapi` (via `gh`). See `docs/agents/issue-tracker.md`.
+Issues live in GitHub Issues on `crate-works/arocapi` (via `gh`). See `docs/agents/issue-tracker.md`.
 
 ### Triage labels
 

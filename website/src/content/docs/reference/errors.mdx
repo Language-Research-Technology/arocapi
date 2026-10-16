@@ -1,0 +1,74 @@
+---
+title: Error responses
+description: The error envelope, its codes, and when each status is returned.
+sidebar:
+  order: 2
+---
+
+Every error from arocapi's routes has the same shape, `StandardErrorResponse`:
+
+```json
+{
+  "error": {
+    "code": "FORBIDDEN",
+    "message": "You do not have permission to access this resource",
+    "details": { "entityId": "http://example.com/entity/1" }
+  }
+}
+```
+
+`details` is optional. To use the envelope in your own routes, see [HTTP](/configuration/http/#error-responses).
+
+## Codes
+
+`ERROR_CODES` lists every code:
+
+| Code                    | Status | Returned when                                                         |
+| ----------------------- | ------ | --------------------------------------------------------------------- |
+| `VALIDATION_ERROR`      | 400    | Parameters fail validation; `details.violations` lists `{ field, message }`. |
+| `VALIDATION_ERROR`      | 422    | `POST /search` with `advanced` query syntax that OpenSearch rejects.  |
+| `UNAUTHORIZED`          | 401    | A Denied anonymous request, or a Hidden one with `promptLoginForHidden`. |
+| `FORBIDDEN`             | 403    | A Denied authenticated request, or any Denied request without `isAuthenticated`. |
+| `NOT_FOUND`             | 404    | A missing or Hidden entity or file, a handler returning `false`, or an unknown path under arocapi's `prefix`. |
+| `CONFLICT`              | 409    | Your own exposed errors with that status.                             |
+| `RANGE_NOT_SATISFIABLE` | 416    | Your own exposed errors with that status.                             |
+| `RATE_LIMIT_EXCEEDED`   | 429    | Your own exposed errors with that status.                             |
+| `INTERNAL_ERROR`        | 500    | Anything else. The message is generic; the real error is logged.      |
+| `INVALID_ENTITY_TYPE`   | none   | Exported for your use; arocapi doesn't return it.                     |
+
+An exposed error with another 4xx status keeps its status and gets `VALIDATION_ERROR`.
+
+## Refusals
+
+For direct requests to `/entity/:id`, `/entity/:id/metadata` and `/file/:id`:
+
+| Request for                                   | Anonymous          | Authenticated    |
+| --------------------------------------------- | ------------------ | ---------------- |
+| A missing entity                              | 404 `NOT_FOUND`    | 404 `NOT_FOUND`  |
+| A Hidden entity                               | 404 `NOT_FOUND`    | 404 `NOT_FOUND`  |
+| A Hidden entity, with `promptLoginForHidden`  | 401 `UNAUTHORIZED` | 404 `NOT_FOUND`  |
+| Denied Metadata or Content                    | 401 `UNAUTHORIZED` | 403 `FORBIDDEN`  |
+
+- A Hidden entity gets the same response as a missing one, so its existence isn't revealed. It never gets 403.
+- A Denied request is never 404: the entity is Visible, so the client already knows it exists.
+- Without [`isAuthenticated`](/configuration/access/#isauthenticated) no request is Anonymous, so Denied is always 403.
+- Refusal bodies carry `details.entityId` but no authorisation URLs. Clients read those from the entity's `access`.
+- `/entity/:id` only checks visibility; the Record is returned whatever the access.
+
+[How a request is decided](/concepts/visibility-vs-access/#how-a-request-is-decided) explains why. Listings and search never refuse: Hidden entities are left out, and Denied ones are listed with `access` false.
+
+## Messages
+
+| Status | Message                                              | Route                       |
+| ------ | ---------------------------------------------------- | --------------------------- |
+| 401    | Authentication is required to access this resource   | refusals                    |
+| 403    | You do not have permission to access this resource   | refusals                    |
+| 404    | The requested entity was not found                   | `/entity/:id`, `/entity/:id/metadata` |
+| 404    | The requested file was not found                     | `/file/:id`                 |
+| 404    | The requested RO-Crate metadata was not found        | `HEAD /entity/:id/metadata`, handler returned `false` |
+| 404    | The requested RO-Crate could not be retrieved        | `GET /entity/:id/metadata`, handler returned `false` |
+| 404    | The requested file metadata was not found            | `HEAD /file/:id`, handler returned `false` |
+| 404    | The requested file could not be retrieved            | `GET /file/:id`, handler returned `false` |
+| 404    | The requested resource was not found                 | unknown path                |
+| 400    | The request parameters are invalid                   | validation                  |
+| 500    | Internal server error                                | anything else               |

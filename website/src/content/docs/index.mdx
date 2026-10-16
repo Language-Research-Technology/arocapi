@@ -1,0 +1,42 @@
+---
+title: arocapi
+description: An RO-Crate API you mount into your own Fastify app.
+template: splash
+hero:
+  tagline: An RO-Crate API you mount into your own Fastify app. Bring your storage, your search index and your access rules; arocapi serves the routes.
+  actions:
+    - text: Get started
+      link: /getting-started/install/
+      icon: right-arrow
+    - text: What is arocapi
+      link: /introduction/what-is-arocapi/
+      variant: secondary
+    - text: View on GitHub
+      link: https://github.com/crate-works/arocapi
+      icon: external
+      variant: minimal
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+## Install
+
+```sh
+pnpm add arocapi@beta @prisma/client @opensearch-project/opensearch
+```
+
+## What you get
+
+<CardGrid>
+  <Card title="Visibility & Access" icon="seti:lock">
+    Your filters decide which entities exist for a request, and your access function decides who may read their
+    metadata and files. arocapi applies both on every route. [How it works](/concepts/visibility-vs-access/)
+  </Card>
+  <Card title="Pluggable storage" icon="seti:folder">
+    Serve RO-Crate metadata and files from local disk, object storage or OCFL by streaming them or redirecting to them.
+    [Storage strategies](/strategies/storage/)
+  </Card>
+  <Card title="Search" icon="magnifier">
+    Full-text search, facets and geospatial queries on OpenSearch, with a query builder you can subclass.
+  </Card>
+</CardGrid>

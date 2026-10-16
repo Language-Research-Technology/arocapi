@@ -1,0 +1,56 @@
+---
+import Default from '@astrojs/starlight/components/Footer.astro';
+
+const siblings = [
+  { name: 'RO-Crate API', href: 'https://ro-crate-api.crate-works.org' },
+  { name: 'Oni', href: 'https://github.com/crate-works/oni' },
+  { name: 'Collection Downloader', href: 'https://github.com/crate-works/downloader' },
+  { name: 'Cockatiel', href: 'https://github.com/crate-works/cockatiel' },
+  { name: 'RaspboCrate', href: 'https://raspbocrate.crate-works.org' },
+  { name: 'Bowerbird', href: 'https://bowerbird.crate-works.org' },
+  { name: 'RO-Crate Static Site', href: 'https://crate-works.github.io/ro-crate-static-site/' },
+];
+---
+
+<Default />
+
+<nav class="crate-works" aria-label="CrateWorks">
+  <p>
+    arocapi is part of <a href="https://crate-works.org">CrateWorks</a>, a workbench of tools for RO-Crate research
+    data.
+  </p>
+  <ul>
+    {
+      siblings.map(({ name, href }) => (
+        <li>
+          <a {href}>{name}</a>
+        </li>
+      ))
+    }
+  </ul>
+</nav>
+
+<style>
+  .crate-works {
+    margin-top: 3rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--sl-color-hairline);
+    font-size: var(--sl-text-sm);
+    color: var(--sl-color-gray-3);
+  }
+  ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 1.25rem;
+    margin-top: 0.75rem;
+    padding: 0;
+    list-style: none;
+  }
+  a {
+    color: var(--sl-color-gray-2);
+    text-decoration: none;
+  }
+  a:hover {
+    color: var(--sl-color-text-accent);
+  }
+</style>

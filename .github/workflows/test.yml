@@ -79,6 +79,9 @@ jobs:
       - name: Lint (knip)
         run: pnpm run lint:knip
 
+      - name: Lint (examples)
+        run: pnpm run lint:examples
+
       - name: Run unit tests
         run: pnpm run test:ci
         env:

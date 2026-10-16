@@ -1,0 +1,64 @@
+---
+title: Record, Metadata, Content
+description: The three levels of an entity's data, the routes that return each one, and what guards them.
+sidebar:
+  order: 2
+---
+
+import { Code } from '@astrojs/starlight/components';
+import recordMetadataContentTransformer from '@examples/concepts/record-metadata-content-transformer.ts?raw';
+
+arocapi serves each entity at three levels. The more a level reveals, the more a request needs before it can read it.
+
+| Level        | What it is                                       | Routes                                                | Guarded by                                     |
+| ------------ | ------------------------------------------------ | ----------------------------------------------------- | ---------------------------------------------- |
+| **Record**   | A short summary of the entity                    | `GET /entities`, `GET /files`, `POST /search`, `GET /entity/:id` | Visibility                                     |
+| **Metadata** | The entity's full RO-Crate metadata document     | `GET` and `HEAD /entity/:id/metadata`                 | Visibility, then access (`access.metadata`)    |
+| **Content**  | The bytes of a file. Only file entities have it. | `GET` and `HEAD /file/:id`                            | Visibility, then access (`access.content`)     |
+
+## Record
+
+The Record is what a request sees when it lists, searches or looks up an entity: its id, name, description and type, the
+collection and object it belongs to ([Entities & hierarchy](/concepts/entities/)), and the ids of its metadata and
+content [licences](/concepts/licences/). arocapi builds it from your database, not from the RO-Crate, so listing a
+thousand entities never opens a thousand crates.
+
+Only visibility guards the Record. A request either sees an entity's whole Record or doesn't know the entity exists.
+arocapi never redacts a Record field by field, and never asks your access function before returning one.
+
+Every Record carries an `access` field saying whether this request may read the entity's Metadata and Content, so a
+client can show a lock or a "request access" link without making a request that will be refused. Your entity
+transformers run after `access` is attached and can rely on it:
+
+<Code code={recordMetadataContentTransformer} lang="ts" />
+
+A file in `GET /files` has a smaller Record: id, filename, media type and size. Its `access` holds only `content`,
+taken from the file's own entity.
+
+## Metadata
+
+The Metadata is the entity's complete RO-Crate metadata document, served by `GET /entity/:id/metadata` through your
+`roCrateHandler`. It can hold far more than the Record: people, places, notes and anything else you
+record about it. That's why it has its own licence and its own check.
+
+A request reaches your handler only if the entity is Visible and `access.metadata` is true for it. arocapi doesn't
+serve partly redacted Metadata. If some requests should see a reduced version, grant them Metadata access and return
+it from your handler.
+
+## Content
+
+The Content is the bytes of a file, served by `GET /file/:id` through your `fileHandler`. Only file entities have
+Content. Asking for the Content of a collection or object is a 404.
+
+A request reaches your handler only if the file's entity is visible and `access.content` is true for it. A file's
+access is always its own file entity's access. Collections and objects also get a `content` flag in their Records,
+but arocapi never enforces it; use it as a hint for clients, such as "this item has files you can't download".
+
+## Visibility and access
+
+Visibility decides whether an entity exists for a request. Access decides whether a request may read a visible
+entity's Metadata and Content. They answer different questions and fail differently: a hidden entity looks missing,
+while a Denied request is told that it needs to log in or lacks permission.
+[Visibility vs Access](/concepts/visibility-vs-access/) explains how a request is decided and what each route returns.
+The options are under [Visibility](/configuration/visibility/) and [Access](/configuration/access/), and the routes
+under [Routes](/reference/routes/).

@@ -1,0 +1,66 @@
+---
+title: Search
+description: The query builder that turns POST /search requests into OpenSearch queries, aggregations and sorts.
+sidebar:
+  order: 5
+---
+
+import { Code } from '@astrojs/starlight/components';
+import searchQueryBuilder from '@examples/configuration/search-query-builder.ts?raw';
+import searchAggregations from '@examples/configuration/search-aggregations.ts?raw';
+
+`POST /search` builds its OpenSearch request with a query builder. The default, `OpensearchQueryBuilder`, works with
+the defaults below; subclass it to fit your index. [Search](/strategies/search/) walks through the default builder
+and a worked subclass.
+
+| Option                | Required | Type                            | Default                  | Purpose                                         |
+| --------------------- | -------- | ------------------------------- | ------------------------ | ----------------------------------------------- |
+| `queryBuilderClass`   | no       | `typeof OpensearchQueryBuilder` | `OpensearchQueryBuilder` | Class that builds queries, facets and sorts.    |
+| `queryBuilderOptions` | no       | `QueryBuilderOptions`           | none                     | Passed to the query builder's constructor.      |
+
+arocapi creates one instance at registration: `new queryBuilderClass(queryBuilderOptions)`.
+
+## `queryBuilderClass`
+
+A subclass of `OpensearchQueryBuilder`. Override any of its methods:
+
+| Method                                                  | Default behaviour                                                                                   |
+| ------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `buildQuery(searchType, query, filters?, boundingBox?)` | `basic`: fuzzy `multi_match` on `name^2` and `description`; an empty query matches everything. `advanced`: `query_string` with `AND` as the default operator. Each filter adds a `terms` clause on the field as named. `boundingBox` adds a `geo_bounding_box` on `location`. |
+| `buildAggregations(geohashPrecision?, boundingBox?)`    | The configured aggregations, plus a `geohash_grid` on `location` when both arguments are given.       |
+| `buildSort(sort, order)`                                | `relevance`: score order. `name`: `name.keyword`. Anything else: the field as named.                |
+| `searchCapabilities()`                                  | Declares each `terms` aggregation as a `string` filter and a facet in `GET /capabilities`.          |
+
+The [search visibility filter](/configuration/visibility/#searchvisibilityfilter) is added outside the builder, so an
+override can't skip it.
+
+<Code code={searchQueryBuilder} lang="ts" />
+
+## `queryBuilderOptions`
+
+The default builder reads one field:
+
+| Field          | Type                         | Default                                                                          |
+| -------------- | ---------------------------- | -------------------------------------------------------------------------------- |
+| `aggregations` | OpenSearch `aggs` object     | A `terms` aggregation of size 20 on `<field>.keyword` for `inLanguage`, `mediaType`, `communicationMode` and `entityType`. |
+
+`aggregations` is sent as the request's `aggs` and replaces the defaults rather than merging with them. Each bucket
+aggregation becomes a facet in the response. The defaults assume dynamically mapped text fields with a `.keyword`
+subfield; if your index maps these fields as `keyword`, set your own. The OpenSearch client's typings leave `field` out
+of `terms` aggregations, so declare the aggregations before assigning them:
+
+<Code code={searchAggregations} lang="ts" />
+
+Search filters use the field name as given, so they need a field that matches exactly, such as a `keyword` field.
+
+## Index
+
+arocapi searches an index named `entities`. With the default builder, its documents need:
+
+- `id`, matching the `Entity` row;
+- `name` as text with a `name.keyword` subfield, for name sorting;
+- `description` as text;
+- `location` as a `geo_point`, for bounding boxes and geohash grids;
+- `createdAt` and `updatedAt`, for those sorts.
+
+See [the index mapping it assumes](/strategies/search/#the-index-mapping-it-assumes) for an example mapping.
